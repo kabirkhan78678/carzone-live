@@ -149,6 +149,7 @@ export const listCar = async (req, res) => {
             mfk_warrenty_id,
             warranty_id,
             warranty_type_id,
+            quality_seal_id,
             warranty_from,
             warranty_to,
             last_mfk_date,
@@ -263,6 +264,7 @@ export const listCar = async (req, res) => {
             } : {}),
 
             warranty_type_text: warranty_type_id ? Number(warranty_type_id) : null,
+            quality_seal_id: quality_seal_id ? Number(quality_seal_id) : null,
             warranty_from,
             warranty_to,
             last_mfk_date,

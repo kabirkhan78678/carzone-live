@@ -97,10 +97,10 @@ export const getWltpRangeNumericExpression = (alias = "c") =>
     `CAST(NULLIF(${alias}.wltp_range, '') AS DECIMAL(15,2))`;
 
 export const getConsumptionNumericExpression = (alias = "c") =>
-  `CAST(NULLIF(${alias}.consumption, '') AS DECIMAL(15,2))`;
+    `CAST(NULLIF(${alias}.consumption, '') AS DECIMAL(15,2))`;
 
 export const getCo2EmissionNumericExpression = (alias = "c") =>
-  `CAST(NULLIF(${alias}.co2Emission, '') AS DECIMAL(15,2))`;
+    `CAST(NULLIF(${alias}.co2Emission, '') AS DECIMAL(15,2))`;
 
 
 export const buildFacetedConditions = (
@@ -205,7 +205,7 @@ export const buildFacetedConditions = (
             conditions,
             params,
             `${alias}.exterior_color_id`,
-            filters.exterior_color_ids || [] 
+            filters.exterior_color_ids || []
         );
     }
 
@@ -221,7 +221,7 @@ export const buildFacetedConditions = (
     if (excludeFacet !== "brand") {
         addMultiLikeFilter(conditions, params, `${alias}.brandName`, filters.brand_names || []);
     }
-    
+
     if (excludeFacet !== "model") {
         addMultiLikeFilter(conditions, params, `${alias}.carModel`, filters.model_names || []);
     }
@@ -329,141 +329,141 @@ export const buildFacetedConditions = (
     }
 
     const normalizedCubicCapacity = normalizeRange(filters.cubic_capacity || {});
-if (excludeFacet !== "cubic_capacity") {
-    const expr = getCubicCapacityNumericExpression(alias);
-    if (normalizedCubicCapacity.min !== null) {
-        conditions.push(`${expr} >= ?`);
-        params.push(normalizedCubicCapacity.min);
+    if (excludeFacet !== "cubic_capacity") {
+        const expr = getCubicCapacityNumericExpression(alias);
+        if (normalizedCubicCapacity.min !== null) {
+            conditions.push(`${expr} >= ?`);
+            params.push(normalizedCubicCapacity.min);
+        }
+        if (normalizedCubicCapacity.max !== null) {
+            conditions.push(`${expr} <= ?`);
+            params.push(normalizedCubicCapacity.max);
+        }
     }
-    if (normalizedCubicCapacity.max !== null) {
-        conditions.push(`${expr} <= ?`);
-        params.push(normalizedCubicCapacity.max);
-    }
-}
 
-const normalizedCylinders = normalizeRange(filters.cylinders || {});
-if (excludeFacet !== "cylinders") {
-    const expr = getCylindersNumericExpression(alias);
-    if (normalizedCylinders.min !== null) {
-        conditions.push(`${expr} >= ?`);
-        params.push(normalizedCylinders.min);
+    const normalizedCylinders = normalizeRange(filters.cylinders || {});
+    if (excludeFacet !== "cylinders") {
+        const expr = getCylindersNumericExpression(alias);
+        if (normalizedCylinders.min !== null) {
+            conditions.push(`${expr} >= ?`);
+            params.push(normalizedCylinders.min);
+        }
+        if (normalizedCylinders.max !== null) {
+            conditions.push(`${expr} <= ?`);
+            params.push(normalizedCylinders.max);
+        }
     }
-    if (normalizedCylinders.max !== null) {
-        conditions.push(`${expr} <= ?`);
-        params.push(normalizedCylinders.max);
-    }
-}
 
-const normalizedBatteryCapacity = normalizeRange(filters.battery_capacity || {});
-if (excludeFacet !== "battery_capacity") {
-    const expr = getBatteryCapacityNumericExpression(alias);
-    if (normalizedBatteryCapacity.min !== null) {
-        conditions.push(`${expr} >= ?`);
-        params.push(normalizedBatteryCapacity.min);
+    const normalizedBatteryCapacity = normalizeRange(filters.battery_capacity || {});
+    if (excludeFacet !== "battery_capacity") {
+        const expr = getBatteryCapacityNumericExpression(alias);
+        if (normalizedBatteryCapacity.min !== null) {
+            conditions.push(`${expr} >= ?`);
+            params.push(normalizedBatteryCapacity.min);
+        }
+        if (normalizedBatteryCapacity.max !== null) {
+            conditions.push(`${expr} <= ?`);
+            params.push(normalizedBatteryCapacity.max);
+        }
     }
-    if (normalizedBatteryCapacity.max !== null) {
-        conditions.push(`${expr} <= ?`);
-        params.push(normalizedBatteryCapacity.max);
-    }
-}
 
-const normalizedTotalWeight = normalizeRange(filters.total_weight || {});
-if (excludeFacet !== "total_weight") {
-    const expr = getTotalWeightNumericExpression(alias);
-    if (normalizedTotalWeight.min !== null) {
-        conditions.push(`${expr} >= ?`);
-        params.push(normalizedTotalWeight.min);
+    const normalizedTotalWeight = normalizeRange(filters.total_weight || {});
+    if (excludeFacet !== "total_weight") {
+        const expr = getTotalWeightNumericExpression(alias);
+        if (normalizedTotalWeight.min !== null) {
+            conditions.push(`${expr} >= ?`);
+            params.push(normalizedTotalWeight.min);
+        }
+        if (normalizedTotalWeight.max !== null) {
+            conditions.push(`${expr} <= ?`);
+            params.push(normalizedTotalWeight.max);
+        }
     }
-    if (normalizedTotalWeight.max !== null) {
-        conditions.push(`${expr} <= ?`);
-        params.push(normalizedTotalWeight.max);
-    }
-}
 
-const normalizedEmptyWeight = normalizeRange(filters.empty_weight || {});
-if (excludeFacet !== "empty_weight") {
-    const expr = getEmptyWeightNumericExpression(alias);
-    if (normalizedEmptyWeight.min !== null) {
-        conditions.push(`${expr} >= ?`);
-        params.push(normalizedEmptyWeight.min);
+    const normalizedEmptyWeight = normalizeRange(filters.empty_weight || {});
+    if (excludeFacet !== "empty_weight") {
+        const expr = getEmptyWeightNumericExpression(alias);
+        if (normalizedEmptyWeight.min !== null) {
+            conditions.push(`${expr} >= ?`);
+            params.push(normalizedEmptyWeight.min);
+        }
+        if (normalizedEmptyWeight.max !== null) {
+            conditions.push(`${expr} <= ?`);
+            params.push(normalizedEmptyWeight.max);
+        }
     }
-    if (normalizedEmptyWeight.max !== null) {
-        conditions.push(`${expr} <= ?`);
-        params.push(normalizedEmptyWeight.max);
+
+    const normalizedTowingCapacity = normalizeRange(filters.towing_capacity || {});
+    if (excludeFacet !== "towing_capacity") {
+        const expr = getTowingCapacityNumericExpression(alias);
+        if (normalizedTowingCapacity.min !== null) {
+            conditions.push(`${expr} >= ?`);
+            params.push(normalizedTowingCapacity.min);
+        }
+        if (normalizedTowingCapacity.max !== null) {
+            conditions.push(`${expr} <= ?`);
+            params.push(normalizedTowingCapacity.max);
+        }
     }
-}
 
-const normalizedTowingCapacity = normalizeRange(filters.towing_capacity || {});
-if (excludeFacet !== "towing_capacity") {
-    const expr = getTowingCapacityNumericExpression(alias);
-    if (normalizedTowingCapacity.min !== null) {
-        conditions.push(`${expr} >= ?`);
-        params.push(normalizedTowingCapacity.min);
+    const normalizedWltpRange = normalizeRange(filters.wltp_range || {});
+    if (excludeFacet !== "wltp_range") {
+        const expr = getWltpRangeNumericExpression(alias);
+        if (normalizedWltpRange.min !== null) {
+            conditions.push(`${expr} >= ?`);
+            params.push(normalizedWltpRange.min);
+        }
+        if (normalizedWltpRange.max !== null) {
+            conditions.push(`${expr} <= ?`);
+            params.push(normalizedWltpRange.max);
+        }
     }
-    if (normalizedTowingCapacity.max !== null) {
-        conditions.push(`${expr} <= ?`);
-        params.push(normalizedTowingCapacity.max);
+
+    const normalizedConsumption = normalizeRange(filters.consumption || {});
+    if (excludeFacet !== "consumption") {
+        const expr = getConsumptionNumericExpression(alias);
+        if (normalizedConsumption.min !== null) {
+            conditions.push(`${expr} >= ?`);
+            params.push(normalizedConsumption.min);
+        }
+        if (normalizedConsumption.max !== null) {
+            conditions.push(`${expr} <= ?`);
+            params.push(normalizedConsumption.max);
+        }
     }
-}
 
-const normalizedWltpRange = normalizeRange(filters.wltp_range || {});
-if (excludeFacet !== "wltp_range") {
-    const expr = getWltpRangeNumericExpression(alias);
-    if (normalizedWltpRange.min !== null) {
-        conditions.push(`${expr} >= ?`);
-        params.push(normalizedWltpRange.min);
+    const normalizedCo2 = normalizeRange(filters.co2_emission || {});
+    if (excludeFacet !== "co2_emission") {
+        const expr = getCo2EmissionNumericExpression(alias);
+        if (normalizedCo2.min !== null) {
+            conditions.push(`${expr} >= ?`);
+            params.push(normalizedCo2.min);
+        }
+        if (normalizedCo2.max !== null) {
+            conditions.push(`${expr} <= ?`);
+            params.push(normalizedCo2.max);
+        }
     }
-    if (normalizedWltpRange.max !== null) {
-        conditions.push(`${expr} <= ?`);
-        params.push(normalizedWltpRange.max);
-    }
-}
 
-const normalizedConsumption = normalizeRange(filters.consumption || {});
-if (excludeFacet !== "consumption") {
-  const expr = getConsumptionNumericExpression(alias);
-  if (normalizedConsumption.min !== null) {
-    conditions.push(`${expr} >= ?`);
-    params.push(normalizedConsumption.min);
-  }
-  if (normalizedConsumption.max !== null) {
-    conditions.push(`${expr} <= ?`);
-    params.push(normalizedConsumption.max);
-  }
-}
+    // MFK FILTER
+    // ============================================
 
-const normalizedCo2 = normalizeRange(filters.co2_emission || {});
-if (excludeFacet !== "co2_emission") {
-  const expr = getCo2EmissionNumericExpression(alias);
-  if (normalizedCo2.min !== null) {
-    conditions.push(`${expr} >= ?`);
-    params.push(normalizedCo2.min);
-  }
-  if (normalizedCo2.max !== null) {
-    conditions.push(`${expr} <= ?`);
-    params.push(normalizedCo2.max);
-  }
-}
-
-// MFK FILTER
-// ============================================
-
-if (
-    excludeFacet !== "mfk" &&
-    filters.mfk === true
-) {
-    conditions.push(`
+    if (
+        excludeFacet !== "mfk" &&
+        filters.mfk === true
+    ) {
+        conditions.push(`
         ${alias}.mfk_status_id IS NOT NULL
         AND ${alias}.mfk_status_id NOT IN (4, 5)
     `);
-}
+    }
 
 
-if (
-    excludeFacet !== "warranty" &&
-    filters.warranty === true
-) {
-    conditions.push(`
+    if (
+        excludeFacet !== "warranty" &&
+        filters.warranty === true
+    ) {
+        conditions.push(`
         EXISTS (
             SELECT 1
             FROM tbl_warranty_types wtt
@@ -472,35 +472,35 @@ if (
               AND wtt.warranty_key != 'no_warranty'
         )
     `);
-}
+    }
 
-// ============================================
-// METALLIC FILTER
-// ============================================
+    // ============================================
+    // METALLIC FILTER
+    // ============================================
 
-if (
-    excludeFacet !== "is_metallic" &&
-    excludeFacet !== "metallic" &&
-    (filters.is_metallic === true || filters.metallic === true)
-) {
-    conditions.push(`${alias}.is_metallic = 1`);
-}
+    if (
+        excludeFacet !== "is_metallic" &&
+        excludeFacet !== "metallic" &&
+        (filters.is_metallic === true || filters.metallic === true)
+    ) {
+        conditions.push(`${alias}.is_metallic = 1`);
+    }
 
-// ============================================
-// EXTRA FILTERS
-// ============================================
+    // ============================================
+    // EXTRA FILTERS
+    // ============================================
 
-if (excludeFacet !== "extra_filters") {
-    const rawExtraFilterIds = filters.extra_filter_ids || filters.extra_filters || [];
-    const normalizedExtraFilterIds = normalizePositiveIdArray(rawExtraFilterIds);
-    if (normalizedExtraFilterIds.length) {
-        const hasId6 = normalizedExtraFilterIds.includes(6);
-        const otherIds = normalizedExtraFilterIds.filter((id) => id !== 6);
+    if (excludeFacet !== "extra_filters") {
+        const rawExtraFilterIds = filters.extra_filter_ids || filters.extra_filters || [];
+        const normalizedExtraFilterIds = normalizePositiveIdArray(rawExtraFilterIds);
+        if (normalizedExtraFilterIds.length) {
+            const hasId6 = normalizedExtraFilterIds.includes(6);
+            const otherIds = normalizedExtraFilterIds.filter((id) => id !== 6);
 
-        const extraBranches = [];
+            const extraBranches = [];
 
-        if (otherIds.length) {
-            extraBranches.push(`EXISTS (
+            if (otherIds.length) {
+                extraBranches.push(`EXISTS (
                 SELECT 1
                 FROM extras_options eo
                 INNER JOIN tbl_car_feature cf
@@ -509,11 +509,11 @@ if (excludeFacet !== "extra_filters") {
                   AND eo.is_active = 1
                   AND cf.car_id = ${alias}.id
             )`);
-            params.push(...otherIds, ...otherIds);
-        }
+                params.push(...otherIds, ...otherIds);
+            }
 
-        if (hasId6) {
-            extraBranches.push(`(
+            if (hasId6) {
+                extraBranches.push(`(
                 ${alias}.extras IS NOT NULL
                 AND (
                     ${alias}.extras = '6'
@@ -523,13 +523,52 @@ if (excludeFacet !== "extra_filters") {
                     OR FIND_IN_SET('eight_tyres', REPLACE(LOWER(${alias}.extras), ' ', '')) > 0
                 )
             )`);
-        }
+            }
 
-        if (extraBranches.length) {
-            conditions.push(`(${extraBranches.join(" OR ")})`);
+            if (extraBranches.length) {
+                conditions.push(`(${extraBranches.join(" OR ")})`);
+            }
         }
     }
-}
+
+    // ============================================
+    // CAR TYPE (SWISS VEHICLE) FILTER
+    // ============================================
+
+    if (
+        excludeFacet !== "car_type" &&
+        excludeFacet !== "is_swiss_vehicle"
+    ) {
+        const rawCarType = filters.car_type ?? (Array.isArray(filters.car_types) ? filters.car_types[0] : null);
+        const isOnlyCh =
+            rawCarType === "only_ch_cars" ||
+            rawCarType === "ch" ||
+            filters.is_swiss_vehicle === true ||
+            filters.is_swiss_vehicle === 1 ||
+            filters.is_swiss_vehicle === "1" ||
+            filters.is_swiss_vehicle === "true";
+        if (isOnlyCh) {
+            conditions.push(`${alias}.is_swiss_vehicle = 1`);
+        }
+    }
+
+    // ============================================
+    // QUALITY SEAL FILTER
+    // ============================================
+
+    if (
+        excludeFacet !== "quality_seal" &&
+        excludeFacet !== "quality_seals"
+    ) {
+        const rawQualityIds = filters.quality_seal_ids || filters.quality_seals || filters.quality_seal || filters.quality_seal_id || [];
+        const normalizedQualityIds = normalizePositiveIdArray(Array.isArray(rawQualityIds) ? rawQualityIds : [rawQualityIds]);
+        if (normalizedQualityIds.length) {
+            conditions.push(
+                `${alias}.quality_seal_id IN (${normalizedQualityIds.map(() => "?").join(",")})`
+            );
+            params.push(...normalizedQualityIds);
+        }
+    }
 
     return { conditions, params };
 };

@@ -46,6 +46,21 @@ export const filterCarsModel = async (filters) => {
         conditions.push(`is_metallic = 1`);
     }
 
+    if (
+        filters.car_type === "only_ch_cars" ||
+        filters.car_type === "ch" ||
+        filters.is_swiss_vehicle === 1 ||
+        filters.is_swiss_vehicle === "1" ||
+        filters.is_swiss_vehicle === true ||
+        filters.is_swiss_vehicle === "true" ||
+        filters.isSwissVehicle === 1 ||
+        filters.isSwissVehicle === "1" ||
+        filters.isSwissVehicle === true ||
+        filters.isSwissVehicle === "true"
+    ) {
+        conditions.push(`is_swiss_vehicle = 1`);
+    }
+
     if (power_from || power_to) {
         if (power_unit === "KW") {
             if (power_from) conditions.push(`COALESCE(power_kw, ROUND(CAST(NULLIF(powerOutput, '') AS DECIMAL(15,2)) / 1.35962)) >= ?`), params.push(power_from);

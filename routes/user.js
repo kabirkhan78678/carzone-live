@@ -219,6 +219,10 @@ app.get('/wltp-range-analytics', rangeAnalyticsValidation, handleValidationError
 app.get('/consumption-range-analytics', rangeAnalyticsValidation, handleValidationErrors, controller.userController.getConsumptionAnalytics);
 app.get('/co2-emission-range-analytics', rangeAnalyticsValidation, handleValidationErrors, controller.userController.getCo2EmissionAnalytics);
 app.get('/seller-type', controller.userController.getSellerTypes);
+app.get('/car-types', controller.userController.getCarTypesDropdown);
+app.get('/car-type', controller.userController.getCarTypesDropdown);
+app.get('/quality-seals', controller.userController.getQualitySealsDropdown);
+app.get('/quality-seal', controller.userController.getQualitySealsDropdown);
 
 app.get('/total-Cars', controller.userController.filterCarsController);
 app.post('/addRecentlyViewed', authenticateUser, recentlyViewedValidation, handleValidationErrors, controller.userController.addRecentlyViewed);

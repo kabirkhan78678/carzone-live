@@ -1,5 +1,5 @@
 import { parseFacetedInput, normalizeFacetedFilters } from '../../utils/user_helper.js';
-import { getVehicleConditionFacetModel, getFacetedTotalCarsModel, getEnergyEfficiencyFacetModel, getListingAgeFacetModel, getSellerTypeFacetModel } from '../../models/facetedFilter.model.js';
+import { getVehicleConditionFacetModel, getFacetedTotalCarsModel, getEnergyEfficiencyFacetModel, getListingAgeFacetModel, getSellerTypeFacetModel, getCarTypeFacetModel, getQualitySealFacetModel } from '../../models/facetedFilter.model.js';
 import { handleError, handleSuccess } from '../../utils/responseHandler.js';
 
 export const vehicleConditionsDropdown = async (req, res) => {
@@ -81,6 +81,49 @@ export const getSellerTypes = async (req, res) => {
         return handleError(res, 500, "Internal server error");
     }
 };
+
+export const getCarTypesDropdown = async (req, res) => {
+    try {
+        const lang = req.query.lang || "en";
+        const activeFiltersInput = parseFacetedInput(req.query.active_filters ?? req.query.applied_filters);
+        const normalizedFilters = normalizeFacetedFilters(activeFiltersInput);
+
+        const carTypeFacet = await getCarTypeFacetModel(lang, normalizedFilters);
+        const totalCars = await getFacetedTotalCarsModel(normalizedFilters);
+
+        return handleSuccess(res, 200, "Car types fetched successfully", {
+            types: carTypeFacet.options,
+            total_cars: totalCars
+        });
+    } catch (error) {
+        console.error(error);
+        return handleError(res, 500, "Internal server error");
+    }
+};
+
+export const getCarTypes = getCarTypesDropdown;
+
+export const getQualitySealsDropdown = async (req, res) => {
+    try {
+        const lang = req.query.lang || "en";
+        const activeFiltersInput = parseFacetedInput(req.query.active_filters ?? req.query.applied_filters);
+        const normalizedFilters = normalizeFacetedFilters(activeFiltersInput);
+
+        const qualitySealFacet = await getQualitySealFacetModel(lang, normalizedFilters);
+        const totalCars = await getFacetedTotalCarsModel(normalizedFilters);
+
+        return handleSuccess(res, 200, "Quality seals fetched successfully", {
+            quality_seals: qualitySealFacet.options,
+            total_cars: totalCars
+        });
+    } catch (error) {
+        console.error(error);
+        return handleError(res, 500, "Internal server error");
+    }
+};
+
+export const getQualitySeals = getQualitySealsDropdown;
+export const getQualitySeal = getQualitySealsDropdown;
 
 //     try {
 

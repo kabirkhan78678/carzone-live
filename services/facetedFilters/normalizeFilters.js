@@ -139,27 +139,41 @@ export const normalizeFacetedFilters = (rawFilters = {}) => {
             ? "leasing"
             : "purchase";
 
-     const isMfkSelected =
-    source.mfk === true ||
-    source.mfk === "true" ||
-    source.mfk === 1 ||
-    source.mfk === "1";
+    const isMfkSelected =
+        source.mfk === true ||
+        source.mfk === "true" ||
+        source.mfk === 1 ||
+        source.mfk === "1";
 
-const isWarrantySelected =
-    source.warranty === true ||
-    source.warranty === "true" ||
-    source.warranty === 1 ||
-    source.warranty === "1";
+    const isWarrantySelected =
+        source.warranty === true ||
+        source.warranty === "true" ||
+        source.warranty === 1 ||
+        source.warranty === "1";
 
-const isMetallicSelected =
-    source.is_metallic === true ||
-    source.is_metallic === "true" ||
-    source.is_metallic === 1 ||
-    source.is_metallic === "1" ||
-    source.metallic === true ||
-    source.metallic === "true" ||
-    source.metallic === 1 ||
-    source.metallic === "1";
+    const isMetallicSelected =
+        source.is_metallic === true ||
+        source.is_metallic === "true" ||
+        source.is_metallic === 1 ||
+        source.is_metallic === "1" ||
+        source.metallic === true ||
+        source.metallic === "true" ||
+        source.metallic === 1 ||
+        source.metallic === "1";
+
+    const rawCarType = pickFirstDefined(source, ["car_type", "carType", "car_types"]);
+    const normalizedCarType = Array.isArray(rawCarType) ? rawCarType[0] : rawCarType;
+    const isSwissVehicleSelected =
+        source.is_swiss_vehicle === true ||
+        source.is_swiss_vehicle === "true" ||
+        source.is_swiss_vehicle === 1 ||
+        source.is_swiss_vehicle === "1" ||
+        source.isSwissVehicle === true ||
+        source.isSwissVehicle === "true" ||
+        source.isSwissVehicle === 1 ||
+        source.isSwissVehicle === "1" ||
+        normalizedCarType === "only_ch_cars" ||
+        normalizedCarType === "ch";
 
     return {
         fuel_type_ids: normalizeIdArray(
@@ -188,6 +202,9 @@ const isMetallicSelected =
         mfk_warranty_ids: normalizeIdArray(
             pickFirstDefined(rawMfkWarranty, ["ids", "selected_ids", "values"]) ??
             pickFirstDefined(source, ["mfk_warranty_ids", "mfk_warrenty_id", "warranty_id"])
+        ),
+        quality_seal_ids: normalizeIdArray(
+            pickFirstDefined(source, ["quality_seal_ids", "quality_seals", "quality_seal", "quality_seal_id", "qualitySeals"])
         ),
         vehicle_condition_ids: normalizeIdArray(
             pickFirstDefined(rawVehicleCondition, ["ids", "selected_ids", "values"]) ??
@@ -396,6 +413,8 @@ const isMetallicSelected =
         warranty: isWarrantySelected,
         is_metallic: isMetallicSelected,
         metallic: isMetallicSelected,
+        car_type: isSwissVehicleSelected ? "only_ch_cars" : (normalizedCarType ? String(normalizedCarType).toLowerCase().trim() : "all_standard"),
+        is_swiss_vehicle: isSwissVehicleSelected,
         exclude_user_id: toNullableNumber(
             pickFirstDefined(source, ["exclude_user_id", "excluded_user_id", "viewer_user_id", "viewerUserId"])
         ),
@@ -424,7 +443,8 @@ export const hasAnyFacetedSelection = (filters = {}) => {
         (source.brand_names || []).length > 0 ||
         (source.model_names || []).length > 0 ||
         (source.seller_types || []).length > 0 ||
-        (source.extra_filter_ids || []).length > 0;
+        (source.extra_filter_ids || []).length > 0 ||
+        (source.quality_seal_ids || []).length > 0;
 
     const hasRangeSelection =
         source?.price?.min !== null ||
@@ -462,7 +482,9 @@ export const hasAnyFacetedSelection = (filters = {}) => {
         Boolean(source.mfk) ||
         Boolean(source.warranty) ||
         Boolean(source.is_metallic) ||
-        Boolean(source.metallic);
+        Boolean(source.metallic) ||
+        Boolean(source.is_swiss_vehicle) ||
+        (source.car_type && source.car_type !== "all" && source.car_type !== "all_standard");
 
     const hasSearch = Boolean(source.search_text);
 

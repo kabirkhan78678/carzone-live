@@ -51,6 +51,12 @@ export const viewCarDetailByCarIdModel = async (carId, language = 'en') => {
       wq.id AS warranty_type_id_resolved,
       wqt.label AS warranty_type_value,
 
+      -- Quality Seal
+      qs.id AS quality_seal_id_resolved,
+      qs.name AS quality_seal_name,
+      qs.image AS quality_seal_image,
+      qs.description AS quality_seal_description,
+
       -- latest leasing row (new listing flow writes in tbl_car_leasing)
       cl.monthly_price AS leasing_monthly_price,
       cl.banking_partner AS leasing_banking_partner,
@@ -144,6 +150,10 @@ export const viewCarDetailByCarIdModel = async (carId, language = 'en') => {
     LEFT JOIN warranty_qualities_translations wqt
       ON wqt.warranty_quality_id = wq.id
       AND wqt.language_code = ?
+
+    LEFT JOIN tbl_quality_seals qs
+      ON qs.id = c.quality_seal_id
+      AND qs.is_delete = 0
 
     LEFT JOIN tbl_mfk_status mst
       ON mst.id = c.mfk_status_id

@@ -10,3 +10,4 @@ export * from './admin/reportedCars.controller.js';
 export * from './admin/usersList.controller.js';
 export * from './admin/visit.controller.js';
 export * from './admin/systemNotification.controller.js';
+export * from './admin/qualitySeal.controller.js';

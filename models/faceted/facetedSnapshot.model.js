@@ -12,7 +12,8 @@ import {
     getListingAgeFacetModel,
     getExteriorColorFacetModel,
     getInteriorColorFacetModel,
-    getSellerTypeFacetModel
+    getSellerTypeFacetModel,
+    getCarTypeFacetModel
 } from './facetedCategorical.model.js';
 import {
     getPriceFacetModel,
@@ -70,7 +71,8 @@ export const getFacetedFiltersSnapshotModel = async (filters = {}, lang = "en") 
             listing_age: await getListingAgeFacetModel(filters),
             exterior_color: await getExteriorColorFacetModel(filters, lang),
             interior_color: await getInteriorColorFacetModel(filters, lang),
-            seller_type: await getSellerTypeFacetModel(filters)
+            seller_type: await getSellerTypeFacetModel(filters),
+            car_type: await getCarTypeFacetModel(filters, lang)
         }
     };
 };

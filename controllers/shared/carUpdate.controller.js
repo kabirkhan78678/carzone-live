@@ -91,6 +91,7 @@ const VALID_TBL_CARS_COLUMNS = new Set([
     'warranty_from',
     'warranty_to',
     'warranty_type_text',
+    'quality_seal_id',
     'color_id',
     'version',
     'listing_step',
@@ -443,6 +444,13 @@ export const updateCar = async (req, res) => {
         if (resolvedWarrantyTypeText !== undefined) {
             data.warranty_type_text = resolvedWarrantyTypeText !== null && String(resolvedWarrantyTypeText).trim() !== ""
                 ? String(resolvedWarrantyTypeText).trim()
+                : null;
+        }
+
+        if (rawCarData.quality_seal_id !== undefined || rawCarData.quality_seal !== undefined) {
+            const rawSeal = rawCarData.quality_seal_id ?? rawCarData.quality_seal;
+            data.quality_seal_id = rawSeal !== null && String(rawSeal).trim() !== "" && !isNaN(Number(rawSeal))
+                ? Number(rawSeal)
                 : null;
         }
 

@@ -7,3 +7,4 @@ export * from './admin/feedbackSupport.model.js';
 export * from './admin/planSlot.model.js';
 export * from './admin/userManagement.model.js';
 export * from './admin/visit.model.js';
+export * from './admin/qualitySeal.model.js';

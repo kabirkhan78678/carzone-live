@@ -61,6 +61,21 @@ export function buildWhereConditions(filters, selectedBrandNames, selectedModels
         "c.is_active = 1"
     ];
 
+    const isOnlyCh =
+        filters.car_type === "only_ch_cars" ||
+        filters.car_type === "ch" ||
+        filters.is_swiss_vehicle === true ||
+        filters.is_swiss_vehicle === 1 ||
+        filters.is_swiss_vehicle === "1" ||
+        filters.is_swiss_vehicle === "true" ||
+        filters.isSwissVehicle === true ||
+        filters.isSwissVehicle === 1 ||
+        filters.isSwissVehicle === "1" ||
+        filters.isSwissVehicle === "true";
+    if (isOnlyCh) {
+        where.push(`c.is_swiss_vehicle = 1`);
+    }
+
     const excludeUserId = hasFiniteNumber(filters.exclude_user_id ?? filters.excluded_user_id ?? filters.viewer_user_id ?? filters.viewerUserId)
         ? Number(filters.exclude_user_id ?? filters.excluded_user_id ?? filters.viewer_user_id ?? filters.viewerUserId)
         : null;
@@ -316,6 +331,21 @@ export function buildSellerJoinExtra(filters, selectedBrandNames, selectedModels
         } else if (days.length > 1) {
             sellerJoinExtra.push(`(${days.map((day) => `c.createdAt <= NOW() - INTERVAL ${day} DAY`).join(" OR ")})`);
         }
+    }
+
+    const isOnlyChForSeller =
+        filters.car_type === "only_ch_cars" ||
+        filters.car_type === "ch" ||
+        filters.is_swiss_vehicle === true ||
+        filters.is_swiss_vehicle === 1 ||
+        filters.is_swiss_vehicle === "1" ||
+        filters.is_swiss_vehicle === "true" ||
+        filters.isSwissVehicle === true ||
+        filters.isSwissVehicle === 1 ||
+        filters.isSwissVehicle === "1" ||
+        filters.isSwissVehicle === "true";
+    if (isOnlyChForSeller) {
+        sellerJoinExtra.push(`c.is_swiss_vehicle = 1`);
     }
 
     if (hasFiniteNumber(km_from) && hasFiniteNumber(km_to)) {

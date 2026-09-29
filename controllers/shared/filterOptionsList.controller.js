@@ -1,4 +1,4 @@
-import { getAccidentStatusFacetModel, getMfkWarrantyFacetModel, getVehicleConditionFacetModel, getEnergyEfficiencyFacetModel, getListingAgeFacetModel, getSeatFacetModel, getDoorFacetModel, getEnginePowerFacetModel, getCubicCapacityFacetModel, getCylindersFacetModel, getBatteryCapacityFacetModel, getTotalWeightFacetModel, getEmptyWeightFacetModel, getTowingCapacityFacetModel, getWltpRangeFacetModel, getConsumptionFacetModel, getCo2EmissionFacetModel, getFacetedTotalCarsModel } from '../../models/facetedFilter.model.js';
+import { getAccidentStatusFacetModel, getMfkWarrantyFacetModel, getVehicleConditionFacetModel, getEnergyEfficiencyFacetModel, getListingAgeFacetModel, getSeatFacetModel, getDoorFacetModel, getEnginePowerFacetModel, getCubicCapacityFacetModel, getCylindersFacetModel, getBatteryCapacityFacetModel, getTotalWeightFacetModel, getEmptyWeightFacetModel, getTowingCapacityFacetModel, getWltpRangeFacetModel, getConsumptionFacetModel, getCo2EmissionFacetModel, getCarTypeFacetModel, getQualitySealFacetModel, getFacetedTotalCarsModel } from '../../models/facetedFilter.model.js';
 import { getAllFilters, getSortListModel, getExtrasListModel, getFeaturesListModel } from '../../models/user.model.js';
 import fs from 'fs/promises';
 import jwt from 'jsonwebtoken';
@@ -24,7 +24,7 @@ const extractViewerUserId = (req) => {
                     if (process.env.JWT_SECRET && process.env.JWT_SECRET !== secret) {
                         try {
                             decoded = jwt.verify(token, process.env.JWT_SECRET);
-                        } catch (e2) {}
+                        } catch (e2) { }
                     }
                 }
             }
@@ -103,7 +103,9 @@ export const getFilters = async (req, res) => {
             towingFacet,
             wltpFacet,
             consumptionFacet,
-            co2Facet
+            co2Facet,
+            carTypeFacet,
+            qualitySealFacet
         ] = await Promise.all([
             getAccidentStatusFacetModel(lang, normalizedFilters),
             getMfkWarrantyFacetModel(lang, normalizedFilters),
@@ -121,7 +123,9 @@ export const getFilters = async (req, res) => {
             getTowingCapacityFacetModel(normalizedFilters),
             getWltpRangeFacetModel(normalizedFilters),
             getConsumptionFacetModel(normalizedFilters),
-            getCo2EmissionFacetModel(normalizedFilters)
+            getCo2EmissionFacetModel(normalizedFilters),
+            getCarTypeFacetModel(lang, normalizedFilters),
+            getQualitySealFacetModel(lang, normalizedFilters)
         ]);
 
         const mapFacetOptions = (facet) =>
@@ -129,6 +133,8 @@ export const getFilters = async (req, res) => {
                 id: item.id ?? null,
                 code: item.code ?? null,
                 name: item.label ?? item.name ?? null,
+                image: item.image ?? null,
+                description: item.description ?? null,
                 total: Number(item.count) || 0
             }));
 
@@ -149,6 +155,8 @@ export const getFilters = async (req, res) => {
         data.vehicle_condition = mapFacetOptions(vehicleConditionFacet);
         data.energy_efficiency = mapFacetOptions(energyFacet);
         data.listing_age = mapFacetOptions(listingAgeFacet);
+        data.car_type = mapFacetOptions(carTypeFacet);
+        data.quality_seals = mapFacetOptions(qualitySealFacet);
 
         data.seat_range = mapRangeFacet(seatFacet);
         data.door_range = mapRangeFacet(doorFacet);

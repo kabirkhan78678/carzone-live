@@ -126,3 +126,24 @@ export const adminUpdateReportStatusValidation = [
   body('status')
     .notEmpty().withMessage('Status is required.')
 ];
+
+export const adminQualitySealValidation = [
+  body('name')
+    .notEmpty().withMessage('Quality seal name is required.')
+    .isString().withMessage('Quality seal name must be a string.'),
+  body('description')
+    .optional({ nullable: true, checkFalsy: true })
+    .isString().withMessage('Description must be a string.')
+];
+
+export const adminUpdateQualitySealValidation = [
+  param('id')
+    .notEmpty().withMessage('Quality seal ID is required.')
+    .isNumeric().withMessage('Quality seal ID must be a numeric value.'),
+  body('name')
+    .optional({ nullable: true, checkFalsy: true })
+    .isString().withMessage('Quality seal name must be a string.'),
+  body('description')
+    .optional({ nullable: true, checkFalsy: true })
+    .isString().withMessage('Description must be a string.')
+];

@@ -18,6 +18,8 @@ import {
   adminApproveRejectCompanyValidation,
   adminEmblemValidation,
   adminUpdateEmblemValidation,
+  adminQualitySealValidation,
+  adminUpdateQualitySealValidation,
   adminUpdateSupportValidation,
   adminUpdateReportStatusValidation
 } from '../vallidation/index.js';
@@ -70,6 +72,11 @@ app.get('/emblems', authenticateAdmin, controller.adminController.getEmblems);
 app.get('/emblem/:id', authenticateAdmin, idParamValidation, handleValidationErrors, controller.adminController.getEmblemById);
 app.put('/emblem/:id', authenticateAdmin, uploadProfile.fields(fieldsConfig), adminUpdateEmblemValidation, handleValidationErrors, controller.adminController.updateEmblem);
 app.delete('/emblem/:id', authenticateAdmin, idParamValidation, handleValidationErrors, controller.adminController.deleteEmblem);
+app.post('/quality-seal', authenticateAdmin, uploadProfile.fields(fieldsConfig), adminQualitySealValidation, handleValidationErrors, controller.adminController.createQualitySeal);
+app.get('/quality-seals', authenticateAdmin, controller.adminController.getQualitySeals);
+app.get('/quality-seal/:id', authenticateAdmin, idParamValidation, handleValidationErrors, controller.adminController.getQualitySealById);
+app.put('/quality-seal/:id', authenticateAdmin, uploadProfile.fields(fieldsConfig), adminUpdateQualitySealValidation, handleValidationErrors, controller.adminController.updateQualitySeal);
+app.delete('/quality-seal/:id', authenticateAdmin, idParamValidation, handleValidationErrors, controller.adminController.deleteQualitySeal);
 app.get('/help-support', authenticateAdmin, controller.adminController.getSupportList);
 app.get('/help-support/:id', authenticateAdmin, idParamValidation, handleValidationErrors, controller.adminController.getSupportById);
 app.put('/help-support/:id', authenticateAdmin, adminUpdateSupportValidation, handleValidationErrors, controller.adminController.updateSupport);

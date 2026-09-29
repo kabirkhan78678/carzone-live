@@ -34,7 +34,8 @@ export const getFilteredCarsByAllFilters = async (
     warrantyFilter,
     excludedUserId = null,
     excludeCurrentUser = false,
-    sortKey = ["published_most_recent"]
+    sortKey = ["published_most_recent"],
+    carTypeFilter = null
 ) => {
     const normalizeIds = (value) => {
         if (value === null || value === undefined || value === "") return [];
@@ -151,6 +152,9 @@ export const getFilteredCarsByAllFilters = async (
     }
     if (warrantyFilter?.is_warranty) {
         whereClause += ` AND EXISTS (SELECT 1 FROM tbl_warranty_types wtt WHERE wtt.id = tc.mfk_warrenty_id AND wtt.warranty_key IS NOT NULL AND TRIM(wtt.warranty_key) != '' AND wtt.warranty_key != 'no_warranty')`;
+    }
+    if (carTypeFilter?.is_only_ch) {
+        whereClause += ` AND tc.is_swiss_vehicle = 1`;
     }
     const excludedUser = normalizePositiveId(excludedUserId);
     if (excludeCurrentUser && excludedUser) {

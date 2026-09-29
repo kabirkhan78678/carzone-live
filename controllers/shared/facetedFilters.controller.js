@@ -78,16 +78,28 @@ export const getFacetedFilters = async (req, res) => {
             energy_efficiency,
             age_listing,
             seller_type,
-              mfk,
-             warranty,
-              // EXTRAS
-    extras,
-    extra_filters,
-    extraFilters,
-    extras_filters,
+            mfk,
+            warranty,
+            // EXTRAS
+            extras,
+            extra_filters,
+            extraFilters,
+            extras_filters,
 
-                 // SORT
-    sort_key
+            // CAR TYPE / SWISS VEHICLE
+            car_type,
+            carType,
+            is_swiss_vehicle,
+            isSwissVehicle,
+
+            // QUALITY SEAL
+            quality_seals,
+            quality_seal_ids,
+            quality_seal,
+            quality_seal_id,
+
+            // SORT
+            sort_key
         } = req.body;
 
         //     fuel_type : "",
@@ -132,19 +144,19 @@ export const getFacetedFilters = async (req, res) => {
         const doorsRange = normalizeRange(doors, "min_doors", "max_doors");
         const consumptionRange = normalizeRange(consumption, "min_cons", "max_cons");
         const co2Range = normalizeRange(co2_Emission, "min_co2", "max_co2");
-           const sortKey = (
-    Array.isArray(sort_key)
-        ? sort_key
-        : sort_key
-            ? String(sort_key).split(",")
-            : []
-)
-    .map((key) => String(key).trim().toLowerCase())
-    .filter(Boolean);
+        const sortKey = (
+            Array.isArray(sort_key)
+                ? sort_key
+                : sort_key
+                    ? String(sort_key).split(",")
+                    : []
+        )
+            .map((key) => String(key).trim().toLowerCase())
+            .filter(Boolean);
 
-if (!sortKey.length) {
-    sortKey.push("published_most_recent");
-}
+        if (!sortKey.length) {
+            sortKey.push("published_most_recent");
+        }
 
         var fuelFilter = {
             fuel_type: fuel_type_id,
@@ -320,19 +332,19 @@ if (!sortKey.length) {
             is_seller_type: normalizedSellerType.length > 0
         };
 
-          const mfkFilter = {
-    mfk: mfk,
-    is_mfk: mfk === true || mfk === 1 || mfk === "1" || mfk === "true"
-};
+        const mfkFilter = {
+            mfk: mfk,
+            is_mfk: mfk === true || mfk === 1 || mfk === "1" || mfk === "true"
+        };
 
-const warrantyFilter = {
-    warranty: warranty,
-    is_warranty:
-        warranty === true ||
-        warranty === 1 ||
-        warranty === "1" ||
-        warranty === "true"
-};
+        const warrantyFilter = {
+            warranty: warranty,
+            is_warranty:
+                warranty === true ||
+                warranty === 1 ||
+                warranty === "1" ||
+                warranty === "true"
+        };
 
         const normalizeExtraFiltersInput = (value) => {
             if (value === undefined || value === null || value === "") return [];
@@ -362,6 +374,32 @@ const warrantyFilter = {
         const extrasFilter = {
             extras: normalizedExtras,
             is_extras: normalizedExtras.length > 0
+        };
+
+        const isOnlyCh =
+            car_type === "only_ch_cars" ||
+            car_type === "ch" ||
+            carType === "only_ch_cars" ||
+            carType === "ch" ||
+            is_swiss_vehicle === true ||
+            is_swiss_vehicle === 1 ||
+            is_swiss_vehicle === "1" ||
+            is_swiss_vehicle === "true" ||
+            isSwissVehicle === true ||
+            isSwissVehicle === 1 ||
+            isSwissVehicle === "1" ||
+            isSwissVehicle === "true";
+
+        const carTypeFilter = {
+            car_type: isOnlyCh ? "only_ch_cars" : (car_type || carType || "all_standard"),
+            is_only_ch: isOnlyCh
+        };
+
+        const normalizedQualitySealIds = normalizeExtraFiltersInput(quality_seal_ids ?? quality_seals ?? quality_seal ?? quality_seal_id);
+
+        const qualitySealFilter = {
+            quality_seal_ids: normalizedQualitySealIds,
+            is_quality_seal: normalizedQualitySealIds.length > 0
         };
 
         const filterResult = await getFilteredCarsByAllFilters(
@@ -401,7 +439,9 @@ const warrantyFilter = {
             normalizedViewerUserId,
             !!normalizedViewerUserId, // excludeCurrentUser (exclude logged in user's own cars)
             // SORT KEY
-            sortKey
+            sortKey,
+            carTypeFilter,
+            qualitySealFilter
         )
 
         if (filterResult.length > 0) {
@@ -413,15 +453,15 @@ const warrantyFilter = {
             let data = await fetchCarsByIdsWithSellerDetails(carIds, lang);
 
             const carOrderMap = new Map(
-    carIds.map((id, index) => [Number(id), index])
-);
+                carIds.map((id, index) => [Number(id), index])
+            );
 
-data.sort((a, b) => {
-    return (
-        (carOrderMap.get(Number(a.id)) ?? Number.MAX_SAFE_INTEGER) -
-        (carOrderMap.get(Number(b.id)) ?? Number.MAX_SAFE_INTEGER)
-    );
-});
+            data.sort((a, b) => {
+                return (
+                    (carOrderMap.get(Number(a.id)) ?? Number.MAX_SAFE_INTEGER) -
+                    (carOrderMap.get(Number(b.id)) ?? Number.MAX_SAFE_INTEGER)
+                );
+            });
 
             if (data.length) {
                 data = await Promise.all(
@@ -442,6 +482,13 @@ data.sort((a, b) => {
                             warranty_type_id: item.warranty_type_id_resolved ?? item.warranty_type_text ?? null,
                             warranty_type_value: item.warranty_type_value ?? null,
                             warranty_value: item.warranty_value ?? null,
+                            quality_seal_id: item.quality_seal_id_resolved ?? item.quality_seal_id ?? null,
+                            quality_seal: item.quality_seal_id_resolved ? {
+                                id: item.quality_seal_id_resolved,
+                                name: item.quality_seal_name,
+                                image: item.quality_seal_image,
+                                description: item.quality_seal_description
+                            } : null,
                             leasing_value: item.leasing_value ?? item.leasingPrice ?? null,
                             annual_interest_rate: item.annual_interest_rate ?? null,
                             residual_value: item.residual_value ?? null,
@@ -514,7 +561,8 @@ data.sort((a, b) => {
                     state_id: state_id || undefined,
                     accident_vehicle: accident_vehicle ?? undefined,
                     exterior_color: exterior_color || undefined,
-                    interior_color: interior_color || undefined
+                    interior_color: interior_color || undefined,
+                    car_type: isOnlyCh ? "only_ch_cars" : undefined
                 };
 
                 try {
@@ -554,7 +602,8 @@ data.sort((a, b) => {
                 state_id: state_id || undefined,
                 accident_vehicle: accident_vehicle ?? undefined,
                 exterior_color: exterior_color || undefined,
-                interior_color: interior_color || undefined
+                interior_color: interior_color || undefined,
+                car_type: isOnlyCh ? "only_ch_cars" : undefined
             };
 
             try {

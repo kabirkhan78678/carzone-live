@@ -892,6 +892,119 @@ export const getSellerTypeFacetModel = async (filters = {}) => {
     };
 };
 
+// Car type facet (All Standard vs Only CH cars)
+export const getCarTypeFacetModel = async (lang = "en", filters = {}) => {
+    let selectedLang = typeof lang === "string" ? lang : "en";
+    let activeFilters = typeof lang === "object" ? lang : (filters || {});
+
+    const { conditions, params } = buildFacetedConditions(activeFilters, {
+        alias: "c",
+        excludeFacet: "car_type"
+    });
+    const whereClause = buildWhereClause(conditions);
+
+    const rows = await db.query(
+        `
+        SELECT
+            COUNT(c.id) AS total_cars,
+            SUM(CASE WHEN c.is_swiss_vehicle = 1 THEN 1 ELSE 0 END) AS swiss_cars
+        FROM tbl_cars c
+        ${whereClause}
+        `,
+        params
+    );
+
+    const totalCars = toSafeNumber(rows[0]?.total_cars, 0);
+    const swissCars = toSafeNumber(rows[0]?.swiss_cars, 0);
+
+    const labels = {
+        en: {
+            all: "All standard",
+            ch: "Only CH cars"
+        },
+        de: {
+            all: "Alle Standard",
+            ch: "Nur CH-Fahrzeuge"
+        },
+        fr: {
+            all: "Tous standard",
+            ch: "Uniquement véhicules CH"
+        },
+        it: {
+            all: "Tutti standard",
+            ch: "Solo veicoli CH"
+        }
+    };
+
+    const currentLabels = labels[selectedLang] || labels.en;
+
+    return {
+        options: [
+            {
+                id: "all_standard",
+                code: "all_standard",
+                label: currentLabels.all,
+                name: currentLabels.all,
+                count: totalCars
+            },
+            {
+                id: "only_ch_cars",
+                code: "only_ch_cars",
+                label: currentLabels.ch,
+                name: currentLabels.ch,
+                count: swissCars
+            }
+        ],
+        total_cars: totalCars
+    };
+};
+
+// Quality seal facet (Independent master module)
+export const getQualitySealFacetModel = async (lang = "en", filters = {}) => {
+    let activeFilters = typeof lang === "object" ? lang : (filters || {});
+
+    const { conditions, params } = buildFacetedConditions(activeFilters, {
+        alias: "c",
+        excludeFacet: "quality_seal"
+    });
+    const whereClause = buildWhereClause(conditions);
+
+    const rows = await db.query(
+        `
+        SELECT
+            qs.id,
+            qs.name,
+            qs.image,
+            qs.description,
+            COUNT(c.id) AS count
+        FROM tbl_quality_seals qs
+        LEFT JOIN tbl_cars c
+            ON c.quality_seal_id = qs.id
+            ${whereClause ? `AND ${whereClause.replace(/^WHERE\s+/i, "")}` : ""}
+        WHERE qs.is_delete = 0
+          AND qs.status = 1
+        GROUP BY qs.id, qs.name, qs.image, qs.description
+        ORDER BY qs.id ASC
+        `,
+        params
+    );
+
+    const totalCars = rows.reduce((acc, curr) => acc + toSafeNumber(curr.count, 0), 0);
+
+    return {
+        options: rows.map((r) => ({
+            id: r.id,
+            code: String(r.id),
+            name: r.name,
+            label: r.name,
+            image: r.image,
+            description: r.description,
+            count: toSafeNumber(r.count, 0)
+        })),
+        total_cars: totalCars
+    };
+};
+
 export const getBrandsFacetListModel = async (filters = {}) => {
     const { conditions, params } = buildFacetedConditions(filters, {
         alias: "car",
@@ -1366,7 +1479,9 @@ const getFilteredCarsByAllFilters = async (
     excludedUserId = null,
     excludeCurrentUser = false,
     // SORT
-    sortKey = ["published_most_recent"]
+    sortKey = ["published_most_recent"],
+    carTypeFilter = null,
+    qualitySealFilter = null
 ) => {
 
     //-------------------------added for array ------------------------//
@@ -1632,6 +1747,11 @@ const getFilteredCarsByAllFilters = async (
         `;
     }
 
+    // Car type (Swiss vehicle) filter
+    if (carTypeFilter?.is_only_ch) {
+        whereClause += ` AND tc.is_swiss_vehicle = 1`;
+    }
+
     console.log("excludedUserId =>", excludedUserId, "excludeCurrentUser =>", excludeCurrentUser);
     const excludedUser = normalizePositiveId(excludedUserId);
     if (excludeCurrentUser && excludedUser) {
@@ -1680,32 +1800,32 @@ const getFilteredCarsByAllFilters = async (
     };
 
     // Extras filter (legacy text matching only for non-numeric strings)
-if (extrasFilter?.is_extras && !extraFiltersFilter?.is_extra_filters) {
+    if (extrasFilter?.is_extras && !extraFiltersFilter?.is_extra_filters) {
 
-    const values = Array.isArray(extrasFilter.extras)
-        ? extrasFilter.extras
-        : [extrasFilter.extras];
+        const values = Array.isArray(extrasFilter.extras)
+            ? extrasFilter.extras
+            : [extrasFilter.extras];
 
-    const validExtras = values
-        .map((value) => String(value).trim().toLowerCase())
-        .filter((value) => value && !/^\d+$/.test(value));
+        const validExtras = values
+            .map((value) => String(value).trim().toLowerCase())
+            .filter((value) => value && !/^\d+$/.test(value));
 
-    if (validExtras.length) {
-        const extraConditions = validExtras.map((value) => {
-            const escapedValue = value.replace(/'/g, "''");
+        if (validExtras.length) {
+            const extraConditions = validExtras.map((value) => {
+                const escapedValue = value.replace(/'/g, "''");
 
-            return `
+                return `
                 LOWER(tc.extras) LIKE '%${escapedValue}%'
             `;
-        });
+            });
 
-        whereClause += `
+            whereClause += `
             AND (
                 ${extraConditions.join(" OR ")}
             )
         `;
+        }
     }
-}
 
     // Extra Filters (extra_filters dynamic mapping)
     if (extraFiltersFilter?.is_extra_filters) {
@@ -1752,6 +1872,17 @@ if (extrasFilter?.is_extras && !extraFiltersFilter?.is_extra_filters) {
                     )
                 `;
             }
+        }
+    }
+
+    if (carTypeFilter?.is_only_ch || carTypeFilter?.car_type === "only_ch_cars" || carTypeFilter?.car_type === "ch") {
+        whereClause += ` AND tc.is_swiss_vehicle = 1 `;
+    }
+
+    if (qualitySealFilter?.is_quality_seal || (qualitySealFilter?.quality_seal_ids && qualitySealFilter.quality_seal_ids.length > 0)) {
+        const qualityIds = normalizeIds(qualitySealFilter.quality_seal_ids || qualitySealFilter.quality_seal);
+        if (qualityIds.length) {
+            whereClause += ` AND tc.quality_seal_id IN (${qualityIds.join(",")}) `;
         }
     }
 

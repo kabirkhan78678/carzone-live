@@ -141,3 +141,43 @@ export const getSellerTypeFacetModel = async (arg1 = {}) => {
         total_cars: await getFacetedTotalCarsModel(filters, "seller_type")
     };
 };
+
+export const getCarTypeFacetModel = async (arg1 = {}, arg2 = "en") => {
+    const { filters, lang } = normalizeFacetArgs(arg1, arg2);
+    const { conditions, params } = buildFacetedConditions(filters, {
+        alias: "c",
+        excludeFacet: "car_type"
+    });
+    const whereClause = buildWhereClause(conditions);
+
+    const rows = await db.query(
+        `
+        SELECT
+            COUNT(c.id) AS total_cars,
+            SUM(CASE WHEN c.is_swiss_vehicle = 1 THEN 1 ELSE 0 END) AS swiss_cars
+        FROM tbl_cars c
+        ${whereClause}
+        `,
+        params
+    );
+
+    const totalCars = toSafeNumber(rows[0]?.total_cars, 0);
+    const swissCars = toSafeNumber(rows[0]?.swiss_cars, 0);
+
+    const labels = {
+        en: { all: "All standard", ch: "Only CH cars" },
+        de: { all: "Alle Standard", ch: "Nur CH-Fahrzeuge" },
+        fr: { all: "Tous standard", ch: "Uniquement véhicules CH" },
+        it: { all: "Tutti standard", ch: "Solo veicoli CH" }
+    };
+
+    const currentLabels = labels[lang] || labels.en;
+
+    return {
+        options: [
+            { id: "all_standard", code: "all_standard", label: currentLabels.all, name: currentLabels.all, count: totalCars },
+            { id: "only_ch_cars", code: "only_ch_cars", label: currentLabels.ch, name: currentLabels.ch, count: swissCars }
+        ],
+        total_cars: totalCars
+    };
+};
