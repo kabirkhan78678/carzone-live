@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Successful</title>
+  <style>
+    /* ---------- Base Reset ---------- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #4caf50, #2e7d32);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* ---------- Card ---------- */
+    .success-card {
+      background: #fff;
+      border-radius: 16px;
+      max-width: 400px;
+      width: 100%;
+      padding: 40px 30px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      animation: fadeIn 0.6s ease-in-out;
+    }
+
+    /* ---------- Check Animation ---------- */
+    .checkmark {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: inline-block;
+      border: 4px solid #4caf50;
+      position: relative;
+      margin-bottom: 25px;
+      animation: pop 0.6s ease-out forwards;
+    }
+    .checkmark::after {
+      content: '';
+      position: absolute;
+      left: 22px;
+      top: 40px;
+      width: 22px;
+      height: 45px;
+      border-right: 4px solid #4caf50;
+      border-bottom: 4px solid #4caf50;
+      transform: rotate(45deg);
+      transform-origin: center;
+      animation: draw 0.5s 0.3s ease forwards;
+      opacity: 0;
+    }
+
+    /* ---------- Text ---------- */
+    h1 {
+      font-size: 1.8rem;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    p {
+      color: #666;
+      margin-bottom: 25px;
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+
+    /* ---------- Button ---------- */
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: #4caf50;
+      color: #fff;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background 0.3s ease;
+    }
+    .btn:hover {
+      background: #43a047;
+    }
+
+    /* ---------- Animations ---------- */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes draw {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 480px) {
+      .success-card { padding: 30px 20px; }
+      h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="success-card">
+    <div class="checkmark"></div>
+    <h1>Payment Successful</h1>
+    <p>Thank you! Your payment has been processed successfully.<br>
+       A confirmation email has been sent to your inbox.</p>
+    <a href="/" class="btn">Go Back to Home</a>
+  </div>
+
+</body>
+</html>

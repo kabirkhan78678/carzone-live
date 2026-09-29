@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="{{lang}}">
+<head>
+  <meta charset="UTF-8">
+  <title>{{labels.PURCHASE_AGREEMENT_DOC_TITLE}}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 12mm 15mm 12mm 15mm;
+    }
+    *, *:before, *:after {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 11px;
+      line-height: 1.35;
+      color: #1a1a1a;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+    }
+    .header-container {
+      border-bottom: 2px solid #1e293b;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .header-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #0f172a;
+      text-transform: uppercase;
+    }
+    .header-subtitle {
+      margin: 2px 0 0 0;
+      font-size: 9.5px;
+      color: #64748b;
+    }
+    .header-meta {
+      text-align: right;
+      font-size: 10px;
+      color: #475569;
+    }
+    .section-box {
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      background: #ffffff;
+      page-break-inside: avoid;
+    }
+    .section-header {
+      background-color: #f1f5f9;
+      border-bottom: 1px solid #cbd5e1;
+      padding: 4px 8px;
+      font-weight: 700;
+      font-size: 11px;
+      color: #1e293b;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .section-body {
+      padding: 6px 8px;
+    }
+    .two-col-grid {
+      display: flex;
+      gap: 12px;
+    }
+    .col-half {
+      flex: 1;
+    }
+    .data-row {
+      display: flex;
+      margin-bottom: 4px;
+      font-size: 10.5px;
+      align-items: baseline;
+    }
+    .data-label {
+      width: 130px;
+      flex-shrink: 0;
+      font-weight: 600;
+      color: #334155;
+    }
+    .data-value {
+      flex-grow: 1;
+      color: #0f172a;
+      word-break: break-word;
+    }
+    .data-line-fill {
+      flex-grow: 1;
+      border-bottom: 1px dotted #94a3b8;
+      min-height: 14px;
+      margin-left: 4px;
+    }
+    .grid-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .grid-table td {
+      padding: 3px 4px;
+      vertical-align: top;
+      font-size: 10.5px;
+    }
+    .grid-table td.td-label {
+      width: 20%;
+      font-weight: 600;
+      color: #334155;
+    }
+    .grid-table td.td-val {
+      width: 30%;
+      color: #0f172a;
+    }
+    .option-item {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 6px;
+      font-size: 10.5px;
+    }
+    .checkbox-box {
+      display: inline-block;
+      width: 13px;
+      height: 13px;
+      border: 1.5px solid #1e293b;
+      border-radius: 2px;
+      margin-right: 8px;
+      margin-top: 1px;
+      flex-shrink: 0;
+      text-align: center;
+      line-height: 11px;
+      font-weight: bold;
+      font-size: 11px;
+    }
+    .legal-clause-box {
+      background: #f8fafc;
+      border-left: 3px solid #3b82f6;
+      padding: 6px 10px;
+      margin-top: 4px;
+      font-size: 10.5px;
+      color: #1e293b;
+      line-height: 1.4;
+    }
+    .custom-warranty-text {
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      padding: 6px 8px;
+      margin-top: 4px;
+      font-size: 10.5px;
+      color: #0f172a;
+      font-style: italic;
+    }
+    .signatures-container {
+      display: flex;
+      gap: 20px;
+      margin-top: 12px;
+      page-break-inside: avoid;
+    }
+    .sig-box {
+      flex: 1;
+      border: 1px solid #94a3b8;
+      border-radius: 4px;
+      padding: 8px;
+      background: #ffffff;
+      min-height: 90px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .sig-title {
+      font-weight: 700;
+      font-size: 11px;
+      color: #1e293b;
+      margin-bottom: 6px;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 4px;
+    }
+    .sig-line-container {
+      margin-top: 35px;
+      border-top: 1px solid #475569;
+      padding-top: 4px;
+      font-size: 9.5px;
+      color: #64748b;
+      display: flex;
+      justify-content: space-between;
+    }
+    .note-text {
+      font-size: 9.5px;
+      color: #64748b;
+      font-style: italic;
+    }
+    .highlight-price {
+      font-size: 12px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header-container">
+    <div>
+      <h1 class="header-title">{{labels.PURCHASE_AGREEMENT_DOC_TITLE}}</h1>
+      <p class="header-subtitle">{{labels.PURCHASE_AGREEMENT_DOC_SUBTITLE}}</p>
+    </div>
+    <div class="header-meta">
+      {{#if is_blank_template}}
+        <span style="font-weight: bold; color: #475569;">{{labels.PA_LABEL_PLACE_DATE}} _____________________</span>
+      {{else}}
+        <strong>ID:</strong> #{{id}}<br>
+        <strong>Date:</strong> {{document_date}}
+      {{/if}}
+    </div>
+  </div>
+
+  <!-- PARTIES (SELLER & BUYER) -->
+  <div class="two-col-grid">
+    
+    <!-- 1. SELLER -->
+    <div class="col-half section-box">
+      <div class="section-header">{{labels.PA_SECTION_SELLER}}</div>
+      <div class="section-body">
+        <div class="data-row">
+          <span class="data-label">{{labels.PA_LABEL_COMPANY}}</span>
+          {{#if is_blank_template}}
+            <span class="data-line-fill"></span>
+          {{else}}
+            <span class="data-value">{{seller.company_name}}</span>
+          {{/if}}
+        </div>
+        <div class="data-row">
+          <span class="data-label">{{labels.PA_LABEL_ADDRESS}}</span>
+          {{#if is_blank_template}}
+            <span class="data-line-fill"></span>
+          {{else}}
+            <span class="data-value">{{seller.address}}</span>
+          {{/if}}
+        </div>
+        <div class="data-row">
+          <span class="data-label">{{labels.PA_LABEL_PHONE}}</span>
+          {{#if is_blank_template}}
+            <span class="data-line-fill"></span>
+          {{else}}
+            <span class="data-value">{{seller.phone}}</span>
+          {{/if}}
+        </div>
+        <div class="data-row">
+          <span class="data-label">{{labels.PA_LABEL_CONTACT_PERSON}}</span>
+          {{#if is_blank_template}}
+            <span class="data-line-fill"></span>
+          {{else}}
+            <span class="data-value">{{seller.contact_person}}</span>
+          {{/if}}
+        </div>
+        <div class="data-row">
+          <span class="data-label">{{labels.PA_LABEL_LEGAL_OWNER}}</span>
+          {{#if is_blank_template}}
+            <span class="data-value">[ &nbsp; ] {{labels.PA_LABEL_YES}} &nbsp;&nbsp;&nbsp; [ &nbsp; ] {{labels.PA_LABEL_NO}}</span>
+          {{else}}
+            <span class="data-value">{{seller.legal_owner_display}}</span>
+          {{/if}}
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. BUYER -->
+    <div class="col-half section-box">
+      <div class="section-header">{{labels.PA_SECTION_BUYER}}</div>
+      <div class="section-body">
+        <div class="data-row">
+          <span class="data-label">{{labels.PA_LABEL_FULL_NAME}}</span>
+          {{#if is_blank_template}}
+            <span class="data-line-fill"></span>
+          {{else}}
+            <span class="data-value">{{buyer.full_name}}</span>
+          {{/if}}
+        </div>
+        <div class="data-row">
+          <span class="data-label">{{labels.PA_LABEL_DOB}}</span>
+          {{#if is_blank_template}}
+            <span class="data-line-fill"></span>
+          {{else}}
+            <span class="data-value">{{buyer.date_of_birth}}</span>
+          {{/if}}
+        </div>
+        <div class="data-row">
+          <span class="data-label">{{labels.PA_LABEL_ADDRESS}}</span>
+          {{#if is_blank_template}}
+            <span class="data-line-fill"></span>
+          {{else}}
+            <span class="data-value">{{buyer.address}}</span>
+          {{/if}}
+        </div>
+        <div class="data-row">
+          <span class="data-label">{{labels.PA_LABEL_PHONE}}</span>
+          {{#if is_blank_template}}
+            <span class="data-line-fill"></span>
+          {{else}}
+            <span class="data-value">{{buyer.phone}}</span>
+          {{/if}}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 3. VEHICLE SPECIFICATIONS -->
+  <div class="section-box">
+    <div class="section-header">{{labels.PA_SECTION_VEHICLE}}</div>
+    <div class="section-body">
+      <table class="grid-table">
+        <tr>
+          <td class="td-label">{{labels.PA_LABEL_MAKE}}</td>
+          <td class="td-val">{{#if is_blank_template}}<span class="data-line-fill" style="display:inline-block; width:90%;"></span>{{else}}{{vehicle.make}}{{/if}}</td>
+          <td class="td-label">{{labels.PA_LABEL_MODEL}}</td>
+          <td class="td-val">{{#if is_blank_template}}<span class="data-line-fill" style="display:inline-block; width:90%;"></span>{{else}}{{vehicle.model}}{{/if}}</td>
+        </tr>
+        <tr>
+          <td class="td-label">{{labels.PA_LABEL_BODY_TYPE}}</td>
+          <td class="td-val">{{#if is_blank_template}}<span class="data-line-fill" style="display:inline-block; width:90%;"></span>{{else}}{{vehicle.body_type}}{{/if}}</td>
+          <td class="td-label">{{labels.PA_LABEL_COLOR}}</td>
+          <td class="td-val">{{#if is_blank_template}}<span class="data-line-fill" style="display:inline-block; width:90%;"></span>{{else}}{{vehicle.color}}{{/if}}</td>
+        </tr>
+        <tr>
+          <td class="td-label">{{labels.PA_LABEL_ENGINE_DISPLACEMENT}}</td>
+          <td class="td-val">{{#if is_blank_template}}<span class="data-line-fill" style="display:inline-block; width:90%;"></span>{{else}}{{vehicle.engine_displacement}}{{/if}}</td>
+          <td class="td-label">{{labels.PA_LABEL_POWER}}</td>
+          <td class="td-val">{{#if is_blank_template}}<span class="data-line-fill" style="display:inline-block; width:90%;"></span>{{else}}{{vehicle.power}}{{/if}}</td>
+        </tr>
+        <tr>
+          <td class="td-label">{{labels.PA_LABEL_TRANSMISSION}}</td>
+          <td class="td-val">{{#if is_blank_template}}<span class="data-line-fill" style="display:inline-block; width:90%;"></span>{{else}}{{vehicle.transmission}}{{/if}}</td>
+          <td class="td-label">{{labels.PA_LABEL_VIN}}</td>
+          <td class="td-val">{{#if is_blank_template}}<span class="data-line-fill" style="display:inline-block; width:90%;"></span>{{else}}<strong>{{vehicle.vin}}</strong>{{/if}}</td>
+        </tr>
+        <tr>
+          <td class="td-label">{{labels.PA_LABEL_STAMMNUMMER}}</td>
+          <td class="td-val">{{#if is_blank_template}}<span class="data-line-fill" style="display:inline-block; width:90%;"></span>{{else}}{{vehicle.stammnummer}}{{/if}}</td>
+          <td class="td-label">{{labels.PA_LABEL_TYPE_APPROVAL}}</td>
+          <td class="td-val">{{#if is_blank_template}}<span class="data-line-fill" style="display:inline-block; width:90%;"></span>{{else}}{{vehicle.type_approval_number}}{{/if}}</td>
+        </tr>
+        <tr>
+          <td class="td-label">{{labels.PA_LABEL_FIRST_REGISTRATION}}</td>
+          <td class="td-val">{{#if is_blank_template}}<span class="data-line-fill" style="display:inline-block; width:90%;"></span>{{else}}{{vehicle.first_registration_date}}{{/if}}</td>
+          <td class="td-label">{{labels.PA_LABEL_MILEAGE}}</td>
+          <td class="td-val">{{#if is_blank_template}}<span class="data-line-fill" style="display:inline-block; width:90%;"></span>{{else}}{{vehicle.mileage}}{{/if}}</td>
+        </tr>
+        <tr>
+          <td class="td-label">{{labels.PA_LABEL_LAST_MFK}}</td>
+          <td class="td-val" colspan="3">{{#if is_blank_template}}<span class="data-line-fill" style="display:inline-block; width:40%;"></span>{{else}}{{vehicle.last_mfk_date}}{{/if}}</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4. PURCHASE PRICE & CONDITION -->
+  <div class="section-box">
+    <div class="section-header">{{labels.PA_SECTION_PURCHASE_CONDITION}}</div>
+    <div class="section-body">
+      <div class="data-row">
+        <span class="data-label highlight-price">{{labels.PA_LABEL_PURCHASE_PRICE}}</span>
+        {{#if is_blank_template}}
+          <span class="data-line-fill" style="max-width:250px;"></span>
+        {{else}}
+          <span class="data-value highlight-price">{{purchase.purchase_price_formatted}}</span>
+        {{/if}}
+      </div>
+      
+      <table class="grid-table" style="margin-top: 4px;">
+        <tr>
+          <td class="td-label">{{labels.PA_LABEL_SECOND_KEY}}</td>
+          <td class="td-val">
+            {{#if is_blank_template}}
+              [ &nbsp; ] {{labels.PA_LABEL_YES}} &nbsp;&nbsp;&nbsp; [ &nbsp; ] {{labels.PA_LABEL_NO}}
+            {{else}}
+              {{purchase.second_key_display}}
+            {{/if}}
+          </td>
+          <td class="td-label">{{labels.PA_LABEL_ACCIDENT_FREE}}</td>
+          <td class="td-val">
+            {{#if is_blank_template}}
+              [ &nbsp; ] {{labels.PA_LABEL_YES}} &nbsp;&nbsp;&nbsp; [ &nbsp; ] {{labels.PA_LABEL_NO}}
+            {{else}}
+              {{purchase.accident_free_display}}
+            {{/if}}
+          </td>
+        </tr>
+        <tr>
+          <td colspan="4" class="note-text">{{labels.PA_LABEL_ACCIDENT_NOTE}}</td>
+        </tr>
+        <tr>
+          <td class="td-label">{{labels.PA_LABEL_KNOWN_DEFECTS}}</td>
+          <td class="td-val">
+            {{#if is_blank_template}}
+              [ &nbsp; ] {{labels.PA_LABEL_YES}} &nbsp;&nbsp;&nbsp; [ &nbsp; ] {{labels.PA_LABEL_NO}}
+            {{else}}
+              {{purchase.defects_known_display}}
+            {{/if}}
+          </td>
+          <td class="td-label">{{labels.PA_LABEL_SERVICE_BOOK}}</td>
+          <td class="td-val">
+            {{#if is_blank_template}}
+              [ &nbsp; ] {{labels.PA_LABEL_YES}} &nbsp;&nbsp;&nbsp; [ &nbsp; ] {{labels.PA_LABEL_NO}}
+            {{else}}
+              {{purchase.service_book_display}}
+            {{/if}}
+          </td>
+        </tr>
+        {{#if is_blank_template}}
+          <tr>
+            <td class="td-label">{{labels.PA_LABEL_DEFECT_REMARKS}}</td>
+            <td class="td-val" colspan="3"><span class="data-line-fill" style="display:inline-block; width:95%;"></span></td>
+          </tr>
+          <tr>
+            <td class="td-label">{{labels.PA_LABEL_VEHICLE_REMARKS}}</td>
+            <td class="td-val" colspan="3"><span class="data-line-fill" style="display:inline-block; width:95%;"></span></td>
+          </tr>
+        {{else}}
+          {{#if purchase.defect_remarks}}
+            <tr>
+              <td class="td-label">{{labels.PA_LABEL_DEFECT_REMARKS}}</td>
+              <td class="td-val" colspan="3">{{purchase.defect_remarks}}</td>
+            </tr>
+          {{/if}}
+          {{#if purchase.vehicle_remarks}}
+            <tr>
+              <td class="td-label">{{labels.PA_LABEL_VEHICLE_REMARKS}}</td>
+              <td class="td-val" colspan="3">{{purchase.vehicle_remarks}}</td>
+            </tr>
+          {{/if}}
+          {{#if purchase.service_book_remarks}}
+            <tr>
+              <td class="td-label">{{labels.PA_LABEL_SERVICE_REMARKS}}</td>
+              <td class="td-val" colspan="3">{{purchase.service_book_remarks}}</td>
+            </tr>
+          {{/if}}
+        {{/if}}
+      </table>
+    </div>
+  </div>
+
+  <!-- 5. WARRANTY / GUARANTEE -->
+  <div class="section-box">
+    <div class="section-header">{{labels.PA_SECTION_WARRANTY}}</div>
+    <div class="section-body">
+      {{#if is_blank_template}}
+        <div class="option-item">
+          <span class="checkbox-box"></span>
+          <div>
+            <strong>{{labels.PURCHASE_AGREEMENT_WARRANTY_EXCLUDED}}:</strong>
+            <div class="note-text">{{labels.PURCHASE_AGREEMENT_WARRANTY_EXCLUDED_TEXT}}</div>
+          </div>
+        </div>
+        <div class="option-item">
+          <span class="checkbox-box"></span>
+          <div>
+            <strong>{{labels.PURCHASE_AGREEMENT_WARRANTY_TWO_YEAR_ART_210}}:</strong>
+            <div class="note-text">{{labels.PURCHASE_AGREEMENT_WARRANTY_TWO_YEAR_ART_210_TEXT}}</div>
+          </div>
+        </div>
+        <div class="option-item">
+          <span class="checkbox-box"></span>
+          <div style="flex-grow:1;">
+            <strong>{{labels.PURCHASE_AGREEMENT_WARRANTY_OTHER}}:</strong>
+            <div class="data-line-fill" style="margin-top:3px; width:95%;"></div>
+          </div>
+        </div>
+      {{else}}
+        {{#if warranty.is_excluded}}
+          <div class="option-item">
+            <span class="checkbox-box">X</span>
+            <div>
+              <strong>{{warranty.warranty_label}}</strong>
+              <div class="legal-clause-box">{{warranty.warranty_text}}</div>
+            </div>
+          </div>
+        {{/if}}
+        {{#if warranty.is_two_year}}
+          <div class="option-item">
+            <span class="checkbox-box">X</span>
+            <div>
+              <strong>{{warranty.warranty_label}}</strong>
+              <div class="legal-clause-box">{{warranty.warranty_text}}</div>
+            </div>
+          </div>
+        {{/if}}
+        {{#if warranty.is_other}}
+          <div class="option-item">
+            <span class="checkbox-box">X</span>
+            <div>
+              <strong>{{warranty.warranty_label}}</strong>
+              <div class="custom-warranty-text">{{warranty.warranty_other_text}}</div>
+            </div>
+          </div>
+        {{/if}}
+      {{/if}}
+    </div>
+  </div>
+
+  <!-- 6. PAYMENT & 7. HANDOVER -->
+  <div class="two-col-grid">
+    
+    <!-- 6. PAYMENT -->
+    <div class="col-half section-box">
+      <div class="section-header">{{labels.PA_SECTION_PAYMENT}}</div>
+      <div class="section-body">
+        {{#if is_blank_template}}
+          <div class="option-item">
+            <span class="checkbox-box"></span>
+            <span>{{labels.PA_LABEL_PAYMENT_CASH}}</span>
+          </div>
+          <div class="option-item">
+            <span class="checkbox-box"></span>
+            <span style="flex-grow:1;">{{labels.PA_LABEL_PAYMENT_OTHER}} <span class="data-line-fill" style="display:inline-block; width:60%;"></span></span>
+          </div>
+        {{else}}
+          <div class="data-row">
+            <span class="data-value">
+              {{#if payment.is_cash}}
+                [X] {{labels.PA_LABEL_PAYMENT_CASH}}
+              {{else if payment.payment_other_text}}
+                <strong>{{labels.PA_LABEL_PAYMENT_OTHER}}</strong> {{payment.payment_other_text}}
+              {{else if payment.payment_type}}
+                {{payment.payment_type}}
+              {{else}}
+                {{labels.PA_LABEL_NOT_SPECIFIED}}
+              {{/if}}
+            </span>
+          </div>
+        {{/if}}
+      </div>
+    </div>
+
+    <!-- 7. HANDOVER -->
+    <div class="col-half section-box">
+      <div class="section-header">{{labels.PA_SECTION_HANDOVER}}</div>
+      <div class="section-body">
+        <div class="data-row">
+          <span class="data-label">{{labels.PA_LABEL_HANDOVER_DATE}}</span>
+          {{#if is_blank_template}}
+            <span class="data-line-fill"></span>
+          {{else}}
+            <span class="data-value">{{handover.date}}</span>
+          {{/if}}
+        </div>
+        <div class="data-row">
+          <span class="data-label">{{labels.PA_LABEL_HANDOVER_LOCATION}}</span>
+          {{#if is_blank_template}}
+            <span class="data-line-fill"></span>
+          {{else}}
+            <span class="data-value">{{handover.location}}</span>
+          {{/if}}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 8. SIGNATURES -->
+  <div class="signatures-container">
+    <div class="sig-box">
+      <div class="sig-title">{{labels.PA_LABEL_SELLER_SIGNATURE}}</div>
+      <div class="note-text">{{labels.PA_LABEL_PLACE_DATE}} _________________________</div>
+      <div class="sig-line-container">
+        <span>{{labels.PA_LABEL_SELLER_SIGNATURE}}</span>
+      </div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-title">{{labels.PA_LABEL_BUYER_SIGNATURE}}</div>
+      <div class="note-text">{{labels.PA_LABEL_PLACE_DATE}} _________________________</div>
+      <div class="sig-line-container">
+        <span>{{labels.PA_LABEL_BUYER_SIGNATURE}}</span>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

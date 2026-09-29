@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Car Zone Inquiry</title>
+</head>
+
+<body style="margin:0; padding:0; background-color:#f2f2f2; font-family:Arial, Helvetica, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="padding:20px; background-color:#f2f2f2;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0"
+          style="background-color:#ffffff; padding:20px; max-width:600px;">
+          <tr>
+            <td style="padding-bottom:28px;">
+              <img src="{{logo_url}}" alt="CarZone" style="height:40px; display:block;">
+            </td>
+          </tr>
+
+          <tr>
+            <td style="font-size:16px; color:#222222; font-weight:600; padding-bottom:18px;">
+              Hi {{seller_name}}, you have received a new inquiry.
+            </td>
+          </tr>
+
+          <tr>
+            <td style="font-size:14px; color:#222222; line-height:20px; padding-bottom:20px;">
+              A buyer submitted an inquiry for the following car listing.
+            </td>
+          </tr>
+
+          <tr>
+            <td style="font-size:14px; color:#222222; padding-bottom:12px;">
+              <strong>{{car_name}}</strong>
+              <span style="float:right; color:#a50011; font-weight:700;">{{car_price}}</span>
+            </td>
+          </tr>
+
+          <tr>
+            {{!-- <td style="padding-bottom:24px;">
+              <img src="{{car_image_url}}" alt="Car Image" width="100%" height="300"
+                style="display:block; object-fit:contain; background-color:#f5f5f5; border-radius:10px;">
+            </td> --}}
+           <td> <img src="{{car_image_url}}" alt="Car Image" width="100%" height="300"
+              style="display:block; object-fit:contain; background-color:#f5f5f5; border-radius:10px; width:100%; height:300px;"></td>
+          </tr>
+
+          <tr>
+            <td style="font-size:14px; color:#555555; line-height:22px; padding-bottom:24px; padding-top:12px;">
+              <p style="margin:0 0 8px 0; font-weight:600;">Submitted details:</p>
+              <strong>Full Name:</strong> {{buyer_name}}<br>
+              <strong>Email:</strong> {{buyer_email}}<br>
+              <strong>Phone Number:</strong> {{buyer_phone}}<br>
+              <strong>Inquiry Type:</strong> {{inquiry_type}}<br>
+              <strong>Message:</strong> {{buyer_message}}
+            </td>
+          </tr>
+
+          <tr>
+            <td style="font-size:14px; color:#222222; padding-bottom:30px;">
+              Best Regards,<br>
+              <strong style="display:block; margin-top:4px;">The CarZone Team</strong>
+            </td>
+          </tr>
+        </table>
+
+        <table width="100%" cellpadding="0" cellspacing="0" border="0"
+          style="background-color:#a50011; color:#ffffff; text-align:center; padding:15px; max-width:600px;">
+          <tr>
+            <td style="font-size:12px;">
+              &copy; {{year}} CarZone. All rights reserved. Designed for car buyers and sellers worldwide.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+
+</html>

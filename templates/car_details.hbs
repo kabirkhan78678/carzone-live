@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vehicle Report</title>
+
+    <!-- Bootstrap 5 -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- FontAwesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <style>
+    body {
+      background: #f5f7fb;
+      font-family: "DM Sans", sans-serif;
+    }
+
+    .report-wrapper {
+      max-width: 1024px;
+      background: #fff;
+      border-radius: 14px;
+      padding-inline: 45px;
+      box-shadow: 0px 6px 25px rgba(0, 0, 0, 0.08);
+    }
+
+    .price-text {
+      /* font-weight: bold; */
+      color: #d50000;
+      font-size: 22px;
+      margin-bottom: 0px;
+      font-weight: 600;
+    }
+
+    .main-car-img {
+      width: 100%;
+      max-width: 960px;
+    }
+
+    .thumb-img {
+      /* width: 75px; */
+      height: 180px;
+      border-radius: 8px;
+      border: 1px solid #eee;
+      object-fit: contain;
+      background-color: #e6e6e6;
+    }
+
+    .custom-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 24px;
+      background: #f9fafb;
+      height: 100%;
+    }
+
+    .card-custom-box {
+      padding: 24px;
+      border-radius: 8px;
+    }
+    .card-custom-box-1 {
+      border: 1px solid #e5e7eb;
+
+      background-color: #eff6ff;
+    }
+    .card-custom-box-1 {
+      border: 1px solid #e5e7eb;
+      background-color: #f0fdf4;
+    }
+  .spec-item {
+    display: grid;
+    padding-block: 8px;
+    border-bottom: 1px solid #f1f1f1;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+}
+
+    .spec-item p {
+      font-size: 14px;
+      color: #1a1a1a;
+      margin-bottom: 0;
+    word-break: break-word;
+    }
+    .spec-item span {
+      font-size: 14px;
+      color: #666666;
+      word-break: break-word;
+    }
+
+    .feature-list div {
+      margin-bottom: 10px;
+      font-size: 16px;
+      color: #1a1a1a;
+    }
+
+    .feature-list i {
+      color: green;
+      margin-right: 6px;
+    }
+
+    .leasing-box {
+      background: linear-gradient(90deg, #c00000 0%, #b91c1c 100%);
+
+      padding: 30px;
+      border-radius: 8px;
+    }
+    .leasing-box h5 {
+      font-weight: 400;
+      font-size: 24px;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+
+    .map-box iframe {
+      border-radius: 8px;
+    }
+    .ct_logo img {
+      width: 100%;
+      max-width: 150px;
+    }
+    .ct_pdf_header {
+      border-bottom: 2px solid #e5e7eb;
+      padding-block: 24px;
+    }
+    .ct_pdf_header h6 {
+      font-weight: 400;
+      font-size: 18px;
+      color: #1a1a1a;
+    }
+
+    /*  */
+    .car-title {
+      font-weight: 400;
+      font-size: 16px;
+    }
+    .price-text-monthly {
+      font-size: 16px;
+    }
+
+    .custom-card h6 {
+      font-weight: 400;
+      font-size: 16px;
+      color: #1a1a1a;
+    }
+    .custom-card-subtitle {
+      font-size: 16px;
+      font-weight: 400;
+    }
+    .custom-card-rating i {
+      color: #f59e0b;
+    }
+    .ct-text-danger {
+      color: #c00000;
+    }
+    .address-detail div {
+      color: #666666;
+      font-size: 14px;
+      font-weight: 400;
+    }
+    .opning-hours-cont {
+      color: #666666;
+      font-size: 12px;
+    }
+
+    .opening-hours {
+      color: #1a1a1a;
+      font-size: 14px;
+      border-top: 1px solid #d1d5db;
+      padding-block: 15px;
+    }
+    .ct_fs_20 {
+      font-size: 18px;
+    }
+    .ct_fs_24 {
+      font-size: 18px;
+    }
+    .ct_fs_14 {
+      font-size: 14px;
+    }
+    .ct_fs_12 {
+      font-size: 12px;
+    }
+    .ct_fw_400 {
+      font-weight: 400;
+    }
+    .feature-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .waranty-box-content {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .waranty-box-content span {
+      color: #666666;
+      font-size: 14px;
+    }
+
+    .waranty-box-content p {
+      color: #1a1a1a;
+      font-size: 14px;
+      margin-bottom: 0;
+    }
+
+    .vehicle-desc-content {
+      max-height: 250px;
+      overflow-y: auto;
+      /* Firefox */
+      scrollbar-width: thin;
+      scrollbar-color: #c1c9d6 transparent;
+      padding-right: 10px;
+    }
+
+    /* Chrome, Edge, Safari */
+    .vehicle-desc-content::-webkit-scrollbar {
+      width: 6px; /* 👈 Thin scrollbar */
+    }
+
+    .vehicle-desc-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .vehicle-desc-content::-webkit-scrollbar-thumb {
+      background-color: #c1c9d6;
+      border-radius: 10px;
+    }
+
+    #ct_instructor_setting_variant_1
+      .profile-desc::-webkit-scrollbar-thumb:hover {
+      background-color: #aab4c3;
+    }
+    .ct_time_slot_div{
+      display: grid;
+    align-items: center;
+    grid-template-columns: 50px 10px auto;
+    }
+
+    @media (max-width: 767px) {
+      .thumb-img {
+        height: 100px;
+      }
+      .car-title {
+        font-size: 20px;
+      }
+    }
+    @media (max-width: 576px) {
+      .thumb-img {
+        height: 65px;
+      }
+      .ct_logo img {
+        max-width: 100px;
+      }
+     
+      .report-wrapper {
+        padding-inline: 25px;
+      }
+      .price-text {
+        font-size: 20px;
+      }
+      .price-text-monthly {
+        font-size: 16px;
+      }
+    }
+  </style>
+
+  <body>
+    <div class="container report-wrapper my-4">
+      <!-- ================= HEADER ================= -->
+      <div
+        class="d-flex justify-content-between align-items-center mb-4 ct_pdf_header"
+      >
+        <!-- Logo -->
+        <div class="ct_logo">
+          <img src="{{branding.logoUrl}}" />
+        </div>
+
+        <!-- Report Info -->
+        <div class="text-end">
+          <h6 class="mb-0">Vehicle Details Report</h6>
+          <small class="text-muted">Generated: {{generatedAt}}</small>
+        </div>
+      </div>
+
+      <!-- ================= TITLE + PRICE ================= -->
+      <div class="mb-4">
+        <h4 class="car-title">
+          {{vehicle.brand}} {{vehicle.model}} ({{vehicle.year}})
+        </h4>
+
+        <div class="d-flex align-items-end gap-2 mt-2 flex-wrap">
+          <h2 class="price-text">{{vehicle.price}}</h2>
+          <p class="text-muted mb-0 price-text-monthly">
+            Monthly leasing: <b>{{vehicle.perMonthPrice}}</b> per month
+          </p>
+        </div>
+      </div>
+
+      <!-- ================= MAIN IMAGE ================= -->
+      <div class="text-center mb-4">
+        <img src="{{images.[0]}}" class="main-car-img" style="height: 280px; object-fit: contain; background-color: #f5f5f5;"  />
+      </div>
+
+      <!-- ================= THUMBNAILS ================= -->
+      <div class="d-flex justify-content-center gap-3 mb-4">
+      {{#each images}}
+      <img src="{{this}}" class="thumb-img"  style="width:88px; object-fit: contain; height: 88px; background-color: #f5f5f5;" />
+      {{/each}}
+      </div>
+
+      <!-- ================= DEALER + SPECS ================= -->
+      <div class="row g-4 mb-4">
+        <!-- Dealer Info -->
+        <div class="col-md-4">
+          <div class="card custom-card">
+            <h6 class="mb-3">
+              <svg
+                width="15"
+                height="28"
+                class="me-2"
+                viewBox="0 0 15 28"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M15 28H0V0H15V28Z" stroke="#E5E7EB" />
+                <g clip-path="url(#clip0_3921_980)">
+                  <path
+                    d="M1.875 3.5C0.839844 3.5 0 4.33984 0 5.375V21.625C0 22.6602 0.839844 23.5 1.875 23.5H5.625V20.375C5.625 19.3398 6.46484 18.5 7.5 18.5C8.53516 18.5 9.375 19.3398 9.375 20.375V23.5H13.125C14.1602 23.5 15 22.6602 15 21.625V5.375C15 4.33984 14.1602 3.5 13.125 3.5H1.875ZM2.5 12.875C2.5 12.5312 2.78125 12.25 3.125 12.25H4.375C4.71875 12.25 5 12.5312 5 12.875V14.125C5 14.4688 4.71875 14.75 4.375 14.75H3.125C2.78125 14.75 2.5 14.4688 2.5 14.125V12.875ZM6.875 12.25H8.125C8.46875 12.25 8.75 12.5312 8.75 12.875V14.125C8.75 14.4688 8.46875 14.75 8.125 14.75H6.875C6.53125 14.75 6.25 14.4688 6.25 14.125V12.875C6.25 12.5312 6.53125 12.25 6.875 12.25ZM10 12.875C10 12.5312 10.2812 12.25 10.625 12.25H11.875C12.2188 12.25 12.5 12.5312 12.5 12.875V14.125C12.5 14.4688 12.2188 14.75 11.875 14.75H10.625C10.2812 14.75 10 14.4688 10 14.125V12.875ZM3.125 7.25H4.375C4.71875 7.25 5 7.53125 5 7.875V9.125C5 9.46875 4.71875 9.75 4.375 9.75H3.125C2.78125 9.75 2.5 9.46875 2.5 9.125V7.875C2.5 7.53125 2.78125 7.25 3.125 7.25ZM6.25 7.875C6.25 7.53125 6.53125 7.25 6.875 7.25H8.125C8.46875 7.25 8.75 7.53125 8.75 7.875V9.125C8.75 9.46875 8.46875 9.75 8.125 9.75H6.875C6.53125 9.75 6.25 9.46875 6.25 9.125V7.875ZM10.625 7.25H11.875C12.2188 7.25 12.5 7.53125 12.5 7.875V9.125C12.5 9.46875 12.2188 9.75 11.875 9.75H10.625C10.2812 9.75 10 9.46875 10 9.125V7.875C10 7.53125 10.2812 7.25 10.625 7.25Z"
+                    fill="#C00000"
+                  />
+                </g>
+                <defs>
+                  <clipPath id="clip0_3921_980">
+                    <path d="M0 3.5H15V23.5H0V3.5Z" fill="white" />
+                  </clipPath>
+                </defs>
+              </svg>
+
+              Dealer Information
+            </h6>
+
+            <p class="custom-card-subtitle mb-1">{{seller.company}}</p>
+            <p class="mb-3 custom-card-rating">
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              <i class="fa-solid fa-star"></i>
+              
+               {{#if seller.rating}}{{seller.rating}}{{/if}}
+            </p>
+
+            <div class="address-detail">
+              <div class="mb-2 d-flex gap-3">
+                <div>
+                  <i class="fa-solid fa-location-dot ct-text-danger"></i>
+                </div>
+                
+                {{#if seller.address}}{{seller.address}}<br />{{/if}}
+                {{seller.pincode}} {{seller.city}}
+              </div>
+
+              <div class="mb-2 d-flex gap-3">
+                <div>
+                  <i class="fa-solid fa-phone ct-text-danger"></i>
+                </div>
+                <div>{{seller.phone}}</div>
+              </div>
+
+              <div class="mb-3 d-flex gap-3">
+                <div>
+                  <i class="fa-solid fa-globe ct-text-danger"></i>
+                </div>
+                <div>{{seller.website}}</div>
+              </div>
+
+              <!-- Opening Hours -->
+              <p class="opning-hours-cont mb-0">
+             {{#each seller.openingTimes}}
+             <div class="ct_time_slot_div">
+              
+               <span>{{#if dayLabel}}{{dayLabel}}{{else}}{{day}}{{/if}}</span> : <span>{{display}}</span>
+             </div> 
+             {{/each}}
+              </p>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Specs -->
+        <div class="col-md-8">
+          <div class="card custom-card p-3">
+            <h6 class="">
+              <svg
+                class="me-2"
+                width="20"
+                height="28"
+                viewBox="0 0 20 28"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M20 28H0V0H20V28Z" stroke="#E5E7EB" />
+                <g clip-path="url(#clip0_3921_1040)">
+                  <path
+                    d="M0 13.5C0 10.8478 1.05357 8.3043 2.92893 6.42893C4.8043 4.55357 7.34784 3.5 10 3.5C12.6522 3.5 15.1957 4.55357 17.0711 6.42893C18.9464 8.3043 20 10.8478 20 13.5C20 16.1522 18.9464 18.6957 17.0711 20.5711C15.1957 22.4464 12.6522 23.5 10 23.5C7.34784 23.5 4.8043 22.4464 2.92893 20.5711C1.05357 18.6957 0 16.1522 0 13.5ZM11.25 7.25C11.25 6.91848 11.1183 6.60054 10.8839 6.36612C10.6495 6.1317 10.3315 6 10 6C9.66848 6 9.35054 6.1317 9.11612 6.36612C8.8817 6.60054 8.75 6.91848 8.75 7.25C8.75 7.58152 8.8817 7.89946 9.11612 8.13388C9.35054 8.3683 9.66848 8.5 10 8.5C10.3315 8.5 10.6495 8.3683 10.8839 8.13388C11.1183 7.89946 11.25 7.58152 11.25 7.25ZM10 19.75C11.3789 19.75 12.5 18.6289 12.5 17.25C12.5 16.5703 12.2305 15.957 11.793 15.5078L14.2969 9.81641C14.5039 9.34375 14.2891 8.78906 13.8164 8.58203C13.3438 8.375 12.7891 8.58984 12.582 9.0625L10.0742 14.75C10.0508 14.75 10.0234 14.75 10 14.75C8.62109 14.75 7.5 15.8711 7.5 17.25C7.5 18.6289 8.62109 19.75 10 19.75ZM6.875 9.125C6.875 8.79348 6.7433 8.47554 6.50888 8.24112C6.27446 8.0067 5.95652 7.875 5.625 7.875C5.29348 7.875 4.97554 8.0067 4.74112 8.24112C4.5067 8.47554 4.375 8.79348 4.375 9.125C4.375 9.45652 4.5067 9.77446 4.74112 10.0089C4.97554 10.2433 5.29348 10.375 5.625 10.375C5.95652 10.375 6.27446 10.2433 6.50888 10.0089C6.7433 9.77446 6.875 9.45652 6.875 9.125ZM3.75 14.75C4.08152 14.75 4.39946 14.6183 4.63388 14.3839C4.8683 14.1495 5 13.8315 5 13.5C5 13.1685 4.8683 12.8505 4.63388 12.6161C4.39946 12.3817 4.08152 12.25 3.75 12.25C3.41848 12.25 3.10054 12.3817 2.86612 12.6161C2.6317 12.8505 2.5 13.1685 2.5 13.5C2.5 13.8315 2.6317 14.1495 2.86612 14.3839C3.10054 14.6183 3.41848 14.75 3.75 14.75ZM17.5 13.5C17.5 13.1685 17.3683 12.8505 17.1339 12.6161C16.8995 12.3817 16.5815 12.25 16.25 12.25C15.9185 12.25 15.6005 12.3817 15.3661 12.6161C15.1317 12.8505 15 13.1685 15 13.5C15 13.8315 15.1317 14.1495 15.3661 14.3839C15.6005 14.6183 15.9185 14.75 16.25 14.75C16.5815 14.75 16.8995 14.6183 17.1339 14.3839C17.3683 14.1495 17.5 13.8315 17.5 13.5Z"
+                    fill="#C00000"
+                  />
+                </g>
+                <defs>
+                  <clipPath id="clip0_3921_1040">
+                    <path d="M0 3.5H20V23.5H0V3.5Z" fill="white" />
+                  </clipPath>
+                </defs>
+              </svg>
+
+              Key Specifications
+            </h6>
+
+            <div class="row px-3">
+              <div class="col-sm-6 spec-item">
+                <span>First Registration</span>
+                <p>{{vehicle.firstRegistration}}</p>
+              </div>
+
+              <div class="col-sm-6 spec-item">
+                <span>Body Type</span>
+                <p>{{vehicle.bodyType}}</p>
+              </div>
+
+              <div class="col-sm-6 spec-item">
+                <span>Mileage</span>
+                <p>{{vehicle.mileage}}</p>
+              </div>
+
+              <div class="col-sm-6 spec-item">
+                <span>Fuel Type</span>
+                <p>{{vehicle.fuel}}</p>
+              </div>
+
+              <div class="col-sm-6 spec-item">
+                <span>Transmission</span>
+                <p>{{vehicle.transmission}}</p>
+              </div>
+
+              <div class="col-sm-6 spec-item">
+                <span>Power</span>
+                <p>{{vehicle.power}}</p>
+              </div>
+
+              <div class="col-sm-6 spec-item">
+                <span>Drive Type</span>
+                <p>{{vehicle.driveType}}</p>
+              </div>
+
+              <div class="col-sm-6 spec-item">
+                <span>Consumption</span>
+                <p>{{vehicle.consumption}}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= EQUIPMENT ================= -->
+      <br><br>
+      <div class="mb-4">
+        <h6 class="ct_fs_20 ct_fw_400 mb-3">
+          <svg
+            class="me-2"
+            width="20"
+            height="28"
+            viewBox="0 0 20 28"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M20 28H0V0H20V28Z" stroke="#E5E7EB" />
+            <g clip-path="url(#clip0_3921_1072)">
+              <path
+                d="M5.94141 4.99155C6.32813 5.33921 6.35938 5.92905 6.01172 6.31577L3.19922 9.44077C3.02734 9.63218 2.78516 9.74546 2.52734 9.74936C2.26953 9.75327 2.02344 9.65561 1.83984 9.47593L0.273438 7.91343C-0.0898438 7.54624 -0.0898438 6.95249 0.273438 6.5853C0.636719 6.21811 1.23438 6.21811 1.59766 6.5853L2.46094 7.44858L4.61328 5.05796C4.96094 4.67124 5.55078 4.63999 5.9375 4.98764L5.94141 4.99155ZM5.94141 11.2415C6.32813 11.5892 6.35938 12.1791 6.01172 12.5658L3.19922 15.6908C3.02734 15.8822 2.78516 15.9955 2.52734 15.9994C2.26953 16.0033 2.02344 15.9056 1.83984 15.7259L0.273438 14.1634C-0.09375 13.7962 -0.09375 13.2025 0.273438 12.8392C0.640625 12.4759 1.23438 12.472 1.59766 12.8392L2.46094 13.7025L4.61328 11.3119C4.96094 10.9251 5.55078 10.8939 5.9375 11.2415H5.94141ZM8.75 7.24936C8.75 6.55796 9.30859 5.99936 10 5.99936H18.75C19.4414 5.99936 20 6.55796 20 7.24936C20 7.94077 19.4414 8.49936 18.75 8.49936H10C9.30859 8.49936 8.75 7.94077 8.75 7.24936ZM8.75 13.4994C8.75 12.808 9.30859 12.2494 10 12.2494H18.75C19.4414 12.2494 20 12.808 20 13.4994C20 14.1908 19.4414 14.7494 18.75 14.7494H10C9.30859 14.7494 8.75 14.1908 8.75 13.4994ZM6.25 19.7494C6.25 19.058 6.80859 18.4994 7.5 18.4994H18.75C19.4414 18.4994 20 19.058 20 19.7494C20 20.4408 19.4414 20.9994 18.75 20.9994H7.5C6.80859 20.9994 6.25 20.4408 6.25 19.7494ZM1.875 17.8744C2.37228 17.8744 2.84919 18.0719 3.20083 18.4235C3.55246 18.7752 3.75 19.2521 3.75 19.7494C3.75 20.2466 3.55246 20.7236 3.20083 21.0752C2.84919 21.4268 2.37228 21.6244 1.875 21.6244C1.37772 21.6244 0.900805 21.4268 0.549175 21.0752C0.197544 20.7236 -1.11759e-08 20.2466 -1.11759e-08 19.7494C-1.11759e-08 19.2521 0.197544 18.7752 0.549175 18.4235C0.900805 18.0719 1.37772 17.8744 1.875 17.8744Z"
+                fill="#C00000"
+              />
+            </g>
+            <defs>
+              <clipPath id="clip0_3921_1072">
+                <path d="M0 3.5H20V23.5H0V3.5Z" fill="white" />
+              </clipPath>
+            </defs>
+          </svg>
+
+          Equipment & Features
+        </h6>
+
+        <div class="feature-list">
+          {{#if equipment.length}}
+          {{#each equipment}}
+          <div class=""><i class="fa-solid fa-circle-check"></i> {{this}}</div>
+          {{/each}}
+          {{else}}
+          <div class=""><i class="fa-solid fa-circle-check"></i> N/A</div>
+          {{/if}}
+        </div>
+      </div>
+
+      <!-- ================= DESCRIPTION ================= -->
+      <div class="mb-4">
+        <h6 class="ct_fs_20 ct_fw_400 mb-2">
+          <svg
+            width="15"
+            height="28"
+            class="me-2"
+            viewBox="0 0 15 28"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M15 28H0V0H15V28Z" stroke="#E5E7EB" />
+            <g clip-path="url(#clip0_3921_1110)">
+              <path
+                d="M2.5 3.5C1.12109 3.5 0 4.62109 0 6V21C0 22.3789 1.12109 23.5 2.5 23.5H12.5C13.8789 23.5 15 22.3789 15 21V9.75H10C9.30859 9.75 8.75 9.19141 8.75 8.5V3.5H2.5ZM10 3.5V8.5H15L10 3.5ZM4.375 13.5H10.625C10.9688 13.5 11.25 13.7812 11.25 14.125C11.25 14.4688 10.9688 14.75 10.625 14.75H4.375C4.03125 14.75 3.75 14.4688 3.75 14.125C3.75 13.7812 4.03125 13.5 4.375 13.5ZM4.375 16H10.625C10.9688 16 11.25 16.2812 11.25 16.625C11.25 16.9688 10.9688 17.25 10.625 17.25H4.375C4.03125 17.25 3.75 16.9688 3.75 16.625C3.75 16.2812 4.03125 16 4.375 16ZM4.375 18.5H10.625C10.9688 18.5 11.25 18.7812 11.25 19.125C11.25 19.4688 10.9688 19.75 10.625 19.75H4.375C4.03125 19.75 3.75 19.4688 3.75 19.125C3.75 18.7812 4.03125 18.5 4.375 18.5Z"
+                fill="#C00000"
+              />
+            </g>
+            <defs>
+              <clipPath id="clip0_3921_1110">
+                <path d="M0 3.5H15V23.5H0V3.5Z" fill="white" />
+              </clipPath>
+            </defs>
+          </svg>
+
+          Vehicle Description
+        </h6>
+
+        <p class="ct_fs_14 vehicle-desc-content">
+        {{vehicle.description}}
+        </p>
+      </div>
+
+      <!-- ================= WARRANTY + INSPECTION ================= -->
+      <div class="row g-4 mb-4">
+        <div class="col-md-6">
+          <div class="card custom-card card-custom-box card-custom-box-1">
+            <h6 class="ct_fs_20 ct_fw_400">
+              <svg
+                class="me-2"
+                width="15"
+                height="28"
+                viewBox="0 0 15 28"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M15 28H0V0H15V28Z" stroke="#E5E7EB" />
+                <g clip-path="url(#clip0_3921_1119)">
+                  <path
+                    d="M7.5 3.5C5.86719 3.5 4.47656 4.54297 3.96484 6H2.5C1.12109 6 0 7.12109 0 8.5V21C0 22.3789 1.12109 23.5 2.5 23.5H12.5C13.8789 23.5 15 22.3789 15 21V8.5C15 7.12109 13.8789 6 12.5 6H11.0352C10.5234 4.54297 9.13281 3.5 7.5 3.5ZM7.5 6C7.83152 6 8.14946 6.1317 8.38388 6.36612C8.6183 6.60054 8.75 6.91848 8.75 7.25C8.75 7.58152 8.6183 7.89946 8.38388 8.13388C8.14946 8.3683 7.83152 8.5 7.5 8.5C7.16848 8.5 6.85054 8.3683 6.61612 8.13388C6.3817 7.89946 6.25 7.58152 6.25 7.25C6.25 6.91848 6.3817 6.60054 6.61612 6.36612C6.85054 6.1317 7.16848 6 7.5 6ZM11.9141 14.1641L6.91406 19.1641C6.54688 19.5312 5.95313 19.5312 5.58984 19.1641L3.08594 16.6641C2.71875 16.2969 2.71875 15.7031 3.08594 15.3398C3.45312 14.9766 4.04688 14.9727 4.41016 15.3398L6.24609 17.1758L10.5859 12.8359C10.9531 12.4688 11.5469 12.4688 11.9102 12.8359C12.2734 13.2031 12.2773 13.7969 11.9102 14.1602L11.9141 14.1641Z"
+                    fill="#C00000"
+                  />
+                </g>
+                <defs>
+                  <clipPath id="clip0_3921_1119">
+                    <path d="M0 3.5H15V23.5H0V3.5Z" fill="white" />
+                  </clipPath>
+                </defs>
+              </svg>
+
+              Motorfahrzeugkontrolle (MFK)
+            </h6>
+
+            <div class="waranty-box-content">
+              <div>
+                <span> Last Inspection:</span>
+              </div>
+              <div>
+                <p>{{vehicle.mfk.lastDateDisplay}}</p>
+              </div>
+            </div>
+            <div class="waranty-box-content">
+              <div>
+                <span>Valid Until:</span>
+              </div>
+              <div>
+                <p class="{{vehicle.mfk.statusClass}}">{{vehicle.mfk.nextDueDisplay}}</p>
+              </div>
+            </div>
+            <div class="waranty-box-content">
+              <div>
+                <span>Status:</span>
+              </div>
+              <div>
+                <p class="{{vehicle.mfk.statusClass}}">{{vehicle.mfk.statusLabel}}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="card custom-card card-custom-box card-custom-box-2">
+            <h6 class="ct_fs_20 ct_fw_400">
+              <svg
+                class="me-2"
+                width="20"
+                height="28"
+                viewBox="0 0 20 28"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M20 28H0V0H20V28Z" stroke="#E5E7EB" />
+                <g clip-path="url(#clip0_3921_1136)">
+                  <path
+                    d="M10 3.5C10.1797 3.5 10.3594 3.53906 10.5235 3.61328L17.8789 6.73438C18.7383 7.09766 19.3789 7.94531 19.375 8.96875C19.3555 12.8438 17.7617 19.9336 11.0313 23.1562C10.3789 23.4688 9.62111 23.4688 8.96877 23.1562C2.2383 19.9336 0.644549 12.8438 0.625018 8.96875C0.621112 7.94531 1.26174 7.09766 2.12111 6.73438L9.48049 3.61328C9.64064 3.53906 9.82033 3.5 10 3.5ZM10 6.10938V20.875C15.3906 18.2656 16.8399 12.4883 16.875 9.02344L10 6.10938Z"
+                    fill="#C00000"
+                  />
+                </g>
+                <defs>
+                  <clipPath id="clip0_3921_1136">
+                    <path d="M0 3.5H20V23.5H0V3.5Z" fill="white" />
+                  </clipPath>
+                </defs>
+              </svg>
+
+              Warranty & Returns
+            </h6>
+
+            <div class="waranty-box-content">
+              <div>
+                <span>Warranty Included:</span>
+              </div>
+              <div>
+                <p class="text-success">{{warrantyAndReturn.warrantyIncludedText}}</p>
+              </div>
+            </div>
+            <div class="waranty-box-content">
+              <div>
+                <span>Coverage:</span>
+              </div>
+              <div>
+                <p class="">{{warrantyAndReturn.coverage}}</p>
+              </div>
+            </div>
+            <div class="waranty-box-content">
+              <div>
+                <span>Quality Base:</span>
+              </div>
+              <div>
+                <p class="text-success">{{warrantyAndReturn.qualityBaseText}}</p>
+              </div>
+            </div>
+            <div class="waranty-box-content">
+              <div>
+                <span>Swiss Car:</span>
+              </div>
+              <div>
+                <p class="text-success">{{warrantyAndReturn.swissCarText}}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= LEASING SUMMARY FULL ================= -->
+      <div class="leasing-box mb-4">
+        <h5 class="">
+          <svg
+            class="me-2"
+            width="18"
+            height="32"
+            viewBox="0 0 18 32"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M18 32H0V0H18V32Z" stroke="#E5E7EB" />
+            <g clip-path="url(#clip0_3921_1156)">
+              <path
+                d="M3 3C1.34531 3 0 4.34531 0 6V24C0 25.6547 1.34531 27 3 27H15C16.6547 27 18 25.6547 18 24V6C18 4.34531 16.6547 3 15 3H3ZM4.5 6H13.5C14.3297 6 15 6.67031 15 7.5V9C15 9.82969 14.3297 10.5 13.5 10.5H4.5C3.67031 10.5 3 9.82969 3 9V7.5C3 6.67031 3.67031 6 4.5 6ZM6 13.5C6 13.8978 5.84196 14.2794 5.56066 14.5607C5.27936 14.842 4.89782 15 4.5 15C4.10218 15 3.72064 14.842 3.43934 14.5607C3.15804 14.2794 3 13.8978 3 13.5C3 13.1022 3.15804 12.7206 3.43934 12.4393C3.72064 12.158 4.10218 12 4.5 12C4.89782 12 5.27936 12.158 5.56066 12.4393C5.84196 12.7206 6 13.1022 6 13.5ZM4.5 19.5C4.10218 19.5 3.72064 19.342 3.43934 19.0607C3.15804 18.7794 3 18.3978 3 18C3 17.6022 3.15804 17.2206 3.43934 16.9393C3.72064 16.658 4.10218 16.5 4.5 16.5C4.89782 16.5 5.27936 16.658 5.56066 16.9393C5.84196 17.2206 6 17.6022 6 18C6 18.3978 5.84196 18.7794 5.56066 19.0607C5.27936 19.342 4.89782 19.5 4.5 19.5ZM3 22.5C3 21.6703 3.67031 21 4.5 21H9C9.82969 21 10.5 21.6703 10.5 22.5C10.5 23.3297 9.82969 24 9 24H4.5C3.67031 24 3 23.3297 3 22.5ZM9 15C8.60218 15 8.22064 14.842 7.93934 14.5607C7.65804 14.2794 7.5 13.8978 7.5 13.5C7.5 13.1022 7.65804 12.7206 7.93934 12.4393C8.22064 12.158 8.60218 12 9 12C9.39782 12 9.77936 12.158 10.0607 12.4393C10.342 12.7206 10.5 13.1022 10.5 13.5C10.5 13.8978 10.342 14.2794 10.0607 14.5607C9.77936 14.842 9.39782 15 9 15ZM10.5 18C10.5 18.3978 10.342 18.7794 10.0607 19.0607C9.77936 19.342 9.39782 19.5 9 19.5C8.60218 19.5 8.22064 19.342 7.93934 19.0607C7.65804 18.7794 7.5 18.3978 7.5 18C7.5 17.6022 7.65804 17.2206 7.93934 16.9393C8.22064 16.658 8.60218 16.5 9 16.5C9.39782 16.5 9.77936 16.658 10.0607 16.9393C10.342 17.2206 10.5 17.6022 10.5 18ZM13.5 15C13.1022 15 12.7206 14.842 12.4393 14.5607C12.158 14.2794 12 13.8978 12 13.5C12 13.1022 12.158 12.7206 12.4393 12.4393C12.7206 12.158 13.1022 12 13.5 12C13.8978 12 14.2794 12.158 14.5607 12.4393C14.842 12.7206 15 13.1022 15 13.5C15 13.8978 14.842 14.2794 14.5607 14.5607C14.2794 14.842 13.8978 15 13.5 15ZM15 18C15 18.3978 14.842 18.7794 14.5607 19.0607C14.2794 19.342 13.8978 19.5 13.5 19.5C13.1022 19.5 12.7206 19.342 12.4393 19.0607C12.158 18.7794 12 18.3978 12 18C12 17.6022 12.158 17.2206 12.4393 16.9393C12.7206 16.658 13.1022 16.5 13.5 16.5C13.8978 16.5 14.2794 16.658 14.5607 16.9393C14.842 17.2206 15 17.6022 15 18ZM13.5 24C13.1022 24 12.7206 23.842 12.4393 23.5607C12.158 23.2794 12 22.8978 12 22.5C12 22.1022 12.158 21.7206 12.4393 21.4393C12.7206 21.158 13.1022 21 13.5 21C13.8978 21 14.2794 21.158 14.5607 21.4393C14.842 21.7206 15 22.1022 15 22.5C15 22.8978 14.842 23.2794 14.5607 23.5607C14.2794 23.842 13.8978 24 13.5 24Z"
+                fill="white"
+              />
+            </g>
+            <defs>
+              <clipPath id="clip0_3921_1156">
+                <path d="M0 3H18V27H0V3Z" fill="white" />
+              </clipPath>
+            </defs>
+          </svg>
+
+          Leasing Summary
+        </h5>
+
+        <div class="row text-white">
+          <div class="col-md-4 mb-3">
+            <p class="ct_fs_14 ct_fw_400 mb-1">Monthly Payment</p>
+            <h4 class="ct_fs_24 ct_fw_400">{{leasing.monthlyPayment}}</h4>
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <p class="ct_fs_14 ct_fw_400 mb-1">Residual Value</p>
+            <h4 class="ct_fs_24 ct_fw_400">{{leasing.residualValue}}</h4>
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <p class="ct_fs_14 ct_fw_400 mb-1">Interest Rate</p>
+            <h4 class="ct_fs_24 ct_fw_400">{{leasing.interestRate}}</h4>
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <p class="ct_fs_14 ct_fw_400 mb-1">Lease Duration</p>
+            <h4 class="ct_fs_24 ct_fw_400">{{leasing.leaseDurationMonths}} months</h4>
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <p class="ct_fs_14 ct_fw_400 mb-1">Km per Year</p>
+            <h4 class="ct_fs_24 ct_fw_400">{{leasing.kmPerYear}} km</h4>
+          </div>
+
+          <div class="col-md-4 mb-3">
+            <p class="ct_fs_14 ct_fw_400 mb-1">Down Payment</p>
+            <h4 class="ct_fs_24 ct_fw_400">{{leasing.downPayment}}</h4>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= LOCATION ================= -->
+      <div class="mb-4">
+        <h6 class="ct_fs_20 ct_fw_400 mb-3">
+          <svg
+            class="me-2"
+            width="23"
+            height="28"
+            viewBox="0 0 23 28"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M22.5 28H0V0H22.5V28Z" stroke="#E5E7EB" />
+            <g clip-path="url(#clip0_3921_1188)">
+              <path
+                d="M15.9375 8.1875C15.9375 10.3203 13.082 14.1211 11.8281 15.6875C11.5273 16.0625 10.9688 16.0625 10.6719 15.6875C9.41797 14.1211 6.5625 10.3203 6.5625 8.1875C6.5625 5.59766 8.66016 3.5 11.25 3.5C13.8398 3.5 15.9375 5.59766 15.9375 8.1875ZM16.25 11.3281C16.3867 11.0586 16.5117 10.7891 16.625 10.5234C16.6445 10.4766 16.6641 10.4258 16.6836 10.3789L21.2148 8.56641C21.832 8.32031 22.5 8.77344 22.5 9.4375V20.0156C22.5 20.3984 22.2656 20.7422 21.9102 20.8867L16.25 23.1484V11.3281ZM5.375 8.90234C5.46875 9.45312 5.65625 10.0078 5.875 10.5234C5.98828 10.7891 6.11328 11.0586 6.25 11.3281V21.1484L1.28516 23.1367C0.667969 23.3828 0 22.9297 0 22.2656V11.6875C0 11.3047 0.234375 10.9609 0.589844 10.8164L5.37891 8.90234H5.375ZM12.8047 16.4688C13.3477 15.7891 14.1992 14.6836 15 13.4609V23.1992L7.5 21.0547V13.4609C8.30078 14.6836 9.15234 15.7891 9.69531 16.4688C10.4961 17.4688 12.0039 17.4688 12.8047 16.4688ZM11.25 9.4375C11.6644 9.4375 12.0618 9.27288 12.3549 8.97985C12.6479 8.68683 12.8125 8.2894 12.8125 7.875C12.8125 7.4606 12.6479 7.06317 12.3549 6.77015C12.0618 6.47712 11.6644 6.3125 11.25 6.3125C10.8356 6.3125 10.4382 6.47712 10.1451 6.77015C9.85212 7.06317 9.6875 7.4606 9.6875 7.875C9.6875 8.2894 9.85212 8.68683 10.1451 8.97985C10.4382 9.27288 10.8356 9.4375 11.25 9.4375Z"
+                fill="#C00000"
+              />
+            </g>
+            <defs>
+              <clipPath id="clip0_3921_1188">
+                <path d="M0 3.5H22.5V23.5H0V3.5Z" fill="white" />
+              </clipPath>
+            </defs>
+          </svg>
+
+          Location
+        </h6>
+
+        <div class="map-box mb-2">
+          <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3669.849902513293!2d72.59278517437018!3d23.102589813339137!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x395e8371c3b2d859%3A0x6035b10ac2e442ad!2seVitalRx%20-%20Pharmacy%20Billing%20and%20Inventory%20Management%20Software%20(PC%20%26%20Mobile)!5e0!3m2!1sen!2sin!4v1768815531384!5m2!1sen!2sin%22
+          width="100%" height="429" style="border: 0; border-radius: 20px" allowfullscreen=""
+          loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+ 
+        </div>
+
+        <p class="ct_fs_14">
+          <i class="fa-solid fa-location-dot ct-text-danger"></i>
+      
+          {{#if seller.address}}{{seller.address}}, {{/if}}{{seller.pincode}} {{seller.city}}
+        </p>
+      </div>
+
+      <!-- ================= FOOTER ================= -->
+      <hr />
+
+      <div class="row justify-content-between align-items-center pb-3">
+        <div class="col-lg-6">
+          <div class="ct_logo">
+            <img src="{{branding.logoUrl}}" />
+          </div>
+          <p class="mb-0 ct_fs_12">
+            All information provided is for reference only and subject to
+            change. Please verify all details with the dealer before making a
+            purchase decision.
+          </p>
+        </div>
+        <div class="col-lg-6 text-end">
+          <p class="ct_fs_12 mb-0">Generated on {{generatedAt}}</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+
+
