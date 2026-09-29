@@ -18,7 +18,7 @@ import {
 } from '../../models/user.model.js';
 import { sendCarListedNotification } from '../../services/notification.service.js';
 import { notifyListingEvent, notifyMatchingSearchUsers, notifyFavoritedCarUsers } from '../../services/notificationDispatchers.js';
-import { handleError, handleSuccess } from '../../utils/responseHandler.js';
+import { handleError, handleSuccess, getRequestLanguage } from '../../utils/responseHandler.js';
 import { getMessage, hasExplicitContent, buildFirstRegistrationDateFromMonthYear } from '../../utils/user_helper.js';
 import { variableTypes } from '../../utils/constant.js';
 
@@ -34,7 +34,7 @@ export const listCar = async (req, res) => {
 
     try {
         const user_id = req.user.id;
-        const lang = 'en';
+        const lang = getRequestLanguage(req);
 
         const toNumber = (val) => {
             if (val === undefined || val === null || val === '') return null;

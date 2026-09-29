@@ -39,7 +39,9 @@ export const authenticateUser = async (req, res, next) => {
       return handleError(res, 404, getMessage('en', variableTypes.USER_NOT_FOUND), []);
     }
     req.user = user;
-    res.locals.language = user.language || 'en';
+    const resolvedLang = req.query?.lang || req.query?.language || req.headers?.language || req.headers?.lang || user.language || 'en';
+    res.locals.language = resolvedLang;
+    req.language = resolvedLang;
     next();
   } catch (error) {
     console.log("here", error)

@@ -20,7 +20,7 @@ import {
     replaceCarFeatures,
     normalizeFeatureIds
 } from '../../models/user.model.js';
-import { handleError, handleSuccess } from '../../utils/responseHandler.js';
+import { handleError, handleSuccess, getRequestLanguage } from '../../utils/responseHandler.js';
 import { getMessage, hasExplicitContent, buildFirstRegistrationDateFromMonthYear } from '../../utils/user_helper.js';
 import { variableTypes } from '../../utils/constant.js';
 
@@ -36,7 +36,7 @@ export const listCarweb = async (req, res) => {
 
     try {
         const user_id = req.user.id;
-        const lang = 'en';
+        const lang = getRequestLanguage(req);
 
         const user = await fetchUsersById(user_id);
 

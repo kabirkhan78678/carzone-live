@@ -1,13 +1,12 @@
 import { readAllNotificationsModel, readAllNotificationsModelByIdModel, removeAllNotificationByCurrentUserId, removeCarFromNotificationModelbyNotificationId } from '../../models/user.model.js';
 import { variableTypes } from '../../utils/constant.js';
-import { handleError, handleSuccess } from '../../utils/responseHandler.js';
+import { handleError, handleSuccess, getRequestLanguage } from '../../utils/responseHandler.js';
 import { getMessage } from '../../utils/user_helper.js';
 
 export const readAllNotifications = async (req, res) => {
     try {
-        const { id, language } = req.user;
-        const rawLang = req.query?.lang || req.query?.language || req.headers?.language || req.headers?.['accept-language']?.split(',')[0]?.substring(0, 2) || language || 'en';
-        const userLanguage = ['en', 'de', 'fr', 'it'].includes(String(rawLang).toLowerCase()) ? String(rawLang).toLowerCase() : 'en';
+        const { id } = req.user;
+        const userLanguage = getRequestLanguage(req);
 
         let updateAllNotification = await readAllNotificationsModel(id);
         return handleSuccess(
@@ -18,15 +17,14 @@ export const readAllNotifications = async (req, res) => {
             userLanguage
         );
     } catch (error) {
-        return handleError(res, 500, getMessage('en', variableTypes.INTERNAL_SERVER_ERROR));
+        const userLanguage = getRequestLanguage(req);
+        return handleError(res, 500, getMessage(userLanguage, variableTypes.INTERNAL_SERVER_ERROR), userLanguage);
     }
 };
 
 export const readNotificationsById = async (req, res) => {
     try {
-        const { id, language } = req.user;
-        const rawLang = req.query?.lang || req.query?.language || req.headers?.language || req.headers?.['accept-language']?.split(',')[0]?.substring(0, 2) || language || 'en';
-        const userLanguage = ['en', 'de', 'fr', 'it'].includes(String(rawLang).toLowerCase()) ? String(rawLang).toLowerCase() : 'en';
+        const userLanguage = getRequestLanguage(req);
         const targetId = req.body?.notificationId || req.body?.notification_id || req.body?.id || req.params?.notificationId;
 
         let updateNotificationByIds = await readAllNotificationsModelByIdModel(targetId);
@@ -38,15 +36,15 @@ export const readNotificationsById = async (req, res) => {
             userLanguage
         );
     } catch (error) {
-        return handleError(res, 500, getMessage('en', variableTypes.INTERNAL_SERVER_ERROR));
+        const userLanguage = getRequestLanguage(req);
+        return handleError(res, 500, getMessage(userLanguage, variableTypes.INTERNAL_SERVER_ERROR), userLanguage);
     }
 };
 
 export const removeAllNotification = async (req, res) => {
     try {
-        const { id, language } = req.user;
-        const rawLang = req.query?.lang || req.query?.language || req.headers?.language || req.headers?.['accept-language']?.split(',')[0]?.substring(0, 2) || language || 'en';
-        const userLanguage = ['en', 'de', 'fr', 'it'].includes(String(rawLang).toLowerCase()) ? String(rawLang).toLowerCase() : 'en';
+        const { id } = req.user;
+        const userLanguage = getRequestLanguage(req);
 
         await removeAllNotificationByCurrentUserId(id);
         return handleSuccess(
@@ -57,15 +55,14 @@ export const removeAllNotification = async (req, res) => {
             userLanguage
         );
     } catch (error) {
-        return handleError(res, 500, getMessage('en', variableTypes.INTERNAL_SERVER_ERROR));
+        const userLanguage = getRequestLanguage(req);
+        return handleError(res, 500, getMessage(userLanguage, variableTypes.INTERNAL_SERVER_ERROR), userLanguage);
     }
 };
 
 export const removeNotificationById = async (req, res) => {
     try {
-        const { language } = req.user || {};
-        const rawLang = req.query?.lang || req.query?.language || req.headers?.language || req.headers?.['accept-language']?.split(',')[0]?.substring(0, 2) || language || 'en';
-        const userLanguage = ['en', 'de', 'fr', 'it'].includes(String(rawLang).toLowerCase()) ? String(rawLang).toLowerCase() : 'en';
+        const userLanguage = getRequestLanguage(req);
         const targetId = req.body?.notificationId || req.body?.notification_id || req.body?.id || req.params?.notificationId;
 
         await removeCarFromNotificationModelbyNotificationId(targetId);
@@ -77,7 +74,8 @@ export const removeNotificationById = async (req, res) => {
             userLanguage
         );
     } catch (error) {
-        return handleError(res, 500, getMessage('en', variableTypes.INTERNAL_SERVER_ERROR));
+        const userLanguage = getRequestLanguage(req);
+        return handleError(res, 500, getMessage(userLanguage, variableTypes.INTERNAL_SERVER_ERROR), userLanguage);
     }
 };
 

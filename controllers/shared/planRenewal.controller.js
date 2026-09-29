@@ -2,7 +2,7 @@ import { variableTypes } from '../../utils/constant.js';
 import { getEligiblePlans, getUserActivePlans, getActiveCarCount, getPlanById, getUserBasicPlan } from '../../models/user.model.js';
 import Stripe from 'stripe';
 import db from '../../config/db.js';
-import { handleError, handleSuccess, handleSuccessNew } from '../../utils/responseHandler.js';
+import { handleError, handleSuccess, handleSuccessNew, getRequestLanguage } from '../../utils/responseHandler.js';
 import { getPurchasesWithPlanDetails, getMessage } from '../../utils/user_helper.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -31,7 +31,7 @@ export const getUpgradeDowngradePlans = async (req, res) => {
 export const renewPlan = async (req, res) => {
     try {
         const user_id = req.user.id;
-        const lang = "en";
+        const lang = getRequestLanguage(req);
         const { action, chosen_plan_id, chosen_total_slots, renewalPrice, renewal_user_plan_id } = req.body;
         const activePlan = await getUserActivePlans(user_id);
         if (!activePlan) return handleError(res, 400, "No active plan");
@@ -124,7 +124,7 @@ export const renewPlan = async (req, res) => {
 export const getRenewalSummary = async (req, res) => {
     try {
         const { user_plan_id } = req.params;
-        const lang = "en";
+        const lang = getRequestLanguage(req);
 
         // Fetch user_plan
         const userPlan = await db.query(

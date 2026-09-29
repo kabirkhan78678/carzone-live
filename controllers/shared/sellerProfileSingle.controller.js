@@ -1,11 +1,11 @@
 import { getSellerByIdModel, fetchUsersById, fetchUserRoleData, getUserTotalSlots, countUserCars, getSellerOpeningTimesModel, getSellerCarsModel, getSellerVideosModel, getUserReelsModel } from '../../models/user.model.js';
 import db from '../../config/db.js';
 import { variableTypes } from '../../utils/constant.js';
-import { handleError, handleSuccess } from '../../utils/responseHandler.js';
+import { handleError, handleSuccess, getRequestLanguage } from '../../utils/responseHandler.js';
 import { getMessage } from '../../utils/user_helper.js';
 
 export const getSellerProfileById = async (req, res) => {
-     const lang = "en";
+     const lang = getRequestLanguage(req);
 
     try {
         const sellerId = Number(req.params.id);

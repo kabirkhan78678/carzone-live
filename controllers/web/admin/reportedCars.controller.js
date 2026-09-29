@@ -5,12 +5,11 @@ import {
     deleteReportedCarModel,
     updateReportedCarStatusModel
 } from '../../models/admin.model.js';
-import { handleSuccessNew, handleError, handleSuccess } from '../../utils/responseHandler.js';
+import { handleSuccessNew, handleError, handleSuccess, getRequestLanguage } from '../../utils/responseHandler.js';
 import { getMessage } from '../../utils/user_helper.js';
 
 export const getReportedCars = async (req, res) => {
-    const { language } = "en";
-    const lang = language;
+    const lang = getRequestLanguage(req);
 
     try {
         const page = Math.max(parseInt(req.query.page) || 1, 1);
@@ -54,7 +53,7 @@ export const getReportedCars = async (req, res) => {
 
 export const getReportedCarById = async (req, res) => {
     try {
-        const lang = "en";
+        const lang = getRequestLanguage(req);
         const { id } = req.params;
 
         const report = await getReportedCarByIdModel(id);

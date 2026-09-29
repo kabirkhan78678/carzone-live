@@ -5,7 +5,7 @@ import { detectText } from '../rekognitionService.js';
 import { sendCarListedNotification } from '../notification.service.js';
 import { notifyListingEvent, notifyMatchingSearchUsers } from '../notificationDispatchers.js';
 import { fetchUsersById, getUserActivePlans, getUserTotalSlots, countUserCars, insertSellerCars, updateSellerCars, replaceCarLeasingByCarId, clearCarLeasingByCarId, replaceCarContactByCarId, addCarImagesByCarId, replaceCarFeatures } from '../../models/user.model.js';
-import { handleError, handleSuccess } from '../../utils/responseHandler.js';
+import { handleError, handleSuccess, getRequestLanguage } from '../../utils/responseHandler.js';
 import { getMessage, hasExplicitContent } from '../../utils/user_helper.js';
 import { variableTypes } from '../../utils/constant.js';
 import { buildCarPayload } from './carPayloadBuilder.js';
@@ -13,7 +13,7 @@ import { buildCarPayload } from './carPayloadBuilder.js';
 export const handleListingCar = async (req, res, platform = 'web') => {
     try {
         const user_id = req.user.id;
-        const lang = 'en';
+        const lang = getRequestLanguage(req);
 
         const user = await fetchUsersById(user_id);
         const plans = await getUserActivePlans(user_id);

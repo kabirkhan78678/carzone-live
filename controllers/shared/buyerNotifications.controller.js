@@ -2,17 +2,16 @@ import { getNotificationTranslation } from '../../services/notification.service.
 import { getUserById } from '../../models/admin.model.js';
 import { modelfetchNotificationByBuyersIds, getCarDetailsById, getExistingPurchaseAgreement, getPhysicalVisitForNotificationModel } from '../../models/user.model.js';
 import { variableTypes } from '../../utils/constant.js';
-import { handleError, handleSuccess } from '../../utils/responseHandler.js';
+import { handleError, handleSuccess, getRequestLanguage } from '../../utils/responseHandler.js';
 import { getMessage, stripHtml, getChfFormattedPrice } from '../../utils/user_helper.js';
 
 export const fetchNotificationByBuyersIds = async (req, res) => {
     try {
-        const { id, language } = req.user;
+        const { id } = req.user;
         const { isUserType } = req.query;
 
-        // Resolve requested language with highest priority to request query / headers, then user profile, default 'en'
-        const rawLang = req.query?.lang || req.query?.language || req.headers?.language || req.headers?.['accept-language']?.split(',')[0]?.substring(0, 2) || language || 'en';
-        const userLanguage = ['en', 'de', 'fr', 'it'].includes(String(rawLang).toLowerCase()) ? String(rawLang).toLowerCase() : 'en';
+        // Resolve requested language with priority to query/headers/user profile
+        const userLanguage = getRequestLanguage(req);
 
         // ============================================
         // GET NOTIFICATIONS
@@ -225,6 +224,25 @@ export const fetchNotificationByBuyersIds = async (req, res) => {
                                     params.time = reqMatch[3];
                                 }
                             }
+                        }
+                        break;
+
+                    case "appointment":
+                        if (rawTitle.includes('confirmed') || rawBody.includes('confirmed')) {
+                            titleKey = "APPOINTMENT_CONFIRMED";
+                            bodyKey = "APPOINTMENT_CONFIRMED_BODY";
+                        } else if (rawTitle.includes('declined') || rawTitle.includes('rejected') || rawBody.includes('declined') || rawBody.includes('rejected')) {
+                            titleKey = "APPOINTMENT_REJECTED";
+                            bodyKey = "APPOINTMENT_REJECTED_BODY";
+                        } else if (rawTitle.includes('rescheduled') || rawBody.includes('rescheduled')) {
+                            titleKey = "APPOINTMENT_RESCHEDULED";
+                            bodyKey = "APPOINTMENT_RESCHEDULED_BODY";
+                        } else if (rawTitle.includes('submitted') || rawBody.includes('submitted')) {
+                            titleKey = "VISIT_REQUEST_SUBMITTED";
+                            bodyKey = "VISIT_REQUEST_SUBMITTED_BODY";
+                        } else {
+                            titleKey = "NEW_VISIT_REQUEST";
+                            bodyKey = "NEW_VISIT_REQUEST_BODY";
                         }
                         break;
 
@@ -485,10 +503,12 @@ export const fetchNotificationByBuyersIds = async (req, res) => {
 
     } catch (error) {
         console.error("fetchNotificationByBuyersIds error:", error);
+        const userLanguage = getRequestLanguage(req);
         return handleError(
             res,
             500,
-            getMessage("en", variableTypes.INTERNAL_SERVER_ERROR)
+            getMessage(userLanguage, variableTypes.INTERNAL_SERVER_ERROR),
+            userLanguage
         );
     }
 };

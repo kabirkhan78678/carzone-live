@@ -63,6 +63,12 @@ export const changeLanguage = async (req, res) => {
             return handleError(res, 400, getMessage('en', variableTypes.INVALID_LANGUAGE_CODE));
         }
         await updateUsersProfile({ language }, id);
+        if (req.user) {
+            req.user.language = language;
+        }
+        if (res.locals) {
+            res.locals.language = language;
+        }
         return handleSuccess(
             res,
             200,
