@@ -162,23 +162,29 @@ export const viewCarDetailByCarId = async (req, res) => {
             ? "Active" 
             : "Expired / Inactive (Renew subscription to activate)";
 
-        const toDateStr = (value) => {
-            if (!value) return null;
-            if (value instanceof Date && !Number.isNaN(value.getTime())) {
-                return value.toISOString().slice(0, 10);
-            }
-            const d = new Date(value);
-            if (Number.isNaN(d.getTime())) return null;
-            return d.toISOString().slice(0, 10);
-        };
+        const formatDateReadable = (value) => {
+        if (!value) return null;
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return null;
+        const iso = d.toISOString().slice(0, 10);
+        const [y, m, day] = iso.split('-');
+        return `${day}-${m}-${y}`;
+    };
 
-        const planStartDate = toDateStr(car.plan_start_date);
-        const planEndDate = toDateStr(car.plan_end_date);
+    const toValidTillText = (value) => {
+        const formatted = formatDateReadable(value);
+        return formatted ? `Valid till ${formatted}` : null;
+    };
+
+        const planStartDate = formatDateReadable(car.plan_start_date);
+        const planEndDate = formatDateReadable(car.plan_end_date);
+        const validTillText = toValidTillText(car.plan_end_date);
+
         let daysRemaining = null;
-        if (planEndDate) {
+        if (car.plan_end_date) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const end = new Date(planEndDate);
+            const end = new Date(car.plan_end_date);
             end.setHours(0, 0, 0, 0);
             const diffTime = end.getTime() - today.getTime();
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -193,18 +199,9 @@ export const viewCarDetailByCarId = async (req, res) => {
             plan_start_date: planStartDate,
             plan_end_date: planEndDate,
             valid_until: planEndDate,
+            valid_till: validTillText,
+            valid_until_formatted: validTillText,
             days_remaining: daysRemaining,
-            plan_details: {
-                plan_name: car.plan_name ?? null,
-                start_date: planStartDate,
-                end_date: planEndDate,
-                valid_until: planEndDate,
-                days_remaining: daysRemaining,
-                is_active: isActive ? 1 : 0,
-                is_expired: isPlanExpired,
-                status: carStatus,
-                status_message: statusMessage
-            },
             quality_seal_id: car.quality_seal_id ?? car.quality_seal_id_resolved ?? null,
             quality_seal_name: car.quality_seal_name ?? null,
             quality_seal_image: car.quality_seal_image ?? null,

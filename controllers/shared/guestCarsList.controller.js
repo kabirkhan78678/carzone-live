@@ -235,23 +235,29 @@ export const buildVehicleDetailPayload = (car, openingTimes, mfk) => {
         ? "Active" 
         : "Expired / Inactive (Renew subscription to activate)";
 
-    const toDateStr = (value) => {
+    const formatDateReadable = (value) => {
         if (!value) return null;
-        if (value instanceof Date && !Number.isNaN(value.getTime())) {
-            return value.toISOString().slice(0, 10);
-        }
         const d = new Date(value);
         if (Number.isNaN(d.getTime())) return null;
-        return d.toISOString().slice(0, 10);
+        const iso = d.toISOString().slice(0, 10);
+        const [y, m, day] = iso.split('-');
+        return `${day}-${m}-${y}`;
     };
 
-    const planStartDate = toDateStr(car.plan_start_date);
-    const planEndDate = toDateStr(car.plan_end_date);
+    const toValidTillText = (value) => {
+        const formatted = formatDateReadable(value);
+        return formatted ? `Valid till ${formatted}` : null;
+    };
+
+    const planStartDate = formatDateReadable(car.plan_start_date);
+    const planEndDate = formatDateReadable(car.plan_end_date);
+    const validTillText = toValidTillText(car.plan_end_date);
+
     let daysRemaining = null;
-    if (planEndDate) {
+    if (car.plan_end_date) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const end = new Date(planEndDate);
+        const end = new Date(car.plan_end_date);
         end.setHours(0, 0, 0, 0);
         const diffTime = end.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -273,17 +279,15 @@ export const buildVehicleDetailPayload = (car, openingTimes, mfk) => {
     const carPrice = pickFirstNonEmpty(car.new_price, car.selling_price, car.totalPrice) ?? null;
     const perMonthPrice = pickFirstNonEmpty(car.leasing_monthly_price, car.leasingPrice) ?? null;
 
-        const powerParts = [];
+    const powerParts = [];
+    if (car.power_ps != null) {
+        powerParts.push(`${car.power_ps} PS`);
+    }
+    if (car.power_kw != null) {
+        powerParts.push(`${car.power_kw} KW`);
+    }
+    const power = powerParts.length ? powerParts.join(" / ") : null;
 
-if (car.power_ps != null) {
-    powerParts.push(`${car.power_ps} PS`);
-}
-
-if (car.power_kw != null) {
-    powerParts.push(`${car.power_kw} KW`);
-}
-
-const power = powerParts.length ? powerParts.join(" / ") : null;
     return {
         id: car.id,
         is_active: isActive ? 1 : 0,
@@ -293,18 +297,9 @@ const power = powerParts.length ? powerParts.join(" / ") : null;
         plan_start_date: planStartDate,
         plan_end_date: planEndDate,
         valid_until: planEndDate,
+        valid_till: validTillText,
+        valid_until_formatted: validTillText,
         days_remaining: daysRemaining,
-        plan_details: {
-            plan_name: car.plan_name ?? null,
-            start_date: planStartDate,
-            end_date: planEndDate,
-            valid_until: planEndDate,
-            days_remaining: daysRemaining,
-            is_active: isActive ? 1 : 0,
-            is_expired: isPlanExpired,
-            status: carStatus,
-            status_message: statusMessage
-        },
         carName: `${car.brandName || ""} ${car.carModel || ""}`.trim(),
         brand: car.brandName,
         model: car.carModel,
