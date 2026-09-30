@@ -250,19 +250,65 @@ ORDER BY pur.id ASC`,
 };
 
 export const deleteExpiredCars = () => {
+    // Keep cars safe in database so they remain visible in user's "My Listings"
+    // No hard deletion (is_deleted stays 0)
+    return Promise.resolve();
+};
+
+export const deactivateUserCarsAfterGracePeriod = async (user_id) => {
     return db.query(`
-       UPDATE tbl_cars
-  SET is_deleted = 1
-  WHERE is_active = 0 
-    AND is_deleted = 0
-    AND slot_deleted_at IS NOT NULL
-    AND slot_deleted_at < DATE_SUB(NOW(), INTERVAL 10 DAY)
+        UPDATE tbl_cars 
+        SET is_active = 0, slot_deleted_at = NOW() 
+        WHERE user_id = ? 
+          AND is_deleted = 0 
+          AND is_active = 1
+    `, [user_id]);
+};
+
+export const reactivateUserCars = async (user_id) => {
+    return db.query(`
+        UPDATE tbl_cars 
+        SET is_active = 1, slot_deleted_at = NULL 
+        WHERE user_id = ? 
+          AND is_deleted = 0
+    `, [user_id]);
+};
+
+export const reactivateSingleCar = async (carId, user_id) => {
+    return db.query(`
+        UPDATE tbl_cars 
+        SET is_active = 1, slot_deleted_at = NULL 
+        WHERE id = ? 
+          AND user_id = ? 
+          AND is_deleted = 0
+    `, [carId, user_id]);
+};
+
+export const getExpiredPlansPastGracePeriod = () => {
+    return db.query(`
+        SELECT MAX(up.id) AS id, up.user_id, MAX(up.end_date) AS end_date
+        FROM tbl_user_plans up
+        WHERE (up.is_active = 0 OR up.end_date <= NOW())
+          AND up.end_date <= DATE_SUB(NOW(), INTERVAL 10 DAY)
+          AND NOT EXISTS (
+              SELECT 1 FROM tbl_user_plans active_up
+              WHERE active_up.user_id = up.user_id
+                AND active_up.is_active = 1
+                AND active_up.end_date > NOW()
+          )
+          AND EXISTS (
+              SELECT 1 FROM tbl_cars c
+              WHERE c.user_id = up.user_id
+                AND c.is_deleted = 0
+                AND c.is_active = 1
+          )
+        GROUP BY up.user_id
     `);
 };
 
 export const markExpiryNotificationSent = async (planId) => {
     await db.query(
-        `UPDATE tbl_user_plans SET expiry_notification_sent = 1 WHERE id = ?`,
+        `UPDATE tbl_user_plans SET expiry_notification_sent = 1, is_active = 0 WHERE id = ?`,
         [planId]
     );
 };

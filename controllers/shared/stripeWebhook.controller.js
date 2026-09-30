@@ -132,6 +132,14 @@ console.log("INSERTED PLAN FROM DB:", insertedPlan)
                 };
                 await insertPurchase(purchaseData);
 
+                // Reactivate cars if they were deactivated due to previous plan expiry
+                await db.query(`
+                    UPDATE tbl_cars
+                    SET is_active = 1, slot_deleted_at = NULL
+                    WHERE user_id = ?
+                      AND is_deleted = 0
+                `, [user_id]);
+
                 console.log(`Initial/renewal main plan activated for user ${user_id}`);
 
             } else if (purchaseType === 'addon') {
@@ -164,14 +172,13 @@ console.log("INSERTED PLAN FROM DB:", insertedPlan)
                 console.log(`Addon slots purchased for user ${user_id}. New total slots: ${newTotalSlots}`);
             }
             else if (purchaseType === 'renew') {
-                console.log("renew code execution")
+                console.log("renew code execution");
                 await db.query(`
-                        UPDATE tbl_cars
-                        SET is_active = 1, slot_deleted_at = NULL
-                        WHERE user_id = ?
-                        AND is_deleted = 0
-                        AND slot_deleted_at >= DATE_SUB(NOW(), INTERVAL 10 DAY)
-                        `, [user_id]);
+                    UPDATE tbl_cars
+                    SET is_active = 1, slot_deleted_at = NULL
+                    WHERE user_id = ?
+                      AND is_deleted = 0
+                `, [user_id]);
                 if (session.metadata.action == 'keep') {
                     let renewal_user_plan_id = session.metadata.renewal_user_plan_id;
                     console.log(`Renewal KEEP flow for user_plan_id ${renewal_user_plan_id}`);

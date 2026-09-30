@@ -54,11 +54,23 @@ export const deleteCarImagesByCarId = async (carId) => {
 };
 
 export const deleteCarImageByUrlModel = async (imageUrl, userId) => {
+    const rawVal = typeof imageUrl === 'string' ? imageUrl.trim() : imageUrl;
+    const isNumericId = /^\d+$/.test(String(rawVal));
+
+    if (isNumericId) {
+        return db.query(
+            `DELETE ci FROM tbl_cars_images ci
+             JOIN tbl_cars c ON ci.carId = c.id
+             WHERE (ci.id = ? OR ci.images = ?) AND c.user_id = ?`,
+            [Number(rawVal), String(rawVal), userId]
+        );
+    }
+
     return db.query(
         `DELETE ci FROM tbl_cars_images ci
          JOIN tbl_cars c ON ci.carId = c.id
-         WHERE (ci.images = ? OR ci.id = ?) AND c.user_id = ?`,
-        [imageUrl, imageUrl, userId]
+         WHERE ci.images = ? AND c.user_id = ?`,
+        [String(rawVal), userId]
     );
 };
 

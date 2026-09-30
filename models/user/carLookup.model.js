@@ -71,6 +71,10 @@ export const fetchCarsById = async (id, lang = "en") => {
                 wtt_warranty.name AS warranty_value,
                 wq.id AS warranty_type_id_resolved,
                 wqt.label AS warranty_type_value,
+                qs.id AS quality_seal_id_resolved,
+                qs.name AS quality_seal_name,
+                qs.image AS quality_seal_image,
+                qs.description AS quality_seal_description,
                 cl.monthly_price AS leasing_value,
                 cl.interest_rate AS annual_interest_rate,
                 cl.residual_percentage AS residual_value,
@@ -121,6 +125,9 @@ export const fetchCarsById = async (id, lang = "en") => {
             LEFT JOIN warranty_qualities_translations wqt
                 ON wqt.warranty_quality_id = wq.id
                AND wqt.language_code = ?
+            LEFT JOIN tbl_quality_seals qs
+                ON qs.id = c.quality_seal_id
+               AND qs.is_delete = 0
             LEFT JOIN (
                 SELECT
                     l.car_id,

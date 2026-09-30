@@ -165,6 +165,7 @@ export const listCarweb = async (req, res) => {
             warranty_number_of_months,
             warranty_kilometer,
             warranty_description,
+            quality_seal_id,
             last_mfk_date,
             exterior_color_id,
             interior_color_id,
@@ -297,20 +298,21 @@ export const listCarweb = async (req, res) => {
                 mfk_warrenty_id: toNumber(mfk_warrenty_id ?? warranty_id)
             } : {}),
             warranty_type_text: toNumber(warranty_type_id),
+            quality_seal_id: toNumber(quality_seal_id),
             warranty_from,
             warranty_number_of_months: toNumber(warranty_number_of_months),
 
             warranty_kilometer:
                 warranty_kilometer !== undefined &&
-                warranty_kilometer !== null &&
-                String(warranty_kilometer).trim() !== ""
+                    warranty_kilometer !== null &&
+                    String(warranty_kilometer).trim() !== ""
                     ? String(warranty_kilometer).trim()
                     : null,
 
             warranty_description:
                 warranty_description !== undefined &&
-                warranty_description !== null &&
-                String(warranty_description).trim() !== ""
+                    warranty_description !== null &&
+                    String(warranty_description).trim() !== ""
                     ? String(warranty_description).trim()
                     : null,
             warranty_to,

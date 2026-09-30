@@ -198,6 +198,16 @@ export const asGuestUserGetCar = async (req, res) => {
         };
 
         return res.status(200).json({
+            quality_seal_id: car.quality_seal_id ?? car.quality_seal_id_resolved ?? null,
+            quality_seal_name: car.quality_seal_name ?? null,
+            quality_seal_image: car.quality_seal_image ?? null,
+            quality_seal_description: car.quality_seal_description ?? null,
+            quality_seal: car.quality_seal_id_resolved ? {
+                id: car.quality_seal_id_resolved,
+                name: car.quality_seal_name,
+                image: car.quality_seal_image,
+                description: car.quality_seal_description
+            } : null,
             vehicle: buildVehicleDetailPayload(car, openingTimes, mfkInfo),
 
             images: images.map(i => i.images),

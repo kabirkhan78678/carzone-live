@@ -17,6 +17,10 @@ export const getLatestDraftCarByUser = async (user_id, lang = "en") => {
 
        wq.id      AS warranty_type_id_resolved,
        wqt.label  AS warranty_type_value,
+       qs.id AS quality_seal_id_resolved,
+       qs.name AS quality_seal_name,
+       qs.image AS quality_seal_image,
+       qs.description AS quality_seal_description,
 
       mfst.name AS mfk_status_value,
 

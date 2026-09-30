@@ -112,6 +112,10 @@ const power = powerParts.length ? powerParts.join(" / ") : null;
                         ...item,
                          power,
                         sellerName,
+                        quality_seal_id: item.quality_seal_id_resolved ?? item.quality_seal_id ?? null,
+                        quality_seal_name: item.quality_seal_name ?? null,
+                        quality_seal_image: item.quality_seal_image ?? null,
+                        quality_seal_description: item.quality_seal_description ?? null,
                         isWishlist: true, // obvious
                         carImages: carImages.map(img => img.images),
                         sellerDetails: {

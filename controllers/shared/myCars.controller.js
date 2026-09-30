@@ -24,7 +24,21 @@ export const getMyCar = async (req, res) => {
                 item.leasing_value = item.leasing_value ?? item.leasingPrice ?? null;
                 item.annual_interest_rate = item.annual_interest_rate ?? null;
                 item.residual_value = item.residual_value ?? null;
+                item.quality_seal_id = item.quality_seal_id ?? item.quality_seal_id_resolved ?? null;
+                item.quality_seal_name = item.quality_seal_name ?? null;
+                item.quality_seal_image = item.quality_seal_image ?? null;
+                item.quality_seal_description = item.quality_seal_description ?? null;
+                delete item.quality_seal_id_resolved;
                 delete item.warranty_type_id_resolved;
+
+                const isActive = Number(item.is_active) === 1;
+                item.is_active = isActive ? 1 : 0;
+                item.is_plan_expired = !isActive;
+                item.can_renew = true;
+                item.status_message = isActive 
+                    ? "Active" 
+                    : "Expired / Inactive (Renew subscription to activate)";
+
                 return item;
             }));
         }
@@ -154,6 +168,10 @@ export const getLatestDraftCar = async (req, res) => {
             extras: parseArrayField(car.extras, []),
             additional_title_999: car.additional_title_999,
             description: car.description,
+            quality_seal_id: car.quality_seal_id ?? car.quality_seal_id_resolved ?? null,
+            quality_seal_name: car.quality_seal_name ?? null,
+            quality_seal_image: car.quality_seal_image ?? null,
+            quality_seal_description: car.quality_seal_description ?? null,
 
             // page 2
             selling_price: car.selling_price,

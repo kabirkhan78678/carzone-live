@@ -52,7 +52,11 @@ export const modelFetchAllWishlist = async (
     fit.label AS fuel_type_value,
     tt.label AS transmission_value,
     dt.label AS drive_type_value,
-    YEAR(c.first_registration_date) AS registration_year
+    YEAR(c.first_registration_date) AS registration_year,
+    qs.id AS quality_seal_id_resolved,
+    qs.name AS quality_seal_name,
+    qs.image AS quality_seal_image,
+    qs.description AS quality_seal_description
   FROM tbl_car_wishlist w
   JOIN tbl_cars c ON c.id = w.carId
   JOIN tbl_users u ON u.id = c.user_id
@@ -74,6 +78,9 @@ export const modelFetchAllWishlist = async (
         LEFT JOIN tbl_drive_translations dt
             ON dt.drive_id = d.id
             AND dt.language_code = 'en'
+  LEFT JOIN tbl_quality_seals qs
+    ON qs.id = c.quality_seal_id
+   AND qs.is_delete = 0
   WHERE w.user_id = ?
     AND c.is_deleted = 0
 `;

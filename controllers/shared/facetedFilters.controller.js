@@ -483,6 +483,9 @@ export const getFacetedFilters = async (req, res) => {
                             warranty_type_value: item.warranty_type_value ?? null,
                             warranty_value: item.warranty_value ?? null,
                             quality_seal_id: item.quality_seal_id_resolved ?? item.quality_seal_id ?? null,
+                            quality_seal_name: item.quality_seal_name ?? null,
+                            quality_seal_image: item.quality_seal_image ?? null,
+                            quality_seal_description: item.quality_seal_description ?? null,
                             quality_seal: item.quality_seal_id_resolved ? {
                                 id: item.quality_seal_id_resolved,
                                 name: item.quality_seal_name,
@@ -522,6 +525,7 @@ export const getFacetedFilters = async (req, res) => {
             if (data.length) {
                 data.forEach((item) => {
                     delete item.warranty_type_id_resolved;
+                    delete item.quality_seal_id_resolved;
                 });
             }
 

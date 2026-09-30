@@ -117,6 +117,10 @@ export const asGuestUserFetchSellerCarsList = async (req, res) => {
                         warranty_type_value:
                             item.warranty_type_value ?? null,
                         warranty_value: item.warranty_value ?? null,
+                        quality_seal_id: item.quality_seal_id ?? item.quality_seal_id_resolved ?? null,
+                        quality_seal_name: item.quality_seal_name ?? null,
+                        quality_seal_image: item.quality_seal_image ?? null,
+                        quality_seal_description: item.quality_seal_description ?? null,
                         leasing_value:
                             item.leasing_value ??
                             item.leasingPrice ??
@@ -159,6 +163,7 @@ export const asGuestUserFetchSellerCarsList = async (req, res) => {
         if (data.length) {
             data.forEach((item) => {
                 delete item.warranty_type_id_resolved;
+                delete item.quality_seal_id_resolved;
             });
         }
 
@@ -328,6 +333,10 @@ const power = powerParts.length ? powerParts.join(" / ") : null;
         country: car.contact_country ?? null,
         country_code: car.contact_country_code ?? null,
         phone_number: car.contact_phone_number ?? null,
-        description: car.description
+        description: car.description,
+        quality_seal_id: car.quality_seal_id ?? car.quality_seal_id_resolved ?? null,
+        quality_seal_name: car.quality_seal_name ?? null,
+        quality_seal_image: car.quality_seal_image ?? null,
+        quality_seal_description: car.quality_seal_description ?? null
     };
 };

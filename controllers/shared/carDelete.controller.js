@@ -38,7 +38,7 @@ export const deleteCar = async (req, res) => {
 
 export const deleteCarImageByUrl = async (req, res) => {
     try {
-        const { imageUrl } = req.body;
+        const imageUrl = req.body?.imageUrl ?? req.body?.image_url ?? req.body?.url ?? req.body?.imageId ?? req.body?.image_id;
         const user_id = req.user.id;
         const lang = req.user.language;
         if (!imageUrl) {

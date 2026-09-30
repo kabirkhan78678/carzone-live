@@ -1,5 +1,5 @@
 import { variableTypes } from '../../utils/constant.js';
-import { getEligiblePlans, getUserActivePlans, getActiveCarCount, getPlanById, getUserBasicPlan } from '../../models/user.model.js';
+import { getEligiblePlans, getUserActivePlans, getActiveCarCount, getPlanById, getUserBasicPlan, getUserPlan } from '../../models/user.model.js';
 import Stripe from 'stripe';
 import db from '../../config/db.js';
 import { handleError, handleSuccess, handleSuccessNew, getRequestLanguage } from '../../utils/responseHandler.js';
@@ -33,8 +33,12 @@ export const renewPlan = async (req, res) => {
         const user_id = req.user.id;
         const lang = getRequestLanguage(req);
         const { action, chosen_plan_id, chosen_total_slots, renewalPrice, renewal_user_plan_id } = req.body;
-        const activePlan = await getUserActivePlans(user_id);
-        if (!activePlan) return handleError(res, 400, "No active plan");
+        let activePlan = await getUserActivePlans(user_id);
+        if (!activePlan || activePlan.length === 0) {
+            // Check if user has an expired plan that they want to renew
+            activePlan = await getUserPlan(user_id);
+        }
+        if (!activePlan || activePlan.length === 0) return handleError(res, 400, "No plan found to renew");
 
         const active = activePlan[0];
         const activeCars = await getActiveCarCount(user_id, 1);
