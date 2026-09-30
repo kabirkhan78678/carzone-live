@@ -141,6 +141,11 @@ app.delete('/removeSavedCarsReel', authenticateUser, removeSavedCarReelsValidati
 
 app.post('/updateCar/:carId', authenticateUser, uploadProfile.fields(fieldsConfig), updateCarValidation, handleValidationErrors, controller.userController.updateCar);
 app.put('/updateCar/:carId', authenticateUser, uploadProfile.fields(fieldsConfig), updateCarValidation, handleValidationErrors, controller.userController.updateCar);
+app.post('/car/:carId/toggle-status', authenticateUser, carIdParamValidation, handleValidationErrors, controller.userController.toggleCarActiveStatus);
+app.patch('/car/:carId/toggle-status', authenticateUser, carIdParamValidation, handleValidationErrors, controller.userController.toggleCarActiveStatus);
+app.post('/car/:carId/activate', authenticateUser, carIdParamValidation, handleValidationErrors, controller.userController.toggleCarActiveStatus);
+app.post('/swap-car', authenticateUser, controller.userController.swapCar);
+app.post('/swap-active-slot', authenticateUser, controller.userController.swapActiveCarSlot);
 app.delete('/deleteCar/:carId', authenticateUser, carIdParamValidation, handleValidationErrors, controller.userController.deleteCar);
 app.post('/deleteCar-image', authenticateUser, deleteCarImageValidation, handleValidationErrors, controller.userController.deleteCarImageByUrl);
 app.post('/purchaseSlotPlan', authenticateUser, purchaseSlotPlanValidation, handleValidationErrors, controller.userController.purchaseSlotPlan);

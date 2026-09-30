@@ -107,6 +107,7 @@ export const renewPlan = async (req, res) => {
                 user_id: user_id.toString(),
                 plan_id: chosen_plan_id || 0,
                 renewal_user_plan_id: renewal_user_plan_id || 0,
+                car_id: (req.body.car_id || req.body.carId || "").toString(),
                 action: action,
                 purchase_type: "renew",
                 prorated_price: (finalPriceInCents / 100).toFixed(2),

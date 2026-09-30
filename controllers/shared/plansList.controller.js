@@ -157,16 +157,22 @@ export const getChooseListingPlan = async (req, res) => {
         }
 
         const token = authHeader.split(" ")[1];
+        const carId = req.query.car_id || req.body.car_id || req.params.carId || req.params.id || req.query.carId;
 
-        const chooseListingPlanUrl =
+        let chooseListingPlanUrl =
             `http://13.51.226.81/choose-listing-plan?authentication=${encodeURIComponent(token)}`;
+
+        if (carId) {
+            chooseListingPlanUrl += `&car_id=${encodeURIComponent(carId)}`;
+        }
 
         return handleSuccess(
             res,
             200,
             "Choose listing plan URL generated successfully",
             {
-                url: chooseListingPlanUrl
+                url: chooseListingPlanUrl,
+                car_id: carId ? Number(carId) : null
             }
         );
 

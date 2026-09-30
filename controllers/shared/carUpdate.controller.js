@@ -6,7 +6,9 @@ import {
     replaceCarContactByCarId,
     addCarImagesByCarId,
     replaceCarFeatures,
-    normalizeFeatureIds
+    normalizeFeatureIds,
+    getUserActivePlans,
+    getUserTotalSlots
 } from '../../models/user.model.js';
 import dayjs from 'dayjs';
 import { variableTypes } from '../../utils/constant.js';
@@ -635,10 +637,37 @@ export const updateCar = async (req, res) => {
         if (isMarkedSold) {
             data.is_sold = 1;
             data.is_active = 0;
-        } else if (isMarkedAvailable) {
-            data.is_sold = 0;
-            data.is_active = 1;
-            data.listing_status = "published";
+        } else if (isMarkedAvailable || rawCarData.is_active !== undefined) {
+            const willBeActive = isMarkedAvailable || toBool(rawCarData.is_active) === 1;
+            if (willBeActive) {
+                if (Number(car.is_active) !== 1) {
+                    const activePlans = await getUserActivePlans(user_id);
+                    if (!activePlans || activePlans.length === 0) {
+                        return handleError(res, 400, "No active subscription plan found. Please purchase or renew a plan to activate this car.", lang);
+                    }
+
+                    const totalSlots = await getUserTotalSlots(user_id);
+                    const [activeCountRow] = await db.query(
+                        `SELECT COUNT(*) AS count FROM tbl_cars WHERE user_id = ? AND is_deleted = 0 AND is_active = 1 AND id != ?`,
+                        [user_id, carId]
+                    );
+                    const currentActiveCount = activeCountRow?.count || 0;
+                    if (currentActiveCount >= totalSlots) {
+                        return handleError(
+                            res,
+                            400,
+                            `Slot limit reached! You are already using ${currentActiveCount}/${totalSlots} slot(s). Please upgrade your plan or deactivate an active car first.`,
+                            lang
+                        );
+                    }
+                }
+                data.is_sold = 0;
+                data.is_active = 1;
+                data.listing_status = "published";
+                data.slot_deleted_at = null;
+            } else {
+                data.is_active = 0;
+            }
         } else if (listing_status !== undefined) {
             data.listing_status = listing_status;
         }

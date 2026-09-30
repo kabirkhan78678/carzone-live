@@ -89,6 +89,7 @@ export const purchaseSlotPlan = async (req, res) => {
             metadata: {
                 user_id: user_id.toString(),
                 plan_id: plan.id.toString(),
+                car_id: (req.body.car_id || req.body.carId || req.query.car_id || req.query.carId || "").toString(),
                 purchase_type: purchaseType,
                 duration_type: plan.duration_type || 'monthly',
                 prorated_price: finalPrice.toFixed(2),

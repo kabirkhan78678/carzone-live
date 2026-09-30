@@ -1,7 +1,18 @@
-import { fetchCarsById, getLatestDraftCarByUser, getCarImagesByCarIdForDraft, getCarLeasingByCarIdForDraft, getCarContactByCarIdForDraft, fetchCarImagesByCarId } from '../../models/user.model.js';
+import {
+    fetchCarsById,
+    getLatestDraftCarByUser,
+    getCarImagesByCarIdForDraft,
+    getCarLeasingByCarIdForDraft,
+    getCarContactByCarIdForDraft,
+    fetchCarImagesByCarId,
+    getUserTotalSlots,
+    findCarByIdAndUser,
+    getUserActivePlans
+} from '../../models/user.model.js';
 import { variableTypes } from '../../utils/constant.js';
 import { handleError, handleSuccess } from '../../utils/responseHandler.js';
 import { parseArrayField, getMessage } from '../../utils/user_helper.js';
+import db from '../../config/db.js';
 
 export const getMyCar = async (req, res) => {
     try {
@@ -13,6 +24,10 @@ export const getMyCar = async (req, res) => {
         data = (data || []).filter(
             (item) => String(item.listing_status || "").toLowerCase() === "published"
         );
+
+        const totalSlots = await getUserTotalSlots(id);
+        const activeCarsCount = (data || []).filter(item => Number(item.is_active) === 1).length;
+        const availableSlots = Math.max(0, totalSlots - activeCarsCount);
 
         if (data.length > 0) {
             data = await Promise.all(data.map(async (item) => {
@@ -35,6 +50,7 @@ export const getMyCar = async (req, res) => {
                 item.is_active = isActive ? 1 : 0;
                 item.is_plan_expired = !isActive;
                 item.can_renew = true;
+                item.can_activate = isActive ? true : (availableSlots > 0);
                 item.status_message = isActive 
                     ? "Active" 
                     : "Expired / Inactive (Renew subscription to activate)";
@@ -42,12 +58,101 @@ export const getMyCar = async (req, res) => {
                 return item;
             }));
         }
-        data = data.length > 0 ? data : []
+        data = data.length > 0 ? data : [];
         return handleSuccess(res, 200, getMessage(lang, variableTypes.CAR_DETAILS_FETCHED_SUCCESSFULLY), data);
 
     } catch (error) {
         console.error("getMyCar error:", error);
         return handleError(res, 500, getMessage(variableTypes.INTERNAL_SERVER_ERROR));
+    }
+};
+
+export const toggleCarActiveStatus = async (req, res) => {
+    try {
+        const user_id = req.user.id;
+        const lang = req.user?.language || 'en';
+        const carId = Number(req.params.carId || req.params.id || req.body.car_id || req.body.carId);
+        const { is_active, status, action } = req.body;
+
+        if (!carId) {
+            return handleError(res, 400, "Valid carId is required", lang);
+        }
+
+        const [car] = await findCarByIdAndUser(carId, user_id);
+        if (!car) {
+            return handleError(res, 404, getMessage(lang, variableTypes.CAR_NOT_FOUND_OR_UNAUTHORIZED));
+        }
+
+        let targetActive = true;
+        if (is_active !== undefined) {
+            targetActive = is_active === 1 || is_active === '1' || is_active === true;
+        } else if (status !== undefined) {
+            targetActive = String(status).toLowerCase() === 'active' || String(status).toLowerCase() === 'published';
+        } else if (action !== undefined) {
+            targetActive = String(action).toLowerCase() === 'active' || String(action).toLowerCase() === 'available';
+        } else {
+            targetActive = Number(car.is_active) !== 1;
+        }
+
+        if (targetActive) {
+            const activePlans = await getUserActivePlans(user_id);
+            if (!activePlans || activePlans.length === 0) {
+                return handleError(res, 400, "No active subscription plan found. Please purchase or renew a plan to activate this car.", lang);
+            }
+
+            const totalSlots = await getUserTotalSlots(user_id);
+            const [activeCountRow] = await db.query(
+                `SELECT COUNT(*) AS count FROM tbl_cars WHERE user_id = ? AND is_deleted = 0 AND is_active = 1 AND id != ?`,
+                [user_id, carId]
+            );
+            const currentActiveCount = activeCountRow?.count || 0;
+            if (currentActiveCount >= totalSlots) {
+                return handleError(
+                    res,
+                    400,
+                    `Slot limit reached! You are already using ${currentActiveCount}/${totalSlots} slot(s). Please upgrade your plan or deactivate an active car first.`,
+                    lang
+                );
+            }
+
+            await db.query(
+                `UPDATE tbl_cars SET is_active = 1, slot_deleted_at = NULL WHERE id = ? AND user_id = ?`,
+                [carId, user_id]
+            );
+
+            return handleSuccess(res, 200, "Car activated successfully", {
+                car_id: carId,
+                is_active: 1,
+                status: "active",
+                slots_used: currentActiveCount + 1,
+                total_slots: totalSlots,
+                available_slots: Math.max(0, totalSlots - (currentActiveCount + 1))
+            });
+        } else {
+            await db.query(
+                `UPDATE tbl_cars SET is_active = 0, slot_deleted_at = NOW() WHERE id = ? AND user_id = ?`,
+                [carId, user_id]
+            );
+
+            const totalSlots = await getUserTotalSlots(user_id);
+            const [activeCountRow] = await db.query(
+                `SELECT COUNT(*) AS count FROM tbl_cars WHERE user_id = ? AND is_deleted = 0 AND is_active = 1`,
+                [user_id]
+            );
+            const currentActiveCount = activeCountRow?.count || 0;
+
+            return handleSuccess(res, 200, "Car deactivated successfully", {
+                car_id: carId,
+                is_active: 0,
+                status: "inactive",
+                slots_used: currentActiveCount,
+                total_slots: totalSlots,
+                available_slots: Math.max(0, totalSlots - currentActiveCount)
+            });
+        }
+    } catch (error) {
+        console.error("toggleCarActiveStatus error:", error);
+        return handleError(res, 500, getMessage(lang, variableTypes.INTERNAL_SERVER_ERROR));
     }
 };
 

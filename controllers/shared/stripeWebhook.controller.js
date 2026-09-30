@@ -1,5 +1,5 @@
 import { getPurchasesWithPlanDetails } from '../../utils/user_helper.js';
-import { getPlanById, deactivateUserPlans, insertUserPlan, insertPurchase, getUserActivePlans, updateUserPlanTotalSlots } from '../../models/user.model.js';
+import { getPlanById, deactivateUserPlans, insertUserPlan, insertPurchase, getUserActivePlans, updateUserPlanTotalSlots, reactivateUserCarsUpToLimit } from '../../models/user.model.js';
 import Stripe from 'stripe';
 import db from '../../config/db.js';
 import { notifyListingEvent } from '../../services/notificationDispatchers.js';
@@ -132,15 +132,17 @@ console.log("INSERTED PLAN FROM DB:", insertedPlan)
                 };
                 await insertPurchase(purchaseData);
 
-                // Reactivate cars if they were deactivated due to previous plan expiry
-                await db.query(`
-                    UPDATE tbl_cars
-                    SET is_active = 1, slot_deleted_at = NULL
-                    WHERE user_id = ?
-                      AND is_deleted = 0
-                `, [user_id]);
+                const specificCarId = session.metadata?.car_id ? Number(session.metadata.car_id) : null;
+                if (specificCarId) {
+                    await db.query(
+                        `UPDATE tbl_cars SET is_active = 1, slot_deleted_at = NULL WHERE id = ? AND user_id = ? AND is_deleted = 0`,
+                        [specificCarId, user_id]
+                    );
+                } else {
+                    await reactivateUserCarsUpToLimit(user_id, plan.slot_count);
+                }
 
-                console.log(`Initial/renewal main plan activated for user ${user_id}`);
+                console.log(`Initial/renewal main plan activated for user ${user_id} with up to ${plan.slot_count} slots (specific car: ${specificCarId || 'none'})`);
 
             } else if (purchaseType === 'addon') {
                 const mainPlan = await getUserActivePlans(user_id);
@@ -173,18 +175,22 @@ console.log("INSERTED PLAN FROM DB:", insertedPlan)
             }
             else if (purchaseType === 'renew') {
                 console.log("renew code execution");
-                await db.query(`
-                    UPDATE tbl_cars
-                    SET is_active = 1, slot_deleted_at = NULL
-                    WHERE user_id = ?
-                      AND is_deleted = 0
-                `, [user_id]);
                 if (session.metadata.action == 'keep') {
                     let renewal_user_plan_id = session.metadata.renewal_user_plan_id;
                     console.log(`Renewal KEEP flow for user_plan_id ${renewal_user_plan_id}`);
 
                     const oldPlan = await db.query(`SELECT * FROM tbl_user_plans where id = ?`, [renewal_user_plan_id]);
                     const oldPlanDetails = oldPlan[0];
+                    const slotsToKeep = oldPlanDetails?.total_slots || 1;
+                    const specificCarId = session.metadata?.car_id ? Number(session.metadata.car_id) : null;
+                    if (specificCarId) {
+                        await db.query(
+                            `UPDATE tbl_cars SET is_active = 1, slot_deleted_at = NULL WHERE id = ? AND user_id = ? AND is_deleted = 0`,
+                            [specificCarId, user_id]
+                        );
+                    } else {
+                        await reactivateUserCarsUpToLimit(user_id, slotsToKeep);
+                    }
 
                     let renewalDays = 30;
                     if (oldPlanDetails && oldPlanDetails.plan_id) {
@@ -267,8 +273,17 @@ console.log("INSERTED PLAN FROM DB:", insertedPlan)
                         plan_type: 'main'
                     };
                     await insertPurchase(purchaseData);
+                    const specificCarId = session.metadata?.car_id ? Number(session.metadata.car_id) : null;
+                    if (specificCarId) {
+                        await db.query(
+                            `UPDATE tbl_cars SET is_active = 1, slot_deleted_at = NULL WHERE id = ? AND user_id = ? AND is_deleted = 0`,
+                            [specificCarId, user_id]
+                        );
+                    } else {
+                        await reactivateUserCarsUpToLimit(user_id, plan.slot_count);
+                    }
 
-                    console.log(`Initial/renewal main plan activated for user ${user_id}`);
+                    console.log(`Initial/renewal main plan activated for user ${user_id} with up to ${plan.slot_count} slots (specific car: ${specificCarId || 'none'})`);
 
                 }
 

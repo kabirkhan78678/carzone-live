@@ -274,6 +274,19 @@ export const reactivateUserCars = async (user_id) => {
     `, [user_id]);
 };
 
+export const reactivateUserCarsUpToLimit = async (user_id, total_slots) => {
+    const limit = Math.max(1, Number(total_slots) || 1);
+    return db.query(`
+        UPDATE tbl_cars 
+        SET is_active = 1, slot_deleted_at = NULL 
+        WHERE user_id = ? 
+          AND is_deleted = 0
+          AND listing_status = 'published'
+        ORDER BY id DESC
+        LIMIT ?
+    `, [user_id, limit]);
+};
+
 export const reactivateSingleCar = async (carId, user_id) => {
     return db.query(`
         UPDATE tbl_cars 
