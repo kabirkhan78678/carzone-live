@@ -155,7 +155,56 @@ export const viewCarDetailByCarId = async (req, res) => {
 
         const power = powerParts.length ? powerParts.join(" / ") : null;
 
+        const isActive = Number(car.is_active) === 1;
+        const isPlanExpired = !isActive;
+        const carStatus = isActive ? "active" : "expired";
+        const statusMessage = isActive 
+            ? "Active" 
+            : "Expired / Inactive (Renew subscription to activate)";
+
+        const toDateStr = (value) => {
+            if (!value) return null;
+            if (value instanceof Date && !Number.isNaN(value.getTime())) {
+                return value.toISOString().slice(0, 10);
+            }
+            const d = new Date(value);
+            if (Number.isNaN(d.getTime())) return null;
+            return d.toISOString().slice(0, 10);
+        };
+
+        const planStartDate = toDateStr(car.plan_start_date);
+        const planEndDate = toDateStr(car.plan_end_date);
+        let daysRemaining = null;
+        if (planEndDate) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const end = new Date(planEndDate);
+            end.setHours(0, 0, 0, 0);
+            const diffTime = end.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            daysRemaining = diffDays >= 0 ? diffDays : 0;
+        }
+
         return res.json({
+            is_active: isActive ? 1 : 0,
+            is_plan_expired: isPlanExpired,
+            status: carStatus,
+            status_message: statusMessage,
+            plan_start_date: planStartDate,
+            plan_end_date: planEndDate,
+            valid_until: planEndDate,
+            days_remaining: daysRemaining,
+            plan_details: {
+                plan_name: car.plan_name ?? null,
+                start_date: planStartDate,
+                end_date: planEndDate,
+                valid_until: planEndDate,
+                days_remaining: daysRemaining,
+                is_active: isActive ? 1 : 0,
+                is_expired: isPlanExpired,
+                status: carStatus,
+                status_message: statusMessage
+            },
             quality_seal_id: car.quality_seal_id ?? car.quality_seal_id_resolved ?? null,
             quality_seal_name: car.quality_seal_name ?? null,
             quality_seal_image: car.quality_seal_image ?? null,

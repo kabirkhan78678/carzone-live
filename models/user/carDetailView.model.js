@@ -82,6 +82,11 @@ export const viewCarDetailByCarIdModel = async (carId, language = 'en') => {
       mst.status_key AS mfk_status_code,
       mstt.name AS mfk_status_value,
 
+      -- user plan
+      user_plan.plan_start_date,
+      user_plan.plan_end_date,
+      user_plan.plan_name,
+
       -- coordinates
       cc.latitude AS contact_latitude,
       cc.longitude AS contant_longitude
@@ -206,6 +211,26 @@ export const viewCarDetailByCarIdModel = async (carId, language = 'en') => {
         ON latest_contact.latest_id = ct.id
     ) cc
       ON cc.car_id = c.id
+
+    LEFT JOIN (
+      SELECT
+        up.user_id,
+        up.id AS user_plan_id,
+        up.plan_id,
+        up.start_date AS plan_start_date,
+        up.end_date AS plan_end_date,
+        up.is_active AS plan_is_active,
+        p.name AS plan_name
+      FROM tbl_user_plans up
+      LEFT JOIN tbl_plans p ON p.id = up.plan_id
+      INNER JOIN (
+        SELECT user_id, MAX(id) AS latest_id
+        FROM tbl_user_plans
+        GROUP BY user_id
+      ) latest_plan
+        ON latest_plan.latest_id = up.id
+    ) user_plan
+      ON user_plan.user_id = c.user_id
 
     WHERE c.id = ?
   `, [language, language, language, language, language, language, language, language, language, language, language, carId]);
