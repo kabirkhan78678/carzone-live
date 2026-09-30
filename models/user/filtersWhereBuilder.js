@@ -113,6 +113,11 @@ export function buildWhereConditions(filters, selectedBrandNames, selectedModels
     if (filters.vehicle_accident_status_id) where.push(`c.vehicle_accident_status_id IN (${getIds(filters.vehicle_accident_status_id).join(",")})`);
     if (filters.mfk_warrenty_id) where.push(`c.mfk_warrenty_id IN (${getIds(filters.mfk_warrenty_id).join(",")})`);
     if (filters.carCondition) where.push(`c.carCondition IN (${getIds(filters.carCondition).join(",")})`);
+    const rawQualitySealIds = filters.quality_seals ?? filters.quality_seal_ids ?? filters.quality_seal ?? filters.quality_seal_id ?? filters.qualitySeals;
+    const qualitySealIds = getIds(rawQualitySealIds);
+    if (qualitySealIds.length) {
+        where.push(`c.quality_seal_id IN (${qualitySealIds.join(",")})`);
+    }
 
     if (filters.energy_efficiency) {
         const codes = getTextValues(filters.energy_efficiency)
@@ -280,6 +285,10 @@ export function buildSellerJoinExtra(filters, selectedBrandNames, selectedModels
     if (filters.vehicle_accident_status_id) sellerJoinExtra.push(`c.vehicle_accident_status_id IN (${getIds(filters.vehicle_accident_status_id).join(",")})`);
     if (filters.mfk_warrenty_id) sellerJoinExtra.push(`c.mfk_warrenty_id IN (${getIds(filters.mfk_warrenty_id).join(",")})`);
     if (filters.carCondition) sellerJoinExtra.push(`c.carCondition IN (${getIds(filters.carCondition).join(",")})`);
+    const sellerQualitySealIds = getIds(filters.quality_seals ?? filters.quality_seal_ids ?? filters.quality_seal ?? filters.quality_seal_id ?? filters.qualitySeals);
+    if (sellerQualitySealIds.length) {
+        sellerJoinExtra.push(`c.quality_seal_id IN (${sellerQualitySealIds.join(",")})`);
+    }
     if (selectedBrandNames?.length) sellerJoinExtra.push(`LOWER(TRIM(c.brandName)) IN (${selectedBrandNames.map((x) => `'${String(x).replace(/'/g, "''").toLowerCase()}'`).join(",")})`);
     if (selectedModels?.length) sellerJoinExtra.push(`LOWER(TRIM(c.carModel)) IN (${selectedModels.map((x) => `'${String(x).replace(/'/g, "''").toLowerCase()}'`).join(",")})`);
 

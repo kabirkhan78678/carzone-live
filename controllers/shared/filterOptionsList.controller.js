@@ -69,6 +69,7 @@ export const getFilters = async (req, res) => {
             model_name: rawFilters.model_name ?? rawFilters.carModel ?? rawFilters.model,
             km_from: rawFilters.km_from ?? rawFilters.from_km,
             km_to: rawFilters.km_to ?? rawFilters.to_km,
+            quality_seals: rawFilters.quality_seals ?? rawFilters.quality_seal_ids ?? rawFilters.quality_seal ?? rawFilters.quality_seal_id ?? rawFilters.qualitySeals,
             exclude_user_id: viewerUserId,
             excluded_user_id: viewerUserId
         };
