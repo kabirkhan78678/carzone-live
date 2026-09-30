@@ -1,5 +1,6 @@
 import { getChfFormattedPrice } from '../../utils/user_helper.js';
 import db from '../../config/db.js';
+import { fetchSavedReelsByCurrentUserLoggendIn } from './reelActions.model.js';
 
 export const fetchActiveCarReels = async (
     id,
