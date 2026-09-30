@@ -36,7 +36,6 @@ export const getPlanById = (plan_id) => {
     return db.query("SELECT * FROM tbl_plans WHERE id = ?", [plan_id]);
 };
 
-console.log('getPlanById', getPlanById)
 
 export const createUserPlan = async ({ user_id, plan_id, start_date, end_date }) => {
     return db.query(

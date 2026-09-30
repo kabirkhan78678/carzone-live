@@ -1,6 +1,5 @@
 import mysql from 'mysql2';
 import util from 'util';
-import Msg from '../utils/message.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -9,7 +8,7 @@ const dbConfig = {
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT || 3306,
+  port: Number(process.env.DB_PORT) || 3306,
   database: process.env.DB_DATABASE,
   waitForConnections: true,
   connectionLimit: 15,
@@ -23,15 +22,16 @@ const pool = mysql.createPool(dbConfig);
 // Verify pool connectivity on startup
 pool.getConnection((err, connection) => {
   if (err) {
-    console.error(Msg.dbConnectionError, err);
+    console.error('\x1b[31m%s\x1b[0m', '❌ Database Connection Failed: ' + err.message);
   } else {
-    console.log(Msg.dbConnectionSuccess);
+    console.log('\x1b[32m%s\x1b[0m', '✔ Database Connected Successfully!');
+    console.log('\x1b[36m%s\x1b[0m', `   Database : ${process.env.DB_DATABASE} | Host: ${process.env.DB_HOST}:${process.env.DB_PORT || 3306} | User: ${process.env.DB_USER}`);
     connection.release();
   }
 });
 
 pool.on('error', (err) => {
-  console.error(Msg.dbError, err);
+  console.error('❌ Database Pool Error:', err);
 });
 
 function makeDb() {
@@ -43,7 +43,6 @@ function makeDb() {
       return util.promisify(pool.getConnection).call(pool);
     },
     async close() {
-      console.log(Msg.dbConnectionClosing);
       return util.promisify(pool.end).call(pool);
     },
     pool
