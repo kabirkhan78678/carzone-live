@@ -4,3 +4,4 @@ node_modules
 public/
 utils/serviceAccountKey.json
 *serviceAccountKey*.json
+scripts/
