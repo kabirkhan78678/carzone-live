@@ -27,16 +27,19 @@ export const readNotificationsById = async (req, res) => {
         const userLanguage = getRequestLanguage(req);
         const targetId = req.body?.notificationId || req.body?.notification_id || req.body?.id || req.query?.id || req.query?.notification_id || req.query?.notificationId || req.params?.notificationId || req.params?.id;
 
-        if (!targetId) {
-            return handleError(res, 400, "Notification ID is required", userLanguage);
+        let result;
+        if (targetId) {
+            result = await readAllNotificationsModelByIdModel(targetId);
+        } else {
+            const userId = req.user?.id;
+            result = await readAllNotificationsModel(userId);
         }
 
-        let updateNotificationByIds = await readAllNotificationsModelByIdModel(targetId);
         return handleSuccess(
             res,
             200,
             getMessage(userLanguage, 'notificationsMarkedAsRead'),
-            updateNotificationByIds,
+            result,
             userLanguage
         );
     } catch (error) {
