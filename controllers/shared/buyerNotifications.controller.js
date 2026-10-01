@@ -60,17 +60,38 @@ export const fetchNotificationByBuyersIds = async (req, res) => {
                     case "listing_published":
                     case "car_published":
                     case "listingpublished":
-                        titleKey = "LISTING_PUBLISHED";
-                        bodyKey = "LISTING_PUBLISHED_BODY";
+                    case "listing_extended":
+                    case "extended":
                         try {
                             if (item.carId) {
                                 const car = await getCarDetailsById(item.carId);
-                                params.car = car?.brandName || car?.carModel || "";
+                                params.car = [car?.brandName, car?.carModel].filter(Boolean).join(' ') || "";
                             }
                         } catch (e) {}
-                        if (!params.car) {
-                            const carMatch = String(item.body || '').match(/listing\s+for\s+(.+?)\s+is\s+now\s+live/i);
-                            params.car = carMatch ? carMatch[1] : "Car";
+
+                        if (rawType === "extended" || rawType === "listing_extended" || rawTitle.includes('extended') || rawTitle.includes('verlängert') || rawTitle.includes('prolongée') || rawTitle.includes('prolungato') || rawBody.includes('extended')) {
+                            titleKey = "LISTING_EXTENDED";
+                            bodyKey = "LISTING_EXTENDED_BODY";
+                            if (!params.car) {
+                                const carMatch = String(item.body || '').match(/listing\s+for\s+(.+?)\s+has\s+been/i);
+                                params.car = carMatch ? carMatch[1] : "your vehicle";
+                            }
+                        } else if (rawTitle.includes('expired') || rawTitle.includes('abgelaufen') || rawTitle.includes('expiré') || rawBody.includes('expired')) {
+                            titleKey = "LISTING_EXPIRED";
+                            bodyKey = "LISTING_EXPIRED_BODY";
+                        } else if (rawTitle.includes('rejected') || rawTitle.includes('abgelehnt') || rawTitle.includes('rejetée')) {
+                            titleKey = "LISTING_REJECTED";
+                            bodyKey = "LISTING_REJECTED_BODY";
+                        } else if (rawTitle.includes('expiring soon') || rawTitle.includes('bald ab')) {
+                            titleKey = "LISTING_EXPIRING_SOON";
+                            bodyKey = "LISTING_EXPIRING_SOON_BODY";
+                        } else {
+                            titleKey = "LISTING_PUBLISHED";
+                            bodyKey = "LISTING_PUBLISHED_BODY";
+                            if (!params.car) {
+                                const carMatch = String(item.body || '').match(/listing\s+for\s+(.+?)\s+is\s+now\s+live/i);
+                                params.car = carMatch ? carMatch[1] : "Car";
+                            }
                         }
                         break;
 
@@ -491,15 +512,20 @@ export const fetchNotificationByBuyersIds = async (req, res) => {
         });
 
         const formattedNotifications = translatedNotifications.map((item) => {
-            const formattedCreatedAt = item.createdAt ? moment(item.createdAt).format('DD.MM.YYYY') : null;
-            const formattedUpdatedAt = item.updatedAt ? moment(item.updatedAt).format('DD.MM.YYYY') : null;
+            const mCreated = item.createdAt ? moment(item.createdAt) : null;
+            const mUpdated = item.updatedAt ? moment(item.updatedAt) : null;
+            const formattedDate = mCreated ? mCreated.format('DD.MM.YYYY') : null;
+            const formattedTime = mCreated ? mCreated.format('HH:mm') : null;
+            const formattedDateTime = mCreated ? mCreated.format('DD.MM.YYYY HH:mm') : null;
             const isReadNormalized = Number(item.isRead) === 1 ? 1 : 0;
             return {
                 ...item,
                 isRead: isReadNormalized,
-                createdAt: formattedCreatedAt,
-                updatedAt: formattedUpdatedAt,
-                date: formattedCreatedAt,
+                createdAt: formattedDateTime || formattedDate,
+                updatedAt: mUpdated ? mUpdated.format('DD.MM.YYYY HH:mm') : null,
+                date: formattedDate,
+                time: formattedTime,
+                timeAgo: mCreated ? mCreated.fromNow() : null,
                 createdAtRaw: item.createdAt
             };
         });

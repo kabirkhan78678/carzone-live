@@ -224,6 +224,7 @@ export const getCarDetailsById = async (carId) => {
         SELECT
             id,
             brandName,
+            carModel,
             selling_price
         FROM tbl_cars
         WHERE id = ?

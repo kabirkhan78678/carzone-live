@@ -13,6 +13,7 @@ import { variableTypes } from '../../utils/constant.js';
 import { handleError, handleSuccess } from '../../utils/responseHandler.js';
 import { parseArrayField, getMessage } from '../../utils/user_helper.js';
 import db from '../../config/db.js';
+import { notifyListingEvent } from '../../services/notificationDispatchers.js';
 
 export const getMyCar = async (req, res) => {
     try {
@@ -116,9 +117,27 @@ export const toggleCarActiveStatus = async (req, res) => {
             }
 
             await db.query(
-                `UPDATE tbl_cars SET is_active = 1, slot_deleted_at = NULL WHERE id = ? AND user_id = ?`,
+                `UPDATE tbl_cars SET is_active = 1, listing_status = 'published', slot_deleted_at = NULL WHERE id = ? AND user_id = ?`,
                 [carId, user_id]
             );
+
+            // Send notification for activated/renewed car listing
+            try {
+                const [carDetails] = await db.query(
+                    `SELECT id, brandName, carModel FROM tbl_cars WHERE id = ?`,
+                    [carId]
+                );
+                const carName = carDetails ? `${carDetails.brandName || ''} ${carDetails.carModel || ''}`.trim() : 'your vehicle';
+
+                await notifyListingEvent({
+                    sellerId: user_id,
+                    carId: carId,
+                    event: 'extended',
+                    carName: carName
+                });
+            } catch (notifErr) {
+                console.error("Error sending car activation notification:", notifErr);
+            }
 
             return handleSuccess(res, 200, "Car activated successfully", {
                 car_id: carId,

@@ -266,7 +266,7 @@ export const notifyListingEvent = async ({
             params,
             category,
             data: {
-                type: 'listing',
+                type: event === 'published' ? 'listing' : (event || 'listing'),
                 event,
                 carId: carId ? String(carId) : ''
             }

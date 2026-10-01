@@ -278,10 +278,9 @@ export const reactivateUserCarsUpToLimit = async (user_id, total_slots) => {
     const limit = Math.max(1, Number(total_slots) || 1);
     return db.query(`
         UPDATE tbl_cars 
-        SET is_active = 1, slot_deleted_at = NULL 
+        SET is_active = 1, listing_status = 'published', slot_deleted_at = NULL 
         WHERE user_id = ? 
           AND is_deleted = 0
-          AND listing_status = 'published'
         ORDER BY id DESC
         LIMIT ?
     `, [user_id, limit]);
@@ -290,7 +289,7 @@ export const reactivateUserCarsUpToLimit = async (user_id, total_slots) => {
 export const reactivateSingleCar = async (carId, user_id) => {
     return db.query(`
         UPDATE tbl_cars 
-        SET is_active = 1, slot_deleted_at = NULL 
+        SET is_active = 1, listing_status = 'published', slot_deleted_at = NULL 
         WHERE id = ? 
           AND user_id = ? 
           AND is_deleted = 0

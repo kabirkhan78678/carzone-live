@@ -135,7 +135,7 @@ console.log("INSERTED PLAN FROM DB:", insertedPlan)
                 const specificCarId = session.metadata?.car_id ? Number(session.metadata.car_id) : null;
                 if (specificCarId) {
                     await db.query(
-                        `UPDATE tbl_cars SET is_active = 1, slot_deleted_at = NULL WHERE id = ? AND user_id = ? AND is_deleted = 0`,
+                        `UPDATE tbl_cars SET is_active = 1, listing_status = 'published', slot_deleted_at = NULL WHERE id = ? AND user_id = ? AND is_deleted = 0`,
                         [specificCarId, user_id]
                     );
                 } else {
@@ -169,7 +169,15 @@ console.log("INSERTED PLAN FROM DB:", insertedPlan)
                 };
 
                 await insertPurchase(purchaseData);
-        
+
+                const specificCarId = session.metadata?.car_id ? Number(session.metadata.car_id) : null;
+                if (specificCarId) {
+                    await db.query(
+                        `UPDATE tbl_cars SET is_active = 1, listing_status = 'published', slot_deleted_at = NULL WHERE id = ? AND user_id = ? AND is_deleted = 0`,
+                        [specificCarId, user_id]
+                    );
+                    console.log(`Specific car ${specificCarId} reactivated for user ${user_id} after addon slot purchase`);
+                }
 
                 console.log(`Addon slots purchased for user ${user_id}. New total slots: ${newTotalSlots}`);
             }
@@ -185,7 +193,7 @@ console.log("INSERTED PLAN FROM DB:", insertedPlan)
                     const specificCarId = session.metadata?.car_id ? Number(session.metadata.car_id) : null;
                     if (specificCarId) {
                         await db.query(
-                            `UPDATE tbl_cars SET is_active = 1, slot_deleted_at = NULL WHERE id = ? AND user_id = ? AND is_deleted = 0`,
+                            `UPDATE tbl_cars SET is_active = 1, listing_status = 'published', slot_deleted_at = NULL WHERE id = ? AND user_id = ? AND is_deleted = 0`,
                             [specificCarId, user_id]
                         );
                     } else {
@@ -276,7 +284,7 @@ console.log("INSERTED PLAN FROM DB:", insertedPlan)
                     const specificCarId = session.metadata?.car_id ? Number(session.metadata.car_id) : null;
                     if (specificCarId) {
                         await db.query(
-                            `UPDATE tbl_cars SET is_active = 1, slot_deleted_at = NULL WHERE id = ? AND user_id = ? AND is_deleted = 0`,
+                            `UPDATE tbl_cars SET is_active = 1, listing_status = 'published', slot_deleted_at = NULL WHERE id = ? AND user_id = ? AND is_deleted = 0`,
                             [specificCarId, user_id]
                         );
                     } else {
