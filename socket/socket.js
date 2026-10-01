@@ -2,6 +2,8 @@ import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { setIO } from './socketInstance.js';
 import { addUser, getSocketId, removeUser } from './socketManager.js';
+import { sendChatNotification } from '../services/notification.service.js';
+import { fetchUsersById } from '../models/user.model.js';
 
 export default function initializeSocket(server) {
 
@@ -66,23 +68,44 @@ export default function initializeSocket(server) {
         }
 
         // Receive message from sender
-        socket.on("message", (data) => {
-            console.log("Received:", data);
+        socket.on("message", async (data) => {
+            console.log("Received socket message:", data);
 
             // Ensure senderId is bound to the authenticated user
-            const authenticatedSenderId = socket.userId || data?.senderId;
-            const receiverSocket = getSocketId(data?.receiverId);
+            const authenticatedSenderId = socket.userId || data?.senderId || data?.sender_id;
+            const receiverId = data?.receiverId || data?.receiver_id;
+            const receiverSocket = getSocketId(receiverId);
 
-            console.log("Receiver Socket:", receiverSocket);
+            console.log(`Socket Message from ${authenticatedSenderId} to ${receiverId}, Receiver Socket: ${receiverSocket || 'OFFLINE'}`);
 
             if (receiverSocket) {
                 io.to(receiverSocket).emit("receive-message", {
                     senderId: authenticatedSenderId,
-                    message: data?.message
+                    message: data?.message,
+                    chatId: data?.chatId || data?.chat_id,
+                    carDetails: data?.carDetails || data?.car_details,
+                    createdAt: new Date().toISOString()
                 });
-                console.log("Message sent");
-            } else {
-                console.log("Receiver Offline");
+                console.log("Message sent via socket to receiver");
+            }
+
+            // Always trigger chat notification (FCM push + in-app alert)
+            if (receiverId && data?.message) {
+                try {
+                    const senderUser = authenticatedSenderId ? await fetchUsersById(authenticatedSenderId) : null;
+                    const senderName = senderUser?.[0]?.fullName || data?.senderName || "New Message";
+
+                    await sendChatNotification({
+                        userId: receiverId,
+                        senderId: authenticatedSenderId,
+                        chatId: data?.chatId || data?.chat_id,
+                        body: data?.message,
+                        carDetails: data?.carDetails || data?.car_details,
+                        senderName
+                    });
+                } catch (notifErr) {
+                    console.error("Socket chat notification error:", notifErr.message);
+                }
             }
         });
 

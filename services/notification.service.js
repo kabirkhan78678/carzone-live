@@ -4,6 +4,7 @@ import { insertUserNotifications } from '../models/user.model.js';
 import { canUserReceiveNotification } from '../models/user/notificationSettings.model.js';
 import { getNotificationTranslation, notificationTranslations } from './notificationTranslations.js';
 import { getChfFormattedPrice } from '../utils/user_helper.js';
+import db from '../config/db.js';
 export * from './notificationTranslations.js';
 export * from './notificationDispatchers.js';
 
@@ -377,20 +378,49 @@ export const sendChatNotification = async ({
             },
         };
 
-        // ============================================
-        // FIREBASE ONLY
-        // NO DATABASE INSERT FOR CHAT
-        // ============================================
+        let firebaseResponse = null;
+        try {
+            firebaseResponse = await firebaseMessaging.send(payload);
+            console.log(
+                `✅ Chat notification sent to user ${userId}: ${firebaseResponse}`
+            );
+        } catch (fcmError) {
+            console.error(
+                `❌ Firebase chat push failed for user ${userId}:`,
+                fcmError.message
+            );
+            if (fcmError.code === 'messaging/registration-token-not-registered' || fcmError.code === 'messaging/invalid-argument') {
+                try {
+                    await db.query(`UPDATE tbl_users SET fcmToken = NULL WHERE id = ?`, [userId]);
+                    console.log(`Cleaned expired FCM token for user ${userId}`);
+                } catch (e) {}
+            }
+        }
 
-        const response = await firebaseMessaging.send(payload);
-
-        console.log(
-            `✅ Chat notification sent to user ${userId}: ${response}`
-        );
+        // ============================================
+        // IN-APP DATABASE INSERTION FOR CHAT
+        // ============================================
+        try {
+            await insertUserNotifications({
+                data: {
+                    sendFrom: senderId ? Number(senderId) : null,
+                    sendTo: Number(userId),
+                    notificationType: 'chat',
+                    carId: null,
+                    isSendTo: 1
+                },
+                notification: {
+                    title: title,
+                    body: notificationBody
+                }
+            }, "sent");
+        } catch (dbErr) {
+            console.error("Chat in-app DB notification insert error:", dbErr.message);
+        }
 
         return {
             success: true,
-            messageId: response,
+            messageId: firebaseResponse || "db_saved",
         };
 
     } catch (error) {
@@ -531,8 +561,14 @@ export const sendNotificationToUser = async (userId, message) => {
                 // Firebase failure should NOT stop DB insertion
                 console.error(
                     `❌ Firebase notification failed for user ${userId}:`,
-                    firebaseError
+                    firebaseError.message
                 );
+                if (firebaseError.code === 'messaging/registration-token-not-registered' || firebaseError.code === 'messaging/invalid-argument') {
+                    try {
+                        await db.query(`UPDATE tbl_users SET fcmToken = NULL WHERE id = ?`, [userId]);
+                        console.log(`Cleaned expired FCM token for user ${userId}`);
+                    } catch (e) {}
+                }
             }
         } else {
             console.warn(

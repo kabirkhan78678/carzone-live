@@ -69,6 +69,9 @@ export const notificationIdValidation = [
     .isNumeric().withMessage('ID must be a numeric value.'),
   body('notification_id')
     .optional({ nullable: true, checkFalsy: true })
+    .isNumeric().withMessage('Notification ID must be a numeric value.'),
+  body('notificationId')
+    .optional({ nullable: true, checkFalsy: true })
     .isNumeric().withMessage('Notification ID must be a numeric value.')
 ];
 

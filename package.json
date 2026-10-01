@@ -48,6 +48,7 @@
     "pdfkit": "^0.17.2",
     "puppeteer": "^24.40.0",
     "sharp": "^0.34.3",
+    "socket.io": "^4.8.4",
     "stripe": "^18.3.0",
     "tesseract.js": "^6.0.1",
     "url": "^0.11.4",

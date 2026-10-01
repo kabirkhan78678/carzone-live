@@ -67,28 +67,50 @@ export const sendChatNotificationController = async (req, res) => {
     try {
         const {
             user_id,
+            receiver_id,
+            receiverId,
             chat_id,
+            chatId,
             body,
-            car_details
+            message,
+            car_details,
+            carDetails,
+            sender_id,
+            senderId,
+            sender_name,
+            senderName
         } = req.body;
 
-        const senderId = req.user?.id || null;
-        const senderName = req.user?.fullName || "New Message";
+        const targetUserId = user_id || receiver_id || receiverId;
+        const messageBody = body || message;
 
-        if (!user_id || !body) {
+        if (!targetUserId || !messageBody) {
             return res.status(400).json({
                 success: false,
-                message: "user_id and body are required",
+                message: "user_id and body/message are required",
             });
         }
 
+        const finalSenderId = req.user?.id || sender_id || senderId || null;
+        let finalSenderName = req.user?.fullName || sender_name || senderName || null;
+
+        if (!finalSenderName && finalSenderId) {
+            try {
+                const senderRows = await fetchUsersById(finalSenderId);
+                finalSenderName = senderRows?.[0]?.fullName || "New Message";
+            } catch (e) {
+                finalSenderName = "New Message";
+            }
+        }
+        if (!finalSenderName) finalSenderName = "New Message";
+
         const result = await sendChatNotification({
-            userId: user_id,
-            senderId,
-            chatId: chat_id,
-            body,
-            carDetails: car_details,
-            senderName,
+            userId: targetUserId,
+            senderId: finalSenderId,
+            chatId: chat_id || chatId || null,
+            body: messageBody,
+            carDetails: car_details || carDetails || null,
+            senderName: finalSenderName,
         });
 
         console.log(
@@ -107,6 +129,7 @@ export const sendChatNotificationController = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Failed to send chat notification",
+            error: error.message
         });
     }
 };

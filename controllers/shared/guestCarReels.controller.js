@@ -89,6 +89,7 @@ export const asGuestUsersfetchAllCarReels = async (req, res) => {
         const price_from = req.query.price_from ?? req.query.priceFrom ?? req.query.from_price ?? req.query.min_price ?? req.query.minPrice ?? null;
         const price_to = req.query.price_to ?? req.query.priceTo ?? req.query.to_price ?? req.query.max_price ?? req.query.maxPrice ?? null;
         const filters = {
+            car_id: requestedCarId,
             make: parseArrayFilter(req.query.make ?? req.query.brandName ?? req.query.brand_name),
             body_type_id: parseArrayFilter(req.query.body_type_id ?? req.query.bodyTypeId ?? req.query.body_type),
             price_from,

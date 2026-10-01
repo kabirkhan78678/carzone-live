@@ -2,10 +2,11 @@ import { fetchUsersById, updateUsersProfile, replaceOpeningTimes, replaceAdvanta
 import path from 'path';
 import fs from 'fs/promises';
 import { variableTypes } from '../../utils/constant.js';
-import { handleError, handleSuccess } from '../../utils/responseHandler.js';
+import { handleError, handleSuccess, getRequestLanguage } from '../../utils/responseHandler.js';
 import { sendEmail } from '../../utils/emailService.js';
 import { getMessage } from '../../utils/user_helper.js';
 import { baseurl } from '../../config/path.js';
+import db from '../../config/db.js';
 
 export const editProfile = async (req, res) => {
     const { id, language } = req.user;
@@ -62,6 +63,8 @@ export const editProfile = async (req, res) => {
         seller_type,
         legalForm,
         commercialRegisterNumber,
+        fcmToken,
+        fcm_token
     } = req.body;
     const requestedAccountType =
         account_type === "private" || account_type === "company"
@@ -117,7 +120,8 @@ export const editProfile = async (req, res) => {
         description: description ?? user.description,
         updatedAt: new Date(),
         sellerType: seller_type,
-        commercial_register_number: commercialRegisterNumber
+        commercial_register_number: commercialRegisterNumber,
+        fcmToken: (fcmToken || fcm_token) ? String(fcmToken || fcm_token).trim() : user.fcmToken
     };
 
     if (req.body.dob !== undefined || req.body.dateOfBirth !== undefined || user.dob !== undefined) {
@@ -265,6 +269,26 @@ export const editProfile = async (req, res) => {
         getMessage(lang, variableTypes.PROFILE_UPDATED_SUCCESSFULLY)
     );
 
+};
+
+export const updateFcmTokenController = async (req, res) => {
+    try {
+        const { id } = req.user;
+        const fcmToken = req.body?.fcmToken || req.body?.fcm_token || req.body?.token;
+        const userLanguage = getRequestLanguage(req);
+
+        if (!fcmToken || String(fcmToken).trim() === '') {
+            return handleError(res, 400, "FCM token is required", userLanguage);
+        }
+
+        const cleanToken = String(fcmToken).trim();
+        await db.query(`UPDATE tbl_users SET fcmToken = ? WHERE id = ?`, [cleanToken, id]);
+
+        return handleSuccess(res, 200, "FCM token updated successfully", { fcmToken: cleanToken }, userLanguage);
+    } catch (error) {
+        const userLanguage = getRequestLanguage(req);
+        return handleError(res, 500, getMessage(userLanguage, variableTypes.INTERNAL_SERVER_ERROR), userLanguage);
+    }
 };
 
 //         // --------------------------------------------------s3 code comments--------------------------------------//

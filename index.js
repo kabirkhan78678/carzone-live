@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 import { getLocalIP } from './utils/user_helper.js';
 import { stripeWebhook } from './controllers/user_controller.js';
 import './utils/cronJob.js';
+import initializeSocket from './socket/socket.js';
 
 dotenv.config();
 
@@ -22,6 +23,9 @@ const app = express();
 app.post("/api/webhook", express.raw({ type: "application/json" }), stripeWebhook);
 
 const server = http.createServer(app);
+
+// Initialize Realtime Socket.IO Server
+initializeSocket(server);
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(path.resolve(), 'views'));

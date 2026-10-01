@@ -43,6 +43,7 @@ export const fetchAllCarReels = async (req, res) => {
 
         const requestedCarId = Number(req.query.car_id) || null;
         const filters = {
+            car_id: requestedCarId,
             make: parseArrayFilter(req.query.make),
             body_type_id: parseArrayFilter(req.query.body_type_id),
             price_from: req.query.price_from || null,

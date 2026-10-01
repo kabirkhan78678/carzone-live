@@ -4,6 +4,7 @@ import { modelfetchNotificationByBuyersIds, getCarDetailsById, getExistingPurcha
 import { variableTypes } from '../../utils/constant.js';
 import { handleError, handleSuccess, getRequestLanguage } from '../../utils/responseHandler.js';
 import { getMessage, stripHtml, getChfFormattedPrice } from '../../utils/user_helper.js';
+import moment from 'moment';
 
 export const fetchNotificationByBuyersIds = async (req, res) => {
     try {
@@ -486,11 +487,26 @@ export const fetchNotificationByBuyersIds = async (req, res) => {
             return (b.id || 0) - (a.id || 0);
         });
 
-        const unreadCount = translatedNotifications.filter(item => item.isRead === 0).length;
+        const formattedNotifications = translatedNotifications.map((item) => {
+            const formattedCreatedAt = item.createdAt ? moment(item.createdAt).format('DD.MM.YYYY') : null;
+            const formattedUpdatedAt = item.updatedAt ? moment(item.updatedAt).format('DD.MM.YYYY') : null;
+            const isReadNormalized = Number(item.isRead) === 1 ? 1 : 0;
+            return {
+                ...item,
+                isRead: isReadNormalized,
+                createdAt: formattedCreatedAt,
+                updatedAt: formattedUpdatedAt,
+                date: formattedCreatedAt,
+                createdAtRaw: item.createdAt
+            };
+        });
+
+        const unreadCount = formattedNotifications.filter(item => item.isRead === 0).length;
 
         const data = {
-            allNotification: translatedNotifications,
-            unReadNotifications: unreadCount
+            allNotification: formattedNotifications,
+            unReadNotifications: unreadCount,
+            unreadCount: unreadCount
         };
 
         return handleSuccess(

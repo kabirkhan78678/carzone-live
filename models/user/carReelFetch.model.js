@@ -9,14 +9,21 @@ export const fetchActiveCarReels = async (
 ) => {
 
     let conditions = [
-        "c.user_id != ?",
         "c.is_active = 1",
         "c.is_deleted = 0",
         "c.carReel IS NOT NULL",
         "c.carReel != ''"
     ];
 
-    let params = [lang, lang, id];
+    let params = [lang, lang];
+
+    if (filters.car_id) {
+        conditions.push("(c.user_id != ? OR c.id = ?)");
+        params.push(id, Number(filters.car_id));
+    } else {
+        conditions.push("c.user_id != ?");
+        params.push(id);
+    }
 
     // Make Filter
     if (

@@ -299,9 +299,10 @@ app.get('/sort-data', controller.userController.getSortList);
 app.get('/extras-data', controller.userController.getExtrasList);
 app.get('/features-data', controller.userController.getFeaturesList);
 
-// Notification Settings Routes
+// Notification Settings & FCM Routes
 app.get('/notification-settings', authenticateUser, controller.userController.getNotificationSettings);
 app.put('/notification-settings', authenticateUser, updateNotificationSettingsValidation, handleValidationErrors, controller.userController.updateNotificationSettings);
+app.post('/updateFcmToken', authenticateUser, controller.userController.updateFcmTokenController);
 
 // Saved Searches Routes
 app.post('/saved-searches', authenticateUser, createSavedSearchValidation, handleValidationErrors, controller.userController.createSavedSearchController);
