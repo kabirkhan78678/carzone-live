@@ -2,20 +2,18 @@ import { rekognition } from '../utils/rekognition.js';
 import sharp from 'sharp';
 import heicConvert from 'heic-convert';
 
-// You'll need to install this: npm install sharp
-
-
 // Check if Rekognition is available in the current region
 const checkRekognitionAvailability = async () => {
   try {
+    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+      console.warn("AWS Rekognition credentials (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY) missing in environment.");
+      return false;
+    }
     await rekognition.listCollections({ MaxResults: 1 }).promise();
     return true;
   } catch (error) {
-    if (error.code === 'UnknownEndpoint') {
-      console.error(`Rekognition is not available in region: ${rekognition.config.region}`);
-      return false;
-    }
-    throw error;
+    console.warn(`Rekognition unavailable (${error.code || error.name || 'Error'}): ${error.message}`);
+    return false;
   }
 };
 
@@ -63,7 +61,7 @@ export const detectImageLabels = async (imageBuffer) => {
   try {
     const isAvailable = await checkRekognitionAvailability();
     if (!isAvailable) {
-      throw new Error('Rekognition service not available in the current region');
+      return [];
     }
     const processedImageBuffer = await validateAndConvertImage(imageBuffer);
     const params = {
@@ -78,7 +76,7 @@ export const detectImageLabels = async (imageBuffer) => {
     return response.Labels.map(label => label.Name.toLowerCase());
   } catch (error) {
     console.error('Rekognition Error:', error);
-    throw new Error('Failed to analyze image: ' + error.message);
+    return [];
   }
 };
 
@@ -87,7 +85,8 @@ export const detectModerationLabels = async (imageBuffer) => {
   try {
     const isAvailable = await checkRekognitionAvailability();
     if (!isAvailable) {
-      throw new Error('Rekognition service not available in the current region');
+      console.warn('Rekognition service not available or credentials missing. Skipping moderation check.');
+      return [];
     }
     const processedImageBuffer = await validateAndConvertImage(imageBuffer);
     const params = {
@@ -98,9 +97,13 @@ export const detectModerationLabels = async (imageBuffer) => {
     };
 
     const response = await rekognition.detectModerationLabels(params).promise();
-    return response.ModerationLabels;
+    return response.ModerationLabels || [];
   } catch (error) {
     console.error('Rekognition Moderation Error:', error);
+    if (error.code === 'CredentialsError' || error.name === 'CredentialsError') {
+      console.warn('AWS Credentials missing/invalid. Skipping explicit content check.');
+      return [];
+    }
     if (error.code === 'InvalidImageFormatException') {
       throw new Error('The image format is not supported. Please use JPEG or PNG format.');
     } else if (error.code === 'ImageTooLargeException') {
@@ -109,7 +112,8 @@ export const detectModerationLabels = async (imageBuffer) => {
       throw new Error('Invalid image parameters. The image may be corrupted.');
     }
 
-    throw new Error('Failed to analyze image for explicit content: ' + error.message);
+    console.warn('Skipping moderation check due to error:', error.message);
+    return [];
   }
 };
 

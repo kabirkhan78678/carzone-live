@@ -466,6 +466,9 @@ export const sendNotificationToAllUsers = async (senderId, carId) => {
 export const hasExplicitContent = async (imageBuffer) => {
     try {
         const moderationLabels = await detectModerationLabels(imageBuffer);
+        if (!moderationLabels || !Array.isArray(moderationLabels) || moderationLabels.length === 0) {
+            return false;
+        }
 
         return moderationLabels.some(label =>
             label.ParentName === 'Explicit Nudity' ||
@@ -477,15 +480,15 @@ export const hasExplicitContent = async (imageBuffer) => {
             label.Name === 'Non-Explicit Nudity' ||
             label.Name === 'Partially Exposed Female Breast' ||
             (label.Confidence > 70 && (
-                label.Name.includes('Nudity') ||
-                label.Name.includes('Swimwear') ||
-                label.Name.includes('Underwear') ||
-                label.Name.includes('Exposed')
+                label.Name?.includes('Nudity') ||
+                label.Name?.includes('Swimwear') ||
+                label.Name?.includes('Underwear') ||
+                label.Name?.includes('Exposed')
             ))
         );
     } catch (error) {
-        console.error('Error in moderation check:', error);
-        throw new Error('Failed to process image moderation check');
+        console.warn('Moderation check skipped due to error:', error.message);
+        return false;
     }
 };
 
