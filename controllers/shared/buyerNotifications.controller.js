@@ -17,14 +17,17 @@ export const fetchNotificationByBuyersIds = async (req, res) => {
         // ============================================
         // GET NOTIFICATIONS
         // ============================================
-        let allNotifications = await modelfetchNotificationByBuyersIds(id, isUserType == 1 ? 1 : 1);
+        let rawNotifications = await modelfetchNotificationByBuyersIds(id, isUserType == 1 ? 1 : 1);
+        let allNotifications = (rawNotifications || []).filter(
+            (item) => String(item.notificationType || '').trim().toLowerCase() !== 'chat'
+        );
 
         if (!allNotifications || allNotifications.length === 0) {
             return handleSuccess(
                 res,
                 200,
                 getMessage(userLanguage, 'noNotificationYet'),
-                { allNotification: [], unReadNotifications: 0 },
+                { allNotification: [], unReadNotifications: 0, unreadCount: 0 },
                 userLanguage
             );
         }

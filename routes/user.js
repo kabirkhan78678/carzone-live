@@ -283,7 +283,7 @@ app.post('/upload-chat-attachment', authenticateUser, uploadProfile.fields(field
 app.delete('/delete-chat-attachment/:id', authenticateUser, idParamValidation, handleValidationErrors, controller.userController.deleteChatAttachment);
 app.get('/fetchSellerById/:id', idParamValidation, handleValidationErrors, controller.userController.getSellerProfileById);
 app.get('/car/mfk/:car_id', authenticateUser, carIdParamAltValidation, handleValidationErrors, controller.userController.getMfkStatus);
-app.get('/mfk-warranty', controller.userController.getMfkWarrantyCounts);
+app.get('/mfk-warranty', controller.userController.getMfkWarranty);
 app.get('/cars/warranty/:carId', authenticateUser, carIdParamValidation, handleValidationErrors, controller.userController.getWarrantyDetails);
 app.post('/chat/notification', chatNotificationValidation, handleValidationErrors, controller.userController.sendChatNotificationController);
 app.post('/vehicles/:vehicleId/purchase-agreement', authenticateUser, createPurchaseAgreementValidation, handleValidationErrors, controller.userController.createPurchaseAgreement);

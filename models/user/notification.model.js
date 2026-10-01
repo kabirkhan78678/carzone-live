@@ -37,7 +37,12 @@ export const fetchAllBuyerWhereNotificationOn = async (id) => {
 };
 
 export const modelfetchNotificationByBuyersIds = async (id, userType) => {
-    return db.query('SELECT * FROM tbl_notification WHERE sendTo = ?', [id]);
+    return db.query(`
+        SELECT * FROM tbl_notification 
+        WHERE sendTo = ? 
+          AND (notificationType IS NULL OR LOWER(notificationType) != 'chat')
+        ORDER BY id DESC
+    `, [id]);
 };
 
 export const fetchUsersToNotifyForCarListing = async () => {

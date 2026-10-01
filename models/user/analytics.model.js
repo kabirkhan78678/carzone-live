@@ -1,6 +1,6 @@
 import { getFacetedTotalCarsModel } from '../facetedFilter.model.js';
 import { toSafeNumber } from '../user.model.js';
-import { buildFacetedConditions, buildWhereClause } from '../../services/facetedFilters/buildFacetWhereClause.js';
+import { buildFacetedConditions, buildWhereClause, buildJoinConditions } from '../../services/facetedFilters/buildFacetWhereClause.js';
 import { buildWhereConditions, getTextValues } from './filtersWhereBuilder.js';
 import db from '../../config/db.js';
 
@@ -260,13 +260,12 @@ export const getSortListModel = async (lang = "en") => {
 
 export const getExtrasListModel = async (lang = "en", filters = {}) => {
     try {
-        const selectedBrandNames = getTextValues(filters.brand_name ?? filters.brandName);
-        const selectedModels = getTextValues(filters.model_name ?? filters.model ?? filters.carModel);
+        const { conditions, params } = buildFacetedConditions(filters, {
+            alias: "c",
+            excludeFacet: "extras"
+        });
 
-        const allConditions = buildWhereConditions(filters, selectedBrandNames, selectedModels);
-        const userSearchConditions = allConditions.filter(
-            cond => !cond.includes("c.is_deleted") && !cond.includes("c.listing_status") && !cond.includes("c.is_active")
-        );
+        const joinConditions = buildJoinConditions(conditions);
 
         const query = `
             SELECT
@@ -279,53 +278,38 @@ export const getExtrasListModel = async (lang = "en", filters = {}) => {
                 eo.real_name_id,
                 COALESCE(eot.title, eo.display_key, eo.extra_key) AS title,
                 COALESCE(eot.title, eo.display_key, eo.extra_key) AS name,
-                COUNT(
-                    DISTINCT CASE
-                        WHEN (eo.id = 6 OR eo.real_name_id = 6 OR eo.extra_key = 'eight_tyres' OR eo.extra_key = 'two_sets_of_tires') THEN
-                            CASE
-                                WHEN cf.id IS NOT NULL THEN c.id
-                                WHEN (
-                                    c.extras IS NOT NULL
-                                    AND (
-                                        c.extras = '6'
-                                        OR FIND_IN_SET('6', REPLACE(REPLACE(REPLACE(c.extras, '[', ''), ']', ''), ' ', '')) > 0
-                                        OR LOWER(TRIM(c.extras)) = '8 tires'
-                                        OR LOWER(TRIM(c.extras)) = 'eight_tyres'
-                                        OR FIND_IN_SET('eight_tyres', REPLACE(LOWER(c.extras), ' ', '')) > 0
-                                    )
-                                ) THEN c.id
-                            END
-                        WHEN eo.real_name_id IS NOT NULL THEN c.id
-                    END
-                ) AS count
-
+                COUNT(DISTINCT c.id) AS count
             FROM extras_options eo
-
             LEFT JOIN extra_option_translations eot
                 ON eot.extra_option_id = eo.id
                AND eot.language = ?
-
             LEFT JOIN tbl_car_feature cf
                 ON cf.feature_id = eo.real_name_id
-
             LEFT JOIN tbl_cars c
                 ON (
-                    (eo.real_name_id IS NOT NULL AND c.id = cf.car_id)
+                    (eo.real_name_id IS NOT NULL AND (
+                        c.id = cf.car_id
+                        OR (c.carFeatures IS NOT NULL AND (
+                            c.carFeatures LIKE CONCAT('%', eo.real_name_id, '%')
+                        ))
+                    ))
                     OR (
-                        (eo.id = 6 OR eo.real_name_id = 6 OR eo.extra_key = 'eight_tyres' OR eo.extra_key = 'two_sets_of_tires')
-                        AND c.extras IS NOT NULL
+                        (eo.id IN (4, 6) OR eo.real_name_id = 6 OR eo.extra_key IN ('eight_tyres', 'two_sets_of_tires'))
+                        AND (
+                            c.id = cf.car_id
+                            OR (c.extras IS NOT NULL AND (
+                                c.extras LIKE '%6%'
+                                OR LOWER(c.extras) LIKE '%8%tire%'
+                                OR LOWER(c.extras) LIKE '%eight_tyre%'
+                                OR LOWER(c.extras) LIKE '%two_sets_of_tires%'
+                                OR LOWER(c.extras) LIKE '%detail8tires%'
+                            ))
+                            OR (c.carFeatures IS NOT NULL AND c.carFeatures LIKE '%6%')
+                        )
                     )
                 )
-               AND c.is_deleted = 0
-               AND c.is_active = 1
-               AND c.listing_status = 'published'
-               ${userSearchConditions.length ? `AND ${userSearchConditions.join(" AND ")}` : ""}
-
-            LEFT JOIN tbl_users u
-                ON u.id = c.user_id
-
+                ${joinConditions ? `AND ${joinConditions}` : ""}
             WHERE eo.is_active = 1
-
             GROUP BY
                 eo.id,
                 eo.extra_key,
@@ -335,11 +319,10 @@ export const getExtrasListModel = async (lang = "en", filters = {}) => {
                 eo.is_active,
                 eo.real_name_id,
                 eot.title
-
             ORDER BY eo.sort_order ASC, eo.id ASC
         `;
 
-        return await db.query(query, [lang]);
+        return await db.query(query, [lang, ...params]);
 
     } catch (error) {
         console.error(

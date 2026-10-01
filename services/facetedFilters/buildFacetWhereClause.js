@@ -159,13 +159,21 @@ export const buildFacetedConditions = (
         );
     }
 
-    if (excludeFacet !== "mfk_warranty") {
-        addInFilter(
-            conditions,
-            params,
-            `${alias}.mfk_warrenty_id`,
-            filters.mfk_warranty_ids || []
-        );
+    if (excludeFacet !== "mfk_warranty" && Array.isArray(filters.mfk_warranty_ids) && filters.mfk_warranty_ids.length > 0) {
+        const mfkWarrantyClauses = [];
+        for (const id of filters.mfk_warranty_ids) {
+            const numId = Number(id);
+            if (numId === 1) {
+                mfkWarrantyClauses.push(`(${alias}.mfk_status_id IN (1, 2) OR (${alias}.mfk_status_id IS NOT NULL AND ${alias}.mfk_status_id NOT IN (4, 5)))`);
+            } else if (numId === 2) {
+                mfkWarrantyClauses.push(`EXISTS (SELECT 1 FROM tbl_warranty_types wtt WHERE wtt.id = ${alias}.mfk_warrenty_id AND wtt.warranty_key IS NOT NULL AND wtt.warranty_key != 'no_warranty')`);
+            } else if (numId === 3) {
+                mfkWarrantyClauses.push(`${alias}.is_swiss_vehicle = 1`);
+            }
+        }
+        if (mfkWarrantyClauses.length > 0) {
+            conditions.push(`(${mfkWarrantyClauses.join(' OR ')})`);
+        }
     }
 
     if (excludeFacet !== "vehicle_condition") {

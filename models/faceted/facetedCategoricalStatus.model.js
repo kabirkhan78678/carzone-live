@@ -62,22 +62,33 @@ export const getMfkWarrantyFacetModel = async (arg1 = {}, arg2 = "en") => {
     const rows = await db.query(
         `
         SELECT
-            ms.id,
-            ms.status_key,
-            ms.status_key AS code,
-            COALESCE(mst.name, ms.status) AS label,
-            COALESCE(mst.name, ms.status) AS name,
-            COUNT(c.id) AS car_count
-        FROM tbl_mfk_status AS ms
-        LEFT JOIN tbl_mfk_status_translations AS mst
-            ON mst.mfk_status_id = ms.id
-            AND mst.language_code = ?
-        LEFT JOIN tbl_cars AS c
-            ON (c.mfk_status_id = ms.id OR c.mfk_warrenty_id = ms.id)
-            ${joinConditions ? `AND ${joinConditions}` : ""}
-        WHERE ms.is_active = 1
-        GROUP BY ms.id, ms.status_key, mst.name, ms.status
-        ORDER BY ms.id ASC
+            vmw.id,
+            vmw.code,
+            vmwt.label,
+            vmwt.label AS name,
+            COUNT(DISTINCT c.id) AS car_count
+        FROM tbl_vehicle_mfk_warranty vmw
+        JOIN tbl_vehicle_mfk_warranty_translations vmwt
+          ON vmwt.mfk_warranty_id = vmw.id
+         AND vmwt.language_code = ?
+        LEFT JOIN tbl_cars c
+          ON (
+             (vmw.code = 'valid_technical_inspection' AND (c.mfk_status_id IN (1, 2) OR (c.mfk_status_id IS NOT NULL AND c.mfk_status_id NOT IN (4, 5))))
+             OR
+             (vmw.code = 'with_warranty' AND EXISTS (
+                 SELECT 1 FROM tbl_warranty_types wtt 
+                 WHERE wtt.id = c.mfk_warrenty_id 
+                   AND wtt.warranty_key IS NOT NULL 
+                   AND wtt.warranty_key != 'no_warranty'
+             ))
+             OR
+             (vmw.code = 'ch_car' AND c.is_swiss_vehicle = 1)
+          )
+         ${joinConditions ? `AND ${joinConditions}` : ""}
+        WHERE vmw.is_active = 1
+          AND vmw.code != 'ch_car'
+        GROUP BY vmw.id, vmw.code, vmwt.label
+        ORDER BY vmw.id ASC
         `,
         [lang, ...params]
     );
@@ -87,7 +98,6 @@ export const getMfkWarrantyFacetModel = async (arg1 = {}, arg2 = "en") => {
             id: row.id,
             code: row.code,
             label: row.label,
-            status_key: row.status_key,
             name: row.name,
             count: toSafeNumber(row.car_count, 0)
         })),

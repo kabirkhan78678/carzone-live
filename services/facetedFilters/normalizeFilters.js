@@ -143,13 +143,21 @@ export const normalizeFacetedFilters = (rawFilters = {}) => {
         source.mfk === true ||
         source.mfk === "true" ||
         source.mfk === 1 ||
-        source.mfk === "1";
+        source.mfk === "1" ||
+        source.valid_technical_inspection === true ||
+        source.valid_technical_inspection === "true" ||
+        source.valid_technical_inspection === 1 ||
+        source.valid_technical_inspection === "1";
 
     const isWarrantySelected =
         source.warranty === true ||
         source.warranty === "true" ||
         source.warranty === 1 ||
-        source.warranty === "1";
+        source.warranty === "1" ||
+        source.with_warranty === true ||
+        source.with_warranty === "true" ||
+        source.with_warranty === 1 ||
+        source.with_warranty === "1";
 
     const isMetallicSelected =
         source.is_metallic === true ||
@@ -172,8 +180,26 @@ export const normalizeFacetedFilters = (rawFilters = {}) => {
         source.isSwissVehicle === "true" ||
         source.isSwissVehicle === 1 ||
         source.isSwissVehicle === "1" ||
+        source.ch_car === true ||
+        source.ch_car === "true" ||
+        source.ch_car === 1 ||
+        source.ch_car === "1" ||
         normalizedCarType === "only_ch_cars" ||
         normalizedCarType === "ch";
+
+    const rawMfkWarrantyIds = normalizeIdArray(
+        pickFirstDefined(rawMfkWarranty, ["ids", "selected_ids", "values"]) ??
+        pickFirstDefined(source, ["mfk_warranty_ids", "mfk_warrenty_id", "warranty_id"])
+    );
+    if (isMfkSelected && !rawMfkWarrantyIds.includes(1)) {
+        rawMfkWarrantyIds.push(1);
+    }
+    if (isWarrantySelected && !rawMfkWarrantyIds.includes(2)) {
+        rawMfkWarrantyIds.push(2);
+    }
+    if (isSwissVehicleSelected && !rawMfkWarrantyIds.includes(3)) {
+        rawMfkWarrantyIds.push(3);
+    }
 
     return {
         fuel_type_ids: normalizeIdArray(
@@ -193,16 +219,9 @@ export const normalizeFacetedFilters = (rawFilters = {}) => {
         ),
         accident_status_ids: normalizeIdArray(
             pickFirstDefined(rawAccidentStatus, ["ids", "selected_ids", "values"]) ??
-            // pickFirstDefined(source, ["accident_status_ids", "vehicle_accident_status_id"])
             pickFirstDefined(source, ["accident_status_ids", "vehicle_accident_status_id", "accident_vehicle"])
-
         ),
-
-
-        mfk_warranty_ids: normalizeIdArray(
-            pickFirstDefined(rawMfkWarranty, ["ids", "selected_ids", "values"]) ??
-            pickFirstDefined(source, ["mfk_warranty_ids", "mfk_warrenty_id", "warranty_id"])
-        ),
+        mfk_warranty_ids: rawMfkWarrantyIds,
         quality_seal_ids: normalizeIdArray(
             pickFirstDefined(source, ["quality_seal_ids", "quality_seals", "quality_seal", "quality_seal_id", "qualitySeals"])
         ),

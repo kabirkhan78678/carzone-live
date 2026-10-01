@@ -335,9 +335,21 @@ const getMfkWarrantyFacetModel = async (lang, filters = {}) => {
           ON vmwt.mfk_warranty_id = vmw.id
          AND vmwt.language_code = ?
         LEFT JOIN tbl_cars c
-          ON c.mfk_warrenty_id = vmw.id
+          ON (
+             (vmw.code = 'valid_technical_inspection' AND (c.mfk_status_id IN (1, 2) OR (c.mfk_status_id IS NOT NULL AND c.mfk_status_id NOT IN (4, 5))))
+             OR
+             (vmw.code = 'with_warranty' AND EXISTS (
+                 SELECT 1 FROM tbl_warranty_types wtt 
+                 WHERE wtt.id = c.mfk_warrenty_id 
+                   AND wtt.warranty_key IS NOT NULL 
+                   AND wtt.warranty_key != 'no_warranty'
+             ))
+             OR
+             (vmw.code = 'ch_car' AND c.is_swiss_vehicle = 1)
+          )
          ${joinConditions ? `AND ${joinConditions}` : ""}
         WHERE vmw.is_active = 1
+          AND vmw.code != 'ch_car'
         GROUP BY vmw.id, vmw.code, vmwt.label
         ORDER BY vmw.id ASC
         `,
