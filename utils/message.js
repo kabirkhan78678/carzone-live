@@ -1,4 +1,28 @@
 const messages = {
+    "accountDeletedSuccessfully": {
+        en: "Account and all associated data have been permanently deleted.",
+        de: "Das Konto und alle zugehörigen Daten wurden dauerhaft gelöscht.",
+        fr: "Le compte et toutes les données associées ont été supprimés définitivement.",
+        it: "L'account e tutti i dati associati sono stati eliminati definitivamente."
+    },
+    "ACCOUNT_DELETED_SUCCESSFULLY": {
+        en: "Account and all associated data have been permanently deleted.",
+        de: "Das Konto und alle zugehörigen Daten wurden dauerhaft gelöscht.",
+        fr: "Le compte et toutes les données associées ont été supprimés définitivement.",
+        it: "L'account e tutti i dati associati sono stati eliminati definitivamente."
+    },
+    "userDataDownloadEmailSent": {
+        en: "Your data archive has been generated and sent to your email address.",
+        de: "Ihr Datenarchiv wurde erstellt und an Ihre E-Mail-Adresse gesendet.",
+        fr: "Votre archive de données a été générée et envoyée à votre adresse e-mail.",
+        it: "Il tuo archivio dati è stato generato e inviato al tuo indirizzo email."
+    },
+    "USER_DATA_DOWNLOAD_EMAIL_SENT": {
+        en: "Your data archive has been generated and sent to your email address.",
+        de: "Ihr Datenarchiv wurde erstellt und an Ihre E-Mail-Adresse gesendet.",
+        fr: "Votre archive de données a été générée et envoyée à votre adresse e-mail.",
+        it: "Il tuo archivio dati è stato generato e inviato al tuo indirizzo email."
+    },
     "PURCHASE_AGREEMENT_WARRANTY_EXCLUDED": {
         en: "Warranty excluded",
         de: "Gewährleistung ausgeschlossen",

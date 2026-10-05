@@ -1,5 +1,7 @@
 // Auto-aggregated and re-exported shared user controllers for 100% backward compatibility
 export { FALLBACK_MAKES } from '../utils/vehicleMakesData.js';
+export * from './shared/accountDeletion.controller.js';
+export * from './shared/userDataExport.controller.js';
 export * from './shared/agreementDetails.controller.js';
 export * from './shared/agreementList.controller.js';
 export * from './shared/allCarReels.controller.js';

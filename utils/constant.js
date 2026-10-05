@@ -178,9 +178,10 @@ export const variableTypes = {
     LAST_MFK_DATE_CANNOT_BE_IN_FUTURE: "Last MFK date cannot be in the future.",
     LAST_MFK_DATE_CANNOT_BE_EARLIER_THAN_FIRST_REGISTRATION_DATE: "Last MFK date cannot be earlier than first registration date.",
     FIRST_REGISTRATION_DATE_CANNOT_BE_IN_FUTURE: "First registration date cannot be in the future.",
-        Inquiry_sent_successfully:"Inquirysentsuccessfully",
-    Physical_visit_request_submitted_successfully:"Physicalvisitrequestsubmittedsuccessfully"
-
+    Inquiry_sent_successfully:"Inquirysentsuccessfully",
+    Physical_visit_request_submitted_successfully:"Physicalvisitrequestsubmittedsuccessfully",
+    ACCOUNT_DELETED_SUCCESSFULLY: "accountDeletedSuccessfully",
+    USER_DATA_DOWNLOAD_EMAIL_SENT: "userDataDownloadEmailSent"
 };
 
 export const StatusCode = {

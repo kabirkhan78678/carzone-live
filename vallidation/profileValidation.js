@@ -95,3 +95,9 @@ export const addLatLongValidation = [
     .notEmpty().withMessage('Longitude is required.')
     .isNumeric().withMessage('Longitude must be a valid number.')
 ];
+
+export const deleteAccountValidation = [
+  body('password')
+    .optional({ nullable: true, checkFalsy: true })
+    .isString().withMessage('Password must be a string.')
+];

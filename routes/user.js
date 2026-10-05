@@ -2,7 +2,7 @@ import express from 'express';
 import controller from '../controllers/index.js';
 import { getUserProfileweb, listCarweb } from '../controllers/web/user_controller.js';
 import { getUserProfilemobile, listCarmobile } from '../controllers/mobile/user_controller.js';
-import { getAllMakes } from '../controllers/user_controller.js';
+import { getAllMakes, deleteAccount, downloadUserDataController } from '../controllers/user_controller.js';
 import { authenticateUser } from '../middleware/userAuth.js';
 import { uploadProfile } from '../middleware/upload.js';
 import { authRateLimiter, otpRateLimiter } from '../middleware/rateLimiter.js';
@@ -116,6 +116,14 @@ app.put('/changeLanguage', authenticateUser, uploadProfile.none(), changeLanguag
 app.patch('/changeLanguage', authenticateUser, uploadProfile.none(), changeLanguageValidation, handleValidationErrors, controller.userController.changeLanguage);
 app.post('/updateBuyerToSeller', authenticateUser, updateBuyerToSellerValidation, handleValidationErrors, controller.userController.updateBuyerToSeller);
 app.post('/find-vehicle-by-vrn', authenticateUser, vrnValidation, handleValidationErrors, controller.userController.findVehicleByVRN);
+app.delete('/deleteAccount', authenticateUser, deleteAccount);
+app.post('/deleteAccount', authenticateUser, deleteAccount);
+app.delete('/delete-account', authenticateUser, deleteAccount);
+app.post('/delete-account', authenticateUser, deleteAccount);
+app.post('/downloadUserData', authenticateUser, downloadUserDataController);
+app.get('/downloadUserData', authenticateUser, downloadUserDataController);
+app.post('/download-user-data', authenticateUser, downloadUserDataController);
+app.get('/download-user-data', authenticateUser, downloadUserDataController);
 
 // ------------------------------------------ Seller Module -----------------------------------------------------------//
 app.post('/listYourCar', authenticateUser, uploadProfile.fields(fieldsConfig), listCarValidation, handleValidationErrors, controller.userController.listCar);
@@ -246,12 +254,20 @@ app.post('/car-vertical', authenticateUser, carVerticalValidation, handleValidat
 // ------------------------------------------ Web & Mobile Platform Routes -------------------------------------------//
 app.get('/web/getUserProfile', authenticateUser, getUserProfileViewValidation, handleValidationErrors, getUserProfileweb);
 app.post('/web/listYourCar', authenticateUser, uploadProfile.fields(fieldsConfig), listCarValidation, handleValidationErrors, listCarweb);
+app.delete('/web/deleteAccount', authenticateUser, deleteAccount);
+app.post('/web/deleteAccount', authenticateUser, deleteAccount);
+app.delete('/web/delete-account', authenticateUser, deleteAccount);
+app.post('/web/delete-account', authenticateUser, deleteAccount);
 app.get('/web/filters', controller.userController.getFilters);
 app.get('/web/all-makes', getAllMakes);
 app.get('/web/models-by-make/:brand_id', modelsByMakeValidation, handleValidationErrors, controller.userController.getModelsListWeb);
 
 app.get('/mobile/getUserProfile', authenticateUser, getUserProfileViewValidation, handleValidationErrors, getUserProfilemobile);
 app.post('/mobile/listYourCar', authenticateUser, uploadProfile.fields(fieldsConfig), listCarValidation, handleValidationErrors, listCarmobile);
+app.delete('/mobile/deleteAccount', authenticateUser, deleteAccount);
+app.post('/mobile/deleteAccount', authenticateUser, deleteAccount);
+app.delete('/mobile/delete-account', authenticateUser, deleteAccount);
+app.post('/mobile/delete-account', authenticateUser, deleteAccount);
 app.post('/carVerticalReport/:carId', authenticateUser, carIdParamValidation, handleValidationErrors, controller.userController.getCarVerticalReport);
 
 // ------------------------------------------ Catalog & Reels & Agreements -------------------------------------------//

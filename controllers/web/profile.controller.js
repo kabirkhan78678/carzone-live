@@ -5,6 +5,7 @@ import { handleError, handleSuccess } from '../../utils/responseHandler.js';
 import { getMessage } from '../../utils/user_helper.js';
 import { fetchUsersById, fetchUserRoleData, getUserActivePlans, getUserTotalSlots, countUserCars, getSellerOpeningTimesModel } from '../../models/user.model.js';
 import { getUserNotificationSettings } from '../../models/user/notificationSettings.model.js';
+import { processAccountDeletion } from '../shared/accountDeletion.controller.js';
 
 dotenv.config();
 
@@ -110,4 +111,8 @@ export const getUserProfileweb = async (req, res) => {
         console.error(error);
         return handleError(res, 500, getMessage(lang, variableTypes.INTERNAL_SERVER_ERROR));
     }
+};
+
+export const deleteAccountWeb = async (req, res) => {
+    return processAccountDeletion(req, res, 'web');
 };

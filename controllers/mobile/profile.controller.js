@@ -5,6 +5,7 @@ import { variableTypes } from '../../utils/constant.js';
 import { fetchUsersById, fetchUserRoleData, getUserActivePlans, getUserTotalSlots, countUserCars, getSellerOpeningTimesModel } from '../../models/user.model.js';
 import { getUserNotificationSettings } from '../../models/user/notificationSettings.model.js';
 import { getMessage } from '../../utils/user_helper.js';
+import { processAccountDeletion } from '../shared/accountDeletion.controller.js';
 
 dotenv.config();
 
@@ -110,4 +111,8 @@ export const getUserProfilemobile = async (req, res) => {
         console.error(error);
         return handleError(res, 500, getMessage(lang, variableTypes.INTERNAL_SERVER_ERROR));
     }
+};
+
+export const deleteAccountMobile = async (req, res) => {
+    return processAccountDeletion(req, res, 'mobile');
 };
