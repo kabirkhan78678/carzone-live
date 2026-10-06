@@ -121,6 +121,12 @@ export const asGuestUserFetchSellerCarsList = async (req, res) => {
                         quality_seal_name: item.quality_seal_name ?? null,
                         quality_seal_image: item.quality_seal_image ?? null,
                         quality_seal_description: item.quality_seal_description ?? null,
+                        quality_seal: (item.quality_seal_id || item.quality_seal_id_resolved) ? {
+                            id: item.quality_seal_id_resolved || item.quality_seal_id,
+                            name: item.quality_seal_name ?? null,
+                            image: item.quality_seal_image ?? null,
+                            description: item.quality_seal_description ?? null
+                        } : null,
                         leasing_value:
                             item.leasing_value ??
                             item.leasingPrice ??
@@ -380,6 +386,12 @@ export const buildVehicleDetailPayload = (car, openingTimes, mfk) => {
         quality_seal_id: car.quality_seal_id ?? car.quality_seal_id_resolved ?? null,
         quality_seal_name: car.quality_seal_name ?? null,
         quality_seal_image: car.quality_seal_image ?? null,
-        quality_seal_description: car.quality_seal_description ?? null
+        quality_seal_description: car.quality_seal_description ?? null,
+        quality_seal: (car.quality_seal_id_resolved || car.quality_seal_id) ? {
+            id: car.quality_seal_id_resolved || car.quality_seal_id,
+            name: car.quality_seal_name ?? null,
+            image: car.quality_seal_image ?? null,
+            description: car.quality_seal_description ?? null
+        } : null
     };
 };

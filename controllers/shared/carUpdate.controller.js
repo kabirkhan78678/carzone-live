@@ -206,6 +206,36 @@ export const updateCar = async (req, res) => {
             return { color_id: null, color_custom: null };
         };
 
+        const parseQualitySealId = (val) => {
+            if (val === undefined || val === null || val === "" || val === "null" || val === "undefined") {
+                return null;
+            }
+            if (typeof val === "number" && !isNaN(val)) {
+                return val > 0 ? val : null;
+            }
+            if (typeof val === "string") {
+                const trimmed = val.trim();
+                if (/^\d+$/.test(trimmed)) {
+                    const num = Number(trimmed);
+                    return num > 0 ? num : null;
+                }
+                try {
+                    const parsed = JSON.parse(trimmed);
+                    return parseQualitySealId(parsed);
+                } catch (_) {
+                    return null;
+                }
+            }
+            if (Array.isArray(val)) {
+                if (val.length === 0) return null;
+                return parseQualitySealId(val[0]);
+            }
+            if (typeof val === "object") {
+                return parseQualitySealId(val.id ?? val.quality_seal_id ?? val.value ?? val.qualitySealId);
+            }
+            return null;
+        };
+
         // Separate out non-tbl_cars fields
         const {
             // Media fields from body
@@ -449,11 +479,27 @@ export const updateCar = async (req, res) => {
                 : null;
         }
 
-        if (rawCarData.quality_seal_id !== undefined || rawCarData.quality_seal !== undefined) {
-            const rawSeal = rawCarData.quality_seal_id ?? rawCarData.quality_seal;
-            data.quality_seal_id = rawSeal !== null && String(rawSeal).trim() !== "" && !isNaN(Number(rawSeal))
-                ? Number(rawSeal)
-                : null;
+        const resolvedQualitySealCandidate = [
+            rawCarData.quality_seal_id,
+            rawCarData.quality_seal,
+            rawCarData.qualitySealId,
+            rawCarData.qualitySeal,
+            rawCarData.quality_seals,
+            rawCarData.qualitySeals,
+            rawCarData.quality_seal_ids,
+            rawCarData.quality_seal_id_resolved,
+            req.body.quality_seal_id,
+            req.body.quality_seal,
+            req.body.qualitySealId,
+            req.body.qualitySeal,
+            req.body.quality_seals,
+            req.body.qualitySeals,
+            req.body.quality_seal_ids,
+            req.body.quality_seal_id_resolved
+        ].find(v => v !== undefined);
+
+        if (resolvedQualitySealCandidate !== undefined) {
+            data.quality_seal_id = parseQualitySealId(resolvedQualitySealCandidate);
         }
 
         if (rawCarData.warranty_from !== undefined) {

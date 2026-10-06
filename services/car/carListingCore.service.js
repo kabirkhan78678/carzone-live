@@ -83,7 +83,7 @@ export const handleListingCar = async (req, res, platform = 'web') => {
             delete updateData.car_id;
             delete updateData.user_id;
 
-            await updateSellerCars(car_id, user_id, updateData);
+            await updateSellerCars(updateData, car_id);
 
             if (carImages.length > 0) {
                 await addCarImagesByCarId(car_id, carImages);

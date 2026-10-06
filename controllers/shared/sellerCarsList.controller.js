@@ -127,6 +127,12 @@ const power = powerParts.length ? powerParts.join(" / ") : null;
                         quality_seal_name: item.quality_seal_name ?? null,
                         quality_seal_image: item.quality_seal_image ?? null,
                         quality_seal_description: item.quality_seal_description ?? null,
+                        quality_seal: (item.quality_seal_id || item.quality_seal_id_resolved) ? {
+                            id: item.quality_seal_id_resolved || item.quality_seal_id,
+                            name: item.quality_seal_name ?? null,
+                            image: item.quality_seal_image ?? null,
+                            description: item.quality_seal_description ?? null
+                        } : null,
                         leasing_value: item.leasing_value ?? item.leasingPrice ?? null,
                         annual_interest_rate: item.annual_interest_rate ?? null,
                         residual_value: item.residual_value ?? null,
@@ -200,6 +206,16 @@ export const fetchOtherCarListByOtherSellerId = async (req, res) => {
                 item.leasing_value = item.leasing_value ?? item.leasingPrice ?? null;
                 item.annual_interest_rate = item.annual_interest_rate ?? null;
                 item.residual_value = item.residual_value ?? null;
+                item.quality_seal_id = item.quality_seal_id ?? item.quality_seal_id_resolved ?? null;
+                item.quality_seal_name = item.quality_seal_name ?? null;
+                item.quality_seal_image = item.quality_seal_image ?? null;
+                item.quality_seal_description = item.quality_seal_description ?? null;
+                item.quality_seal = (item.quality_seal_id || item.quality_seal_id_resolved) ? {
+                    id: item.quality_seal_id_resolved || item.quality_seal_id,
+                    name: item.quality_seal_name ?? null,
+                    image: item.quality_seal_image ?? null,
+                    description: item.quality_seal_description ?? null
+                } : null;
                 delete item.warranty_type_id_resolved;
                 return item;
             }));

@@ -258,6 +258,36 @@ export const listCarweb = async (req, res) => {
             return { color_id: null, color_custom: null };
         };
 
+        const parseQualitySealId = (val) => {
+            if (val === undefined || val === null || val === "" || val === "null" || val === "undefined") {
+                return null;
+            }
+            if (typeof val === "number" && !isNaN(val)) {
+                return val > 0 ? val : null;
+            }
+            if (typeof val === "string") {
+                const trimmed = val.trim();
+                if (/^\d+$/.test(trimmed)) {
+                    const num = Number(trimmed);
+                    return num > 0 ? num : null;
+                }
+                try {
+                    const parsed = JSON.parse(trimmed);
+                    return parseQualitySealId(parsed);
+                } catch (_) {
+                    return null;
+                }
+            }
+            if (Array.isArray(val)) {
+                if (val.length === 0) return null;
+                return parseQualitySealId(val[0]);
+            }
+            if (typeof val === "object") {
+                return parseQualitySealId(val.id ?? val.quality_seal_id ?? val.value ?? val.qualitySealId);
+            }
+            return null;
+        };
+
         const exteriorColorResolved = resolveColorFields(exterior_color_id, exterior_color_custom);
         const interiorColorResolved = resolveColorFields(interior_color_id, interior_color_custom);
 
@@ -298,7 +328,18 @@ export const listCarweb = async (req, res) => {
                 mfk_warrenty_id: toNumber(mfk_warrenty_id ?? warranty_id)
             } : {}),
             warranty_type_text: toNumber(warranty_type_id),
-            quality_seal_id: toNumber(quality_seal_id),
+            quality_seal_id: parseQualitySealId(
+                [
+                    quality_seal_id,
+                    req.body.quality_seal,
+                    req.body.qualitySealId,
+                    req.body.qualitySeal,
+                    req.body.quality_seals,
+                    req.body.qualitySeals,
+                    req.body.quality_seal_ids,
+                    req.body.quality_seal_id_resolved
+                ].find(v => v !== undefined)
+            ),
             warranty_from,
             warranty_number_of_months: toNumber(warranty_number_of_months),
 

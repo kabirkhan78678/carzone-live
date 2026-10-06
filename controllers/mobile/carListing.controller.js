@@ -210,6 +210,36 @@ export const listCarmobile = async (req, res) => {
         const isNullLike = (value) =>
             value === null || (typeof value === "string" && value.trim().toLowerCase() === "null");
 
+        const parseQualitySealId = (val) => {
+            if (val === undefined || val === null || val === "" || val === "null" || val === "undefined") {
+                return null;
+            }
+            if (typeof val === "number" && !isNaN(val)) {
+                return val > 0 ? val : null;
+            }
+            if (typeof val === "string") {
+                const trimmed = val.trim();
+                if (/^\d+$/.test(trimmed)) {
+                    const num = Number(trimmed);
+                    return num > 0 ? num : null;
+                }
+                try {
+                    const parsed = JSON.parse(trimmed);
+                    return parseQualitySealId(parsed);
+                } catch (_) {
+                    return null;
+                }
+            }
+            if (Array.isArray(val)) {
+                if (val.length === 0) return null;
+                return parseQualitySealId(val[0]);
+            }
+            if (typeof val === "object") {
+                return parseQualitySealId(val.id ?? val.quality_seal_id ?? val.value ?? val.qualitySealId);
+            }
+            return null;
+        };
+
         const setIfPresent = (target, key, transform = (v) => v, sourceKey = key) => {
             if (!hasKey(sourceKey)) return;
             const rawValue = req.body[sourceKey];
@@ -306,6 +336,22 @@ export const listCarmobile = async (req, res) => {
         };
 
         setIfPresent(data, "warranty_type_text", (v) => (v ? Number(v) : null), "warranty_type_id");
+        
+        const mobileQualitySeal = [
+            req.body.quality_seal_id,
+            req.body.quality_seal,
+            req.body.qualitySealId,
+            req.body.qualitySeal,
+            req.body.quality_seals,
+            req.body.qualitySeals,
+            req.body.quality_seal_ids,
+            req.body.quality_seal_id_resolved
+        ].find(v => v !== undefined);
+
+        if (mobileQualitySeal !== undefined) {
+            data.quality_seal_id = parseQualitySealId(mobileQualitySeal);
+        }
+
         setIfPresent(data, "warranty_from", convertDate);
         setIfPresent(data, "warranty_to", convertDate);
         setIfPresent(data, "warranty_number_of_months", (v) => toNumber(v));

@@ -65,6 +65,36 @@ export const listCar = async (req, res) => {
             return Number(val) === true || val === 1 || str === "true" || str === "1" ? 1 : 0;
         };
 
+        const parseQualitySealId = (val) => {
+            if (val === undefined || val === null || val === "" || val === "null" || val === "undefined") {
+                return null;
+            }
+            if (typeof val === "number" && !isNaN(val)) {
+                return val > 0 ? val : null;
+            }
+            if (typeof val === "string") {
+                const trimmed = val.trim();
+                if (/^\d+$/.test(trimmed)) {
+                    const num = Number(trimmed);
+                    return num > 0 ? num : null;
+                }
+                try {
+                    const parsed = JSON.parse(trimmed);
+                    return parseQualitySealId(parsed);
+                } catch (_) {
+                    return null;
+                }
+            }
+            if (Array.isArray(val)) {
+                if (val.length === 0) return null;
+                return parseQualitySealId(val[0]);
+            }
+            if (typeof val === "object") {
+                return parseQualitySealId(val.id ?? val.quality_seal_id ?? val.value ?? val.qualitySealId);
+            }
+            return null;
+        };
+
         const plans = await getUserActivePlans(user_id);
         console.log(plans, user_id);
 
@@ -264,7 +294,18 @@ export const listCar = async (req, res) => {
             } : {}),
 
             warranty_type_text: warranty_type_id ? Number(warranty_type_id) : null,
-            quality_seal_id: quality_seal_id ? Number(quality_seal_id) : null,
+            quality_seal_id: parseQualitySealId(
+                [
+                    quality_seal_id,
+                    req.body.quality_seal,
+                    req.body.qualitySealId,
+                    req.body.qualitySeal,
+                    req.body.quality_seals,
+                    req.body.qualitySeals,
+                    req.body.quality_seal_ids,
+                    req.body.quality_seal_id_resolved
+                ].find(v => v !== undefined)
+            ),
             warranty_from,
             warranty_to,
             last_mfk_date,

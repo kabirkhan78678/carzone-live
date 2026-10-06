@@ -140,7 +140,34 @@ export const buildCarPayload = (body, filesData = {}, userId) => {
         warranty_number_of_months: toNumber(body.warranty_number_of_months),
         warranty_kilometer: toNumber(body.warranty_kilometer),
         warranty_description: body.warranty_description || null,
-        mfk_warrenty_id: toNumber(body.mfk_warrenty_id || warranty_type_id)
+        mfk_warrenty_id: toNumber(body.mfk_warrenty_id || warranty_type_id),
+        quality_seal_id: (() => {
+            const val = [
+                quality_seal_id,
+                body.quality_seal,
+                body.qualitySealId,
+                body.qualitySeal,
+                body.quality_seals,
+                body.qualitySeals,
+                body.quality_seal_ids,
+                body.quality_seal_id_resolved
+            ].find(v => v !== undefined);
+            if (val === undefined || val === null || val === "" || val === "null" || val === "undefined") return null;
+            if (typeof val === "number" && !isNaN(val)) return val > 0 ? val : null;
+            if (typeof val === "string") {
+                const trimmed = val.trim();
+                if (/^\d+$/.test(trimmed)) return Number(trimmed) > 0 ? Number(trimmed) : null;
+                try {
+                    const parsed = JSON.parse(trimmed);
+                    if (typeof parsed === "number") return parsed > 0 ? parsed : null;
+                    if (Array.isArray(parsed) && parsed.length > 0) return Number(parsed[0]?.id ?? parsed[0]) || null;
+                    if (typeof parsed === "object") return Number(parsed.id ?? parsed.quality_seal_id ?? parsed.value) || null;
+                } catch (_) { return null; }
+            }
+            if (Array.isArray(val) && val.length > 0) return Number(val[0]?.id ?? val[0]) || null;
+            if (typeof val === "object") return Number(val.id ?? val.quality_seal_id ?? val.value) || null;
+            return null;
+        })()
     };
 
     // Remove undefined values

@@ -1,7 +1,32 @@
 import * as archiverModule from 'archiver';
 import { Writable } from 'stream';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import db from '../config/db.js';
 import { sendEmail } from '../utils/emailService.js';
+import { getEmailLogoConfig } from '../utils/user_helper.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/**
+ * Loads and renders the download data email template with dynamic placeholders
+ */
+const renderDownloadEmailTemplate = (userName, fileName, logoUrl = '') => {
+    try {
+        const templatePath = path.join(__dirname, '..', 'templates', 'download data template.html');
+        let html = fs.readFileSync(templatePath, 'utf8');
+        html = html.replace(/{{userName}}/g, userName);
+        html = html.replace(/{{fileName}}/g, fileName);
+        html = html.replace(/{{year}}/g, new Date().getFullYear());
+        html = html.replace(/{{logoUrl}}/g, logoUrl);
+        return html;
+    } catch (err) {
+        console.warn('[userDataExport] Template load failed, using fallback HTML:', err.message);
+        return null;
+    }
+};
 
 /**
  * Creates a ZipArchive instance compatible across all archiver versions
@@ -296,55 +321,22 @@ Archive Contents:
     const dateFormatted = new Date().toISOString().slice(0, 10);
     const fileName = `CarZone_UserData_${userId}_${dateFormatted}.zip`;
 
-    // 9. Send Email with ZIP attachment
-    const emailHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Your CarZone Data Export</title>
-      <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; color: #333333; }
-        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .header { background: #1E293B; padding: 30px 20px; text-align: center; color: #ffffff; }
-        .header h1 { margin: 0; font-size: 24px; letter-spacing: 0.5px; }
-        .content { padding: 30px 25px; line-height: 1.6; }
-        .content h2 { color: #0F172A; font-size: 18px; margin-top: 0; }
-        .file-box { background: #F1F5F9; border-left: 4px solid #2563EB; padding: 15px; margin: 20px 0; border-radius: 0 6px 6px 0; }
-        .file-box p { margin: 4px 0; font-size: 14px; }
-        .footer { background: #F8FAFC; padding: 20px; text-align: center; font-size: 12px; color: #64748B; border-top: 1px solid #E2E8F0; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>🚗 CarZone</h1>
-        </div>
-        <div class="content">
-          <h2>Hello ${user.fullName || 'Valued User'},</h2>
-          <p>We received a request to download your complete personal data and account activity from CarZone.</p>
-          <p>Your data has been compiled into a secure ZIP archive containing separate CSV files for each category:</p>
-          <div class="file-box">
-            <p><strong>📁 Attached File:</strong> ${fileName}</p>
-            <p><strong>📊 Included CSVs:</strong> Profile Details, Saved Cars, Chat History, Activity Info, Visits, Listed Cars, Plans & Subscriptions</p>
-          </div>
-          <p>Please find your data archive attached to this email. You can extract and view each CSV file with Excel, Google Sheets, or any text editor.</p>
-          <p>If you did not request this data, please secure your account immediately or contact our support team.</p>
-          <p>Best regards,<br><strong>CarZone Team</strong></p>
-        </div>
-        <div class="footer">
-          <p>&copy; ${new Date().getFullYear()} CarZone. All rights reserved.</p>
-        </div>
-      </div>
-    </body>
-    </html>
-    `;
+    // 9. Build Email HTML from template
+    const displayName = user.fullName || user.email || 'Valued User';
+    const { logoUrl, attachments: logoAttachments } = await getEmailLogoConfig();
+    const emailHtml = renderDownloadEmailTemplate(displayName, fileName, logoUrl) || `
+    <!DOCTYPE html><html><body>
+      <p>Hello ${displayName},</p>
+      <p>Your CarZone data export is ready. Please find the ZIP file <strong>${fileName}</strong> attached to this email.</p>
+      <p>Best regards,<br><strong>CarZone Team</strong></p>
+    </body></html>`;
 
     await sendEmail({
         to: userEmail,
         subject: `Your CarZone Data Export (${fileName})`,
         html: emailHtml,
         attachments: [
+            ...logoAttachments,
             {
                 filename: fileName,
                 content: zipBuffer,
