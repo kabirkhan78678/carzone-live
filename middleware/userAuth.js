@@ -48,3 +48,39 @@ export const authenticateUser = async (req, res, next) => {
     return handleError(res, 500, getMessage('en', variableTypes.INTERNAL_SERVER_ERROR));
   }
 };
+
+export const optionalAuthenticateUser = async (req, res, next) => {
+  try {
+    const authorizationHeader = req.headers[variableTypes.AUTHORIZATION];
+    if (!authorizationHeader) {
+      return next();
+    }
+    const tokenParts = authorizationHeader.split(' ');
+    if (tokenParts[0] !== variableTypes.BEARER || !tokenParts[1]) {
+      return next();
+    }
+    const token = tokenParts[1];
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return next();
+    }
+
+    if (decodedToken?.data?.id) {
+      const [user] = await fetchUsersById(decodedToken.data.id);
+      if (user) {
+        let isUserBlocked = await fetchRoleByUsersId(decodedToken.data.id, decodedToken.data.role);
+        if (isUserBlocked.length === 0 || isUserBlocked[0].isBlocked != 1) {
+          req.user = user;
+          const resolvedLang = req.query?.lang || req.query?.language || req.headers?.language || req.headers?.lang || user.language || 'en';
+          res.locals.language = resolvedLang;
+          req.language = resolvedLang;
+        }
+      }
+    }
+    next();
+  } catch (error) {
+    next();
+  }
+};

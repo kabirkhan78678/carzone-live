@@ -6,7 +6,6 @@ export const getAppFeedbackListModel = async ({
     search = "",
     account_type = ""
 }) => {
-
     const offset = (page - 1) * limit;
 
     let where = `WHERE af.is_delete = 0`;
@@ -17,11 +16,12 @@ export const getAppFeedbackListModel = async ({
             AND (
                 u.fullName LIKE ?
                 OR u.email LIKE ?
+                OR af.message LIKE ?
             )
         `;
 
         const keyword = `%${search}%`;
-        params.push(keyword, keyword);
+        params.push(keyword, keyword, keyword);
     }
 
     if (account_type) {
@@ -71,6 +71,131 @@ export const getAppFeedbackListModel = async ({
         total: countResult[0]?.total || 0,
         data: feedback
     };
+};
+
+export const getAppFeedbackByIdModel = async (id) => {
+    const result = await db.query(
+        `
+        SELECT
+            af.id,
+            af.rating,
+            af.message,
+            af.created_at,
+
+            u.id AS user_id,
+            u.fullName,
+            u.email,
+            u.profileImage,
+            u.account_type
+
+        FROM tbl_app_feedback af
+        INNER JOIN tbl_users u
+            ON af.seller_id = u.id
+
+        WHERE af.id = ?
+         AND af.is_delete = 0
+        `,
+        [id]
+    );
+
+    return result[0] || null;
+};
+
+export const deleteAppFeedbackModel = async (id) => {
+    return await db.query(
+        `
+        UPDATE tbl_app_feedback
+        SET is_delete = 1
+        WHERE id = ?
+        `,
+        [id]
+    );
+};
+
+export const getHelpRequestsListModel = async ({
+    page = 1,
+    limit = 20,
+    search = ""
+}) => {
+    const offset = (page - 1) * limit;
+    let where = `WHERE 1=1`;
+    const params = [];
+
+    if (search) {
+        where += `
+            AND (
+                hs.full_name LIKE ?
+                OR hs.email LIKE ?
+                OR hs.description LIKE ?
+            )
+        `;
+        const keyword = `%${search}%`;
+        params.push(keyword, keyword, keyword);
+    }
+
+    const data = await db.query(
+        `
+        SELECT
+            hs.id,
+            hs.user_id,
+            hs.full_name,
+            hs.email,
+            hs.description,
+            hs.created_at,
+            u.profileImage,
+            u.account_type
+        FROM tbl_help_support hs
+        LEFT JOIN tbl_users u ON hs.user_id = u.id
+        ${where}
+        ORDER BY hs.id DESC
+        LIMIT ? OFFSET ?
+        `,
+        [...params, limit, offset]
+    );
+
+    const totalResult = await db.query(
+        `
+        SELECT COUNT(*) AS total
+        FROM tbl_help_support hs
+        ${where}
+        `,
+        params
+    );
+
+    return {
+        total: totalResult[0]?.total || 0,
+        data
+    };
+};
+
+export const getHelpRequestByIdModel = async (id) => {
+    const result = await db.query(
+        `
+        SELECT
+            hs.id,
+            hs.user_id,
+            hs.full_name,
+            hs.email,
+            hs.description,
+            hs.created_at,
+            u.profileImage,
+            u.account_type,
+            u.mobileNumber
+        FROM tbl_help_support hs
+        LEFT JOIN tbl_users u ON hs.user_id = u.id
+        WHERE hs.id = ?
+        `,
+        [id]
+    );
+
+    return result[0] || null;
+};
+
+export const deleteHelpRequestModel = async (id) => {
+    return await db.query(
+        `DELETE FROM tbl_help_support WHERE id = ?`,
+        [id]
+    );
 };
 
 export const getSupportListModel = async ({
@@ -189,7 +314,7 @@ export const updateSupportModel = async ({
     id,
     admin_response,
     status = 'resolved'
-} = {}) => {
+}) => {
     return await db.query(
         `
         UPDATE tbl_support
@@ -227,46 +352,6 @@ export const fetchSupportById = async (id) => {
         id=?
         AND
         is_delete=0
-        `,
-        [id]
-    );
-};
-
-export const getAppFeedbackByIdModel = async (id) => {
-    const result = await db.query(
-        `
-        SELECT
-            af.id,
-            af.rating,
-            af.message,
-            af.created_at,
-
-            u.id AS user_id,
-            u.fullName,
-            u.email,
-            u.profileImage,
-            u.account_type
-
-        FROM tbl_app_feedback af
-
-        INNER JOIN tbl_users u
-            ON af.seller_id = u.id
-
-        WHERE af.id = ?
-         AND af.is_delete = 0
-        `,
-        [id]
-    );
-
-    return result[0];
-};
-
-export const deleteAppFeedbackModel = async (id) => {
-    return await db.query(
-        `
-        UPDATE tbl_app_feedback
-        SET is_delete = 1
-        WHERE id = ?
         `,
         [id]
     );

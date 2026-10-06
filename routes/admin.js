@@ -67,6 +67,12 @@ app.post('/approveCompany/:id', authenticateAdmin, adminApproveRejectCompanyVali
 app.post('/rejectCompany/:id', authenticateAdmin, adminApproveRejectCompanyValidation, handleValidationErrors, controller.adminController.rejectCompany);
 app.get('/reported-cars', authenticateAdmin, controller.adminController.getReportedCars);
 app.get('/get-App-Feedback', authenticateAdmin, controller.adminController.getAppFeedback);
+app.get('/app-feedback', authenticateAdmin, controller.adminController.getAppFeedback);
+app.get('/app-feedback/:id', authenticateAdmin, idParamValidation, handleValidationErrors, controller.adminController.getAppFeedbackById);
+app.delete('/app-feedback/:id', authenticateAdmin, idParamValidation, handleValidationErrors, controller.adminController.deleteAppFeedback);
+app.get('/help-requests', authenticateAdmin, controller.adminController.getHelpRequests);
+app.get('/help-requests/:id', authenticateAdmin, idParamValidation, handleValidationErrors, controller.adminController.getHelpRequestById);
+app.delete('/help-requests/:id', authenticateAdmin, idParamValidation, handleValidationErrors, controller.adminController.deleteHelpRequest);
 app.post('/emblem', authenticateAdmin, uploadProfile.fields(fieldsConfig), adminEmblemValidation, handleValidationErrors, controller.adminController.createEmblem);
 app.get('/emblems', authenticateAdmin, controller.adminController.getEmblems);
 app.get('/emblem/:id', authenticateAdmin, idParamValidation, handleValidationErrors, controller.adminController.getEmblemById);
@@ -82,10 +88,8 @@ app.get('/help-support/:id', authenticateAdmin, idParamValidation, handleValidat
 app.put('/help-support/:id', authenticateAdmin, adminUpdateSupportValidation, handleValidationErrors, controller.adminController.updateSupport);
 app.delete('/help-support/:id', authenticateAdmin, idParamValidation, handleValidationErrors, controller.adminController.deleteSupport);
 app.get('/getAllPlan', authenticateAdmin, controller.userController.getAllPlan);
-app.get('/app-feedback/:id', authenticateAdmin, idParamValidation, handleValidationErrors, controller.adminController.getAppFeedbackById);
 app.get('/reported-car/:id', authenticateAdmin, idParamValidation, handleValidationErrors, controller.adminController.getReportedCarById);
 app.delete('/reported-car/:id', authenticateAdmin, idParamValidation, handleValidationErrors, controller.adminController.deleteReportedCar);
-app.delete('/app-feedback/:id', authenticateAdmin, idParamValidation, handleValidationErrors, controller.adminController.deleteAppFeedback);
 app.get('/slots-sold-by-package', authenticateAdmin, controller.adminController.getRevenueAndSlotSales);
 app.get('/schedule-visits', authenticateAdmin, controller.adminController.getAllScheduleVisits);
 app.get('/schedule-visits/:id', authenticateAdmin, idParamValidation, handleValidationErrors, controller.adminController.getScheduleVisitById);

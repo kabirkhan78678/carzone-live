@@ -3,7 +3,7 @@ import controller from '../controllers/index.js';
 import { getUserProfileweb, listCarweb } from '../controllers/web/user_controller.js';
 import { getUserProfilemobile, listCarmobile } from '../controllers/mobile/user_controller.js';
 import { getAllMakes, deleteAccount, downloadUserDataController } from '../controllers/user_controller.js';
-import { authenticateUser } from '../middleware/userAuth.js';
+import { authenticateUser, optionalAuthenticateUser } from '../middleware/userAuth.js';
 import { uploadProfile } from '../middleware/upload.js';
 import { authRateLimiter, otpRateLimiter } from '../middleware/rateLimiter.js';
 import {
@@ -198,7 +198,10 @@ app.get('/schedule-requests', authenticateUser, scheduleRequestListValidation, h
 app.get('/schedule-requests/:id', authenticateUser, scheduleRequestIdValidation, handleValidationErrors, controller.userController.getScheduleRequestDetail);
 app.post('/schedule-requests/:id/action', authenticateUser, scheduleRequestActionValidation, handleValidationErrors, controller.userController.sellerPhysicalVisitAction);
 app.post('/submit-App-Feedback', authenticateUser, submitAppFeedbackValidation, handleValidationErrors, controller.userController.submitAppFeedback);
-app.post('/submitHelpRequest', authenticateUser, submitHelpRequestValidation, handleValidationErrors, controller.userController.submitHelpRequest);
+app.post('/submit-feedback', authenticateUser, submitAppFeedbackValidation, handleValidationErrors, controller.userController.submitAppFeedback);
+app.get('/getMyAppFeedback', authenticateUser, controller.userController.getMyAppFeedback);
+app.post('/submitHelpRequest', optionalAuthenticateUser, submitHelpRequestValidation, handleValidationErrors, controller.userController.submitHelpRequest);
+app.post('/submit-help-request', optionalAuthenticateUser, submitHelpRequestValidation, handleValidationErrors, controller.userController.submitHelpRequest);
 
 // ------------------------------------------ Reports, Filters & Analytics -------------------------------------------//
 app.post('/report-cars/:car_id', authenticateUser, reportCarValidation, handleValidationErrors, controller.userController.reportCar);

@@ -3,6 +3,9 @@ import {
     getAppFeedbackListModel,
     getAppFeedbackByIdModel,
     deleteAppFeedbackModel,
+    getHelpRequestsListModel,
+    getHelpRequestByIdModel,
+    deleteHelpRequestModel,
     getSupportListModel,
     getSupportByIdModel,
     updateSupportModel,
@@ -12,9 +15,12 @@ import {
 import { handleSuccessNew, handleError, handleSuccess } from '../../utils/responseHandler.js';
 import { getMessage } from '../../utils/user_helper.js';
 
+/* =========================================================================
+   APP FEEDBACK (ADMIN)
+   ========================================================================= */
+
 export const getAppFeedback = async (req, res) => {
-    const { language } = "en";
-    const lang = language;
+    const lang = req.user?.language || "en";
 
     try {
         const page = Math.max(parseInt(req.query.page) || 1, 1);
@@ -46,7 +52,7 @@ export const getAppFeedback = async (req, res) => {
         );
 
     } catch (error) {
-        console.error(error);
+        console.error("getAppFeedback error:", error);
 
         return handleError(
             res,
@@ -57,10 +63,9 @@ export const getAppFeedback = async (req, res) => {
 };
 
 export const getAppFeedbackById = async (req, res) => {
-    try {
-        const { language } = "en";
-        const lang = language;
+    const lang = req.user?.language || "en";
 
+    try {
         const { id } = req.params;
 
         const feedback = await getAppFeedbackByIdModel(id);
@@ -81,20 +86,21 @@ export const getAppFeedbackById = async (req, res) => {
         );
 
     } catch (error) {
-        console.error(error);
+        console.error("getAppFeedbackById error:", error);
 
         return handleError(
             res,
             500,
-            getMessage("en", variableTypes.INTERNAL_SERVER_ERROR)
+            getMessage(lang, variableTypes.INTERNAL_SERVER_ERROR)
         );
     }
 };
 
 export const deleteAppFeedback = async (req, res) => {
+    const lang = req.user?.language || "en";
+
     try {
         const { id } = req.params;
-        const lang = "en";
 
         const feedback = await getAppFeedbackByIdModel(id);
 
@@ -116,19 +122,135 @@ export const deleteAppFeedback = async (req, res) => {
         );
 
     } catch (error) {
-        console.error(error);
+        console.error("deleteAppFeedback error:", error);
 
         return handleError(
             res,
             500,
-            getMessage("en", variableTypes.INTERNAL_SERVER_ERROR)
+            getMessage(lang, variableTypes.INTERNAL_SERVER_ERROR)
         );
     }
 };
 
+/* =========================================================================
+   HELP REQUESTS (ADMIN)
+   ========================================================================= */
+
+export const getHelpRequests = async (req, res) => {
+    const lang = req.user?.language || "en";
+
+    try {
+        const page = Math.max(parseInt(req.query.page) || 1, 1);
+        const limit = Math.max(parseInt(req.query.limit) || 20, 1);
+        const { search = "" } = req.query;
+
+        const helpData = await getHelpRequestsListModel({
+            page,
+            limit,
+            search
+        });
+
+        return handleSuccessNew(
+            res,
+            200,
+            getMessage(lang, variableTypes.DATA_FOUND_SUCCESSFULLY),
+            {
+                total: helpData.total,
+                page,
+                limit,
+                totalPages: Math.ceil(helpData.total / limit),
+                data: helpData.data
+            }
+        );
+
+    } catch (error) {
+        console.error("getHelpRequests error:", error);
+
+        return handleError(
+            res,
+            500,
+            getMessage(lang, variableTypes.INTERNAL_SERVER_ERROR)
+        );
+    }
+};
+
+export const getHelpRequestById = async (req, res) => {
+    const lang = req.user?.language || "en";
+
+    try {
+        const { id } = req.params;
+
+        const helpRequest = await getHelpRequestByIdModel(id);
+
+        if (!helpRequest) {
+            return handleError(
+                res,
+                404,
+                "Help request not found"
+            );
+        }
+
+        return handleSuccess(
+            res,
+            200,
+            getMessage(lang, variableTypes.DATA_FOUND_SUCCESSFULLY),
+            helpRequest
+        );
+
+    } catch (error) {
+        console.error("getHelpRequestById error:", error);
+
+        return handleError(
+            res,
+            500,
+            getMessage(lang, variableTypes.INTERNAL_SERVER_ERROR)
+        );
+    }
+};
+
+export const deleteHelpRequest = async (req, res) => {
+    const lang = req.user?.language || "en";
+
+    try {
+        const { id } = req.params;
+
+        const helpRequest = await getHelpRequestByIdModel(id);
+
+        if (!helpRequest) {
+            return handleError(
+                res,
+                404,
+                "Help request not found"
+            );
+        }
+
+        await deleteHelpRequestModel(id);
+
+        return handleSuccess(
+            res,
+            200,
+            "Help request deleted successfully",
+            null
+        );
+
+    } catch (error) {
+        console.error("deleteHelpRequest error:", error);
+
+        return handleError(
+            res,
+            500,
+            getMessage(lang, variableTypes.INTERNAL_SERVER_ERROR)
+        );
+    }
+};
+
+/* =========================================================================
+   SUPPORT TICKETS (ADMIN)
+   ========================================================================= */
+
 export const getSupportList = async (req, res) => {
     try {
-        const lang = "en";
+        const lang = req.user?.language || "en";
         const page = Math.max(parseInt(req.query.page) || 1, 1);
         const limit = Math.max(parseInt(req.query.limit) || 20, 1);
         const {
@@ -136,6 +258,7 @@ export const getSupportList = async (req, res) => {
             status = "",
             account_type = ""
         } = req.query;
+
         const support = await getSupportListModel({
             page,
             limit,
@@ -143,6 +266,7 @@ export const getSupportList = async (req, res) => {
             status,
             account_type
         });
+
         return handleSuccessNew(
             res,
             200,
@@ -159,7 +283,7 @@ export const getSupportList = async (req, res) => {
         );
 
     } catch (error) {
-        console.error(error);
+        console.error("getSupportList error:", error);
         return handleError(
             res,
             500,
@@ -170,7 +294,7 @@ export const getSupportList = async (req, res) => {
 
 export const getSupportById = async (req, res) => {
     try {
-        const lang = "en";
+        const lang = req.user?.language || "en";
         const { id } = req.params;
         const support = await getSupportByIdModel(id);
         if (!support) {
@@ -187,7 +311,7 @@ export const getSupportById = async (req, res) => {
             support
         );
     } catch (error) {
-        console.error(error);
+        console.error("getSupportById error:", error);
         return handleError(
             res,
             500,
@@ -198,7 +322,7 @@ export const getSupportById = async (req, res) => {
 
 export const updateSupport = async (req, res) => {
     try {
-        const lang = "en";
+        const lang = req.user?.language || "en";
         const { id } = req.params;
         const {
             admin_response
@@ -232,7 +356,7 @@ export const updateSupport = async (req, res) => {
             null
         );
     } catch (error) {
-        console.error(error);
+        console.error("updateSupport error:", error);
         return handleError(
             res,
             500,
@@ -263,7 +387,7 @@ export const deleteSupport = async (req, res) => {
             null
         );
     } catch (error) {
-        console.error(error);
+        console.error("deleteSupport error:", error);
         return handleError(
             res,
             500,
