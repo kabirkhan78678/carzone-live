@@ -13,8 +13,8 @@ import {
 } from '../models/user.model.js';
 import { insertUserNotifications } from '../models/user.model.js';
 
-// Run every minute (or midnight in production: '0 0 * * *')
-cron.schedule('* * * * *', async () => {
+// Run once daily at 01:00 AM
+cron.schedule('0 1 * * *', async () => {
     try {
         const plans = await getAllActiveUserPlans();
         const now = moment().startOf('day');
