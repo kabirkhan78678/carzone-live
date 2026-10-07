@@ -121,6 +121,7 @@ export const buildCarPayload = (body, filesData = {}, userId) => {
         carCondition: carCondition || body.carCondition || null,
         state_id: toNumber(body.state_id || 1),
         is_accident_vehicle: has_accident !== undefined ? (toBool(has_accident) ? 1 : 0) : (body.is_accident_vehicle ? 1 : 0),
+        vehicle_accident_status_id: toNumber(body.vehicle_accident_status_id) || (has_accident !== undefined ? (toBool(has_accident) ? 1 : 2) : (body.is_accident_vehicle ? 1 : 2)),
         first_registration_date: firstRegistrationDate || null,
         last_mfk_date: last_mfk_date || body.last_mfk_date || null,
         mfk_status_id: toNumber(mfk_status_id || body.mfk_status_id),

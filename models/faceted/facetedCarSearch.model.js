@@ -91,8 +91,20 @@ export const getFilteredCarsByAllFilters = async (
     }
     if (accidentFilter.is_accident_type) {
         const ids = normalizeIds(accidentFilter.accident_vehicle);
-        if (ids.length === 1) whereClause += ` AND tc.is_accident_vehicle = '${ids[0]}'`;
-        else if (ids.length > 1) whereClause += ` AND tc.is_accident_vehicle IN (${ids.join(",")})`;
+        const accidentClauses = [];
+        for (const id of ids) {
+            const numId = Number(id);
+            if (numId === 1) {
+                accidentClauses.push(`(tc.vehicle_accident_status_id = 1 OR tc.is_accident_vehicle = 1)`);
+            } else if (numId === 2 || numId === 0) {
+                accidentClauses.push(`(tc.vehicle_accident_status_id = 2 OR tc.is_accident_vehicle = 0 OR tc.is_accident_vehicle IS NULL)`);
+            } else {
+                accidentClauses.push(`tc.vehicle_accident_status_id = ${numId}`);
+            }
+        }
+        if (accidentClauses.length > 0) {
+            whereClause += ` AND (${accidentClauses.join(' OR ')})`;
+        }
     }
     if (bodyTypeFilter.is_body_type) {
         const ids = normalizeIds(bodyTypeFilter.body_type_id);

@@ -64,7 +64,7 @@ export const getAccidentVehicleFilterModel = async (
       ON vast.accident_status_id = vas.id
      AND vast.language_code = ?
     LEFT JOIN tbl_cars c
-      ON c.vehicle_accident_status_id = vas.id
+      ON (c.vehicle_accident_status_id = vas.id OR (c.vehicle_accident_status_id IS NULL AND ((vas.id = 1 AND c.is_accident_vehicle = 1) OR (vas.id = 2 AND (c.is_accident_vehicle = 0 OR c.is_accident_vehicle IS NULL)))))
      AND c.is_active = 1
      AND c.is_deleted = 0
     WHERE vas.is_active = 1

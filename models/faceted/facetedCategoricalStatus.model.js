@@ -30,7 +30,7 @@ export const getAccidentStatusFacetModel = async (arg1 = {}, arg2 = "en") => {
             ON vast.accident_status_id = vas.id
             AND vast.language_code = ?
         LEFT JOIN tbl_cars AS c
-            ON c.vehicle_accident_status_id = vas.id
+            ON (c.vehicle_accident_status_id = vas.id OR (c.vehicle_accident_status_id IS NULL AND ((vas.id = 1 AND c.is_accident_vehicle = 1) OR (vas.id = 2 AND (c.is_accident_vehicle = 0 OR c.is_accident_vehicle IS NULL)))))
             ${joinConditions ? `AND ${joinConditions}` : ""}
         WHERE vas.is_active = 1
         GROUP BY vas.id, vas.code, vast.label

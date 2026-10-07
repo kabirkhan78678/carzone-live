@@ -66,6 +66,70 @@ const normalizeStringArray = (value) => {
     return [];
 };
 
+const normalizeAccidentStatusIds = (source = {}, rawAccidentStatus = {}) => {
+    const candidates = [
+        rawAccidentStatus?.ids,
+        rawAccidentStatus?.selected_ids,
+        rawAccidentStatus?.values,
+        rawAccidentStatus?.codes,
+        source.accident_status_ids,
+        source.accident_status,
+        source.vehicle_accident_status_id,
+        source.accident_vehicle,
+        source.is_accident_vehicle,
+        source.accident,
+        source.has_accident
+    ];
+
+    const result = new Set();
+
+    for (const val of candidates) {
+        if (val === null || val === undefined || val === '') continue;
+
+        if (Array.isArray(val)) {
+            for (const item of val) {
+                if (typeof item === 'object' && item !== null) {
+                    if (item.id) result.add(Number(item.id));
+                    if (item.code === 'accident' || item.status_key === 'accident') result.add(1);
+                    if (item.code === 'no_accident' || item.status_key === 'no_accident') result.add(2);
+                } else if (typeof item === 'number' || (typeof item === 'string' && /^\d+$/.test(item.trim()))) {
+                    const n = Number(item);
+                    if (n === 1 || n === 2) result.add(n);
+                    else if (n === 0) result.add(2);
+                } else if (typeof item === 'string') {
+                    const s = item.trim().toLowerCase();
+                    if (s === 'accident' || s === 'has_accident' || s === 'accident_vehicle') result.add(1);
+                    if (s === 'no_accident' || s === 'no_accident_vehicle' || s === 'accident_free' || s === 'without_accident') result.add(2);
+                }
+            }
+        } else if (typeof val === 'number') {
+            if (val === 1 || val === 2) result.add(val);
+            else if (val === 0) result.add(2);
+        } else if (typeof val === 'boolean') {
+            result.add(val ? 1 : 2);
+        } else if (typeof val === 'string') {
+            const trimmed = val.trim().toLowerCase();
+            if (/^\d+$/.test(trimmed)) {
+                const n = Number(trimmed);
+                if (n === 1 || n === 2) result.add(n);
+                else if (n === 0) result.add(2);
+            } else if (trimmed.includes(',')) {
+                trimmed.split(',').forEach((part) => {
+                    const p = part.trim().toLowerCase();
+                    if (p === '1' || p === 'accident' || p === 'true') result.add(1);
+                    else if (p === '2' || p === '0' || p === 'no_accident' || p === 'false') result.add(2);
+                });
+            } else if (trimmed === 'accident' || trimmed === 'true' || trimmed === 'has_accident') {
+                result.add(1);
+            } else if (trimmed === 'no_accident' || trimmed === 'false' || trimmed === 'accident_free') {
+                result.add(2);
+            }
+        }
+    }
+
+    return Array.from(result);
+};
+
 const parseRelaxedFacetedFilters = (value) => {
     if (typeof value !== "string") return {};
 
@@ -217,10 +281,7 @@ export const normalizeFacetedFilters = (rawFilters = {}) => {
         state_ids: normalizeIdArray(
             pickFirstDefined(source, ["state_ids"])
         ),
-        accident_status_ids: normalizeIdArray(
-            pickFirstDefined(rawAccidentStatus, ["ids", "selected_ids", "values"]) ??
-            pickFirstDefined(source, ["accident_status_ids", "vehicle_accident_status_id", "accident_vehicle"])
-        ),
+        accident_status_ids: normalizeAccidentStatusIds(source, rawAccidentStatus),
         mfk_warranty_ids: rawMfkWarrantyIds,
         quality_seal_ids: normalizeIdArray(
             pickFirstDefined(source, ["quality_seal_ids", "quality_seals", "quality_seal", "quality_seal_id", "qualitySeals"])

@@ -39,6 +39,15 @@ app.use(express.static("public"));
 app.use('/', express.static(path.join(__dirname, 'uploads')));
 app.use('/profile', express.static(path.join(__dirname, 'public/profile')));
 
+// Root & Health Status
+app.get(['/', '/health'], (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "CarZone Backend API is running",
+    status: "Operational"
+  });
+});
+
 // Routes
 app.use('/api', route);
 

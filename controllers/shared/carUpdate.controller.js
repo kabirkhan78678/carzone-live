@@ -557,7 +557,13 @@ export const updateCar = async (req, res) => {
             data.is_swiss_vehicle = toBool(rawCarData.is_swiss_vehicle);
         }
         if (rawCarData.is_accident_vehicle !== undefined) {
-            data.is_accident_vehicle = toBool(rawCarData.is_accident_vehicle);
+            const isAccident = toBool(rawCarData.is_accident_vehicle);
+            data.is_accident_vehicle = isAccident ? 1 : 0;
+            data.vehicle_accident_status_id = isAccident ? 1 : 2;
+        }
+        if (rawCarData.vehicle_accident_status_id !== undefined) {
+            data.vehicle_accident_status_id = toNumber(rawCarData.vehicle_accident_status_id);
+            data.is_accident_vehicle = data.vehicle_accident_status_id === 1 ? 1 : 0;
         }
         if (isLeasing !== undefined) {
             data.isLeasing = toBool(isLeasing);

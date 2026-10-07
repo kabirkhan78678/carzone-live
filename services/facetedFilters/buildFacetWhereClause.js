@@ -154,13 +154,21 @@ export const buildFacetedConditions = (
         addInFilter(conditions, params, `${alias}.state_id`, filters.state_ids || []);
     }
 
-    if (excludeFacet !== "accident_status") {
-        addInFilter(
-            conditions,
-            params,
-            `${alias}.vehicle_accident_status_id`,
-            filters.accident_status_ids || []
-        );
+    if (excludeFacet !== "accident_status" && Array.isArray(filters.accident_status_ids) && filters.accident_status_ids.length > 0) {
+        const accidentClauses = [];
+        for (const id of filters.accident_status_ids) {
+            const numId = Number(id);
+            if (numId === 1) {
+                accidentClauses.push(`(${alias}.vehicle_accident_status_id = 1 OR (${alias}.vehicle_accident_status_id IS NULL AND ${alias}.is_accident_vehicle = 1))`);
+            } else if (numId === 2) {
+                accidentClauses.push(`(${alias}.vehicle_accident_status_id = 2 OR (${alias}.vehicle_accident_status_id IS NULL AND (${alias}.is_accident_vehicle = 0 OR ${alias}.is_accident_vehicle IS NULL)))`);
+            } else {
+                accidentClauses.push(`${alias}.vehicle_accident_status_id = ${numId}`);
+            }
+        }
+        if (accidentClauses.length > 0) {
+            conditions.push(`(${accidentClauses.join(' OR ')})`);
+        }
     }
 
     if (excludeFacet !== "mfk_warranty" && Array.isArray(filters.mfk_warranty_ids) && filters.mfk_warranty_ids.length > 0) {
