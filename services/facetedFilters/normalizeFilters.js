@@ -174,24 +174,24 @@ export const normalizeFacetedFilters = (rawFilters = {}) => {
     const rawYear = parseJsonObjectSafe(source.year || {});
     const rawMileage = parseJsonObjectSafe(source.mileage || {});
     const rawPower = parseJsonObjectSafe(
-        source.engine_power || source.power || source.power_output || {}
+        source.engine_power || source.power || source.power_output || source.powerOutput || source.enginePower || {}
     );
-    const rawAccidentStatus = parseJsonObjectSafe(source.accident_status || source.accident || {});
-    const rawSeat = parseJsonObjectSafe(source.seat || {});
+    const rawAccidentStatus = parseJsonObjectSafe(source.accident_status || source.accident || source.accident_vehicle || source.accidentStatus || {});
+    const rawSeat = parseJsonObjectSafe(source.seat || source.seats || source.sittingCapacity || {});
     const rawDoor = parseJsonObjectSafe(source.door || source.doors || {});
-    const rawMfkWarranty = parseJsonObjectSafe(source.mfk_warranty || source.warranty || {});
-    const rawVehicleCondition = parseJsonObjectSafe(source.vehicle_condition || source.condition || {});
-    const rawEnergyEfficiency = parseJsonObjectSafe(source.energy_efficiency || source.energy || {});
-    const rawListingAge = parseJsonObjectSafe(source.listing_age || {});
-    const rawCubicCapacity = parseJsonObjectSafe(source.cubic_capacity || {});
+    const rawMfkWarranty = parseJsonObjectSafe(source.mfk_warranty || source.warranty || source.mfkWarranty || {});
+    const rawVehicleCondition = parseJsonObjectSafe(source.vehicle_condition || source.condition || source.vehicleCondition || {});
+    const rawEnergyEfficiency = parseJsonObjectSafe(source.energy_efficiency || source.energy || source.energyEfficiency || {});
+    const rawListingAge = parseJsonObjectSafe(source.listing_age || source.listingAge || source.age || {});
+    const rawCubicCapacity = parseJsonObjectSafe(source.cubic_capacity || source.cubicCapacity || source.cubic || {});
     const rawCylinders = parseJsonObjectSafe(source.cylinders || {});
-    const rawBatteryCapacity = parseJsonObjectSafe(source.battery_capacity || {});
-    const rawTotalWeight = parseJsonObjectSafe(source.total_weight || {});
-    const rawEmptyWeight = parseJsonObjectSafe(source.empty_weight || {});
-    const rawTowingCapacity = parseJsonObjectSafe(source.towing_capacity || {});
-    const rawWltpRange = parseJsonObjectSafe(source.wltp_range || {});
-    const rawExteriorColor = parseJsonObjectSafe(source.exterior_color || {});
-    const rawInteriorColor = parseJsonObjectSafe(source.interior_color || {});
+    const rawBatteryCapacity = parseJsonObjectSafe(source.battery_capacity || source.batteryCapacity || source.battery || {});
+    const rawTotalWeight = parseJsonObjectSafe(source.total_weight || source.totalWeight || {});
+    const rawEmptyWeight = parseJsonObjectSafe(source.empty_weight || source.emptyWeight || {});
+    const rawTowingCapacity = parseJsonObjectSafe(source.towing_capacity || source.towingCapacity || source.braked_towing_capacity_kg || {});
+    const rawWltpRange = parseJsonObjectSafe(source.wltp_range || source.wltpRange || source.wltp || {});
+    const rawExteriorColor = parseJsonObjectSafe(source.exterior_color || source.exteriorColor || {});
+    const rawInteriorColor = parseJsonObjectSafe(source.interior_color || source.interiorColor || {});
     const rawConsumption = parseJsonObjectSafe(source.consumption || {});
     const rawCo2 = parseJsonObjectSafe(source.co2_emission || source.co2Emission || source.co2 || {});
 
@@ -351,15 +351,15 @@ export const normalizeFacetedFilters = (rawFilters = {}) => {
         },
         engine_power: {
             min: toNullableNumber(
-                pickFirstDefined(rawPower, ["min", "from"]) ??
-                pickFirstDefined(source, ["power_min", "power_from", "min_hp"])
+                pickFirstDefined(rawPower, ["min", "from", "power_from", "min_power", "min_po"]) ??
+                pickFirstDefined(source, ["power_min", "power_from", "min_hp", "min_power", "min_po", "power_output_from"])
             ),
             max: toNullableNumber(
-                pickFirstDefined(rawPower, ["max", "to"]) ??
-                pickFirstDefined(source, ["power_max", "power_to", "max_hp"])
+                pickFirstDefined(rawPower, ["max", "to", "power_to", "max_power", "max_po"]) ??
+                pickFirstDefined(source, ["power_max", "power_to", "max_hp", "max_power", "max_po", "power_output_to"])
             ),
             unit: String(
-                pickFirstDefined(rawPower, ["unit"]) ??
+                pickFirstDefined(rawPower, ["unit", "power_unit"]) ??
                 pickFirstDefined(source, ["power_unit", "unit"]) ??
                 "PS"
             ).toUpperCase()

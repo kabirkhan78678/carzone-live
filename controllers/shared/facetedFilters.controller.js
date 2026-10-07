@@ -48,35 +48,64 @@ export const getFacetedFilters = async (req, res) => {
 
         console.log("[facetedFilters] normalizedViewerUserId:", normalizedViewerUserId, "save_search:", req.body?.save_search || req.body?.saveSearch);
 
+        const rawPayload = req.body || {};
+        const activeFilters = typeof rawPayload.active_filters === 'object' && rawPayload.active_filters !== null
+            ? rawPayload.active_filters
+            : (typeof rawPayload.applied_filters === 'object' && rawPayload.applied_filters !== null ? rawPayload.applied_filters : {});
+        const mergedBody = { ...activeFilters, ...rawPayload };
+
         const {
             brandName,
+            brand_name,
             carModel,
+            model,
+            car_model,
             fuel_type_id,
+            fuelType,
+            fuel_type,
             price_range,
+            price,
             kilometers_range,
+            mileage,
             year_range,
+            year,
             leasing_rate,
+            leasing,
             state_id,
+            state,
             accident_vehicle,
+            accident_status,
+            is_accident_vehicle,
             body_type_id,
+            body_type,
             transmission,
+            transmission_id,
             drive_type,
+            drive_ids,
             powerOutput,
+            engine_power,
+            power,
             cubicCapacity,
+            cubic_capacity,
             cylinders,
             wltp_range,
             battery_capacity,
             tower_capacity,
+            towing_capacity,
             total_weight,
             empty_weight,
             exterior_color,
             interior_color,
             seats,
+            seat,
             doors,
+            door,
             consumption,
             co2_Emission,
+            co2_emission,
             energy_efficiency,
             age_listing,
+            listing_age,
             seller_type,
             mfk,
             warranty,
@@ -100,11 +129,7 @@ export const getFacetedFilters = async (req, res) => {
 
             // SORT
             sort_key
-        } = req.body;
-
-        //     fuel_type : "",
-        //     is_fuel_type : false 
-        // }
+        } = mergedBody;
 
         const hasSelection = (v) =>
             Array.isArray(v) ? v.length > 0 : v !== undefined && v !== null && v !== "";
@@ -116,34 +141,43 @@ export const getFacetedFilters = async (req, res) => {
         };
 
         const normalizeRange = (rangeObj, minKey, maxKey) => {
-            const min = toNullableNumber(rangeObj?.[minKey]);
-            const max = toNullableNumber(rangeObj?.[maxKey]);
+            if (!rangeObj || typeof rangeObj !== 'object') return { min: null, max: null, hasSelection: false };
+            const min = toNullableNumber(
+                rangeObj.from ?? rangeObj.min ?? (minKey ? rangeObj[minKey] : null) ?? rangeObj.start
+            );
+            const max = toNullableNumber(
+                rangeObj.to ?? rangeObj.max ?? (maxKey ? rangeObj[maxKey] : null) ?? rangeObj.end
+            );
             return {
                 min,
                 max,
-                // Keep legacy BETWEEN behavior: apply only when both bounds are present.
-                hasSelection: min !== null && max !== null
+                hasSelection: min !== null || max !== null
             };
         };
         const normalizePowerUnit = (value) =>
             String(value || "PS").trim().toUpperCase() === "KW" ? "KW" : "PS";
 
-        const kmRange = normalizeRange(kilometers_range, "min_km", "max_km");
-        const yearRange = normalizeRange(year_range, "min_year", "max_year");
-        const leasingRange = normalizeRange(leasing_rate, "min_price", "max_price");
-        const priceRange = normalizeRange(price_range, "min_price", "max_price");
-        const powerRange = normalizeRange(powerOutput, "min_po", "max_po");
-        const cubicRange = normalizeRange(cubicCapacity, "min_cc", "max_cc");
+        const resolvedPowerObj = powerOutput || engine_power || power || {};
+        const powerUnit = normalizePowerUnit(
+            resolvedPowerObj?.unit ?? resolvedPowerObj?.power_unit ?? mergedBody?.power_unit ?? mergedBody?.unit ?? "PS"
+        );
+
+        const kmRange = normalizeRange(kilometers_range || mileage, "min_km", "max_km");
+        const yearRange = normalizeRange(year_range || year, "min_year", "max_year");
+        const leasingRange = normalizeRange(leasing_rate || leasing, "min_price", "max_price");
+        const priceRange = normalizeRange(price_range || price, "min_price", "max_price");
+        const powerRange = normalizeRange(resolvedPowerObj, "min_po", "max_po");
+        const cubicRange = normalizeRange(cubicCapacity || cubic_capacity, "min_cc", "max_cc");
         const cylindersRange = normalizeRange(cylinders, "min_cy", "max_cy");
         const wltpRange = normalizeRange(wltp_range, "min_wltp", "max_wltp");
         const batteryRange = normalizeRange(battery_capacity, "min_battery", "max_battery");
-        const towingRange = normalizeRange(tower_capacity, "min_tc", "max_tc");
+        const towingRange = normalizeRange(tower_capacity || towing_capacity, "min_tc", "max_tc");
         const totalWeightRange = normalizeRange(total_weight, "min_tw", "max_tw");
         const emptyWeightRange = normalizeRange(empty_weight, "min_ew", "max_ew");
-        const seatsRange = normalizeRange(seats, "min_seats", "max_seats");
-        const doorsRange = normalizeRange(doors, "min_doors", "max_doors");
+        const seatsRange = normalizeRange(seats || seat, "min_seats", "max_seats");
+        const doorsRange = normalizeRange(doors || door, "min_doors", "max_doors");
         const consumptionRange = normalizeRange(consumption, "min_cons", "max_cons");
-        const co2Range = normalizeRange(co2_Emission, "min_co2", "max_co2");
+        const co2Range = normalizeRange(co2_Emission || co2_emission, "min_co2", "max_co2");
         const sortKey = (
             Array.isArray(sort_key)
                 ? sort_key

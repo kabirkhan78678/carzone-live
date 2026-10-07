@@ -114,25 +114,34 @@ export const addLatLong = async (req, res) => {
 
 export const getEnginePowerAnalytics = async (req, res) => {
     try {
-        const lang = req.query.lang || 'en';
-        const selectedRange = parseSelectedRange(
-            req.query.selected_ids,
-            req.query.min_power,
-            req.query.max_power
+        const lang = req.query?.lang || req.body?.lang || 'en';
+        const rawPayload = req.body || {};
+        const activeFiltersPayload = typeof rawPayload.active_filters === 'object' && rawPayload.active_filters !== null
+            ? rawPayload.active_filters
+            : (typeof rawPayload.applied_filters === 'object' && rawPayload.applied_filters !== null ? rawPayload.applied_filters : {});
+        const activeFiltersQuery = parseFacetedInput(req.query.active_filters ?? req.query.applied_filters);
+        const mergedActiveFilters = { ...activeFiltersQuery, ...activeFiltersPayload };
+
+        const activeFiltersInput = parseFacetedInput(
+            req.query.active_filters ?? req.query.applied_filters ?? req.body?.active_filters ?? req.body?.applied_filters ?? req.body
         );
-        const inputUnit = String(req.query.unit || req.query.power_unit || "PS").toUpperCase() === "KW"
+        const normalizedFilters = normalizeFacetedFilters({ ...activeFiltersInput, ...mergedActiveFilters });
+
+        const mergedParams = { ...req.query, ...mergedActiveFilters, ...rawPayload };
+
+        const selectedRange = parseSelectedRange(
+            mergedParams.selected_ids,
+            mergedParams.min_power ?? mergedParams.min ?? mergedParams.from ?? mergedParams.min_po ?? mergedParams.powerOutput?.from ?? mergedParams.powerOutput?.min,
+            mergedParams.max_power ?? mergedParams.max ?? mergedParams.to ?? mergedParams.max_po ?? mergedParams.powerOutput?.to ?? mergedParams.powerOutput?.max
+        );
+        const inputUnit = String(mergedParams.unit || mergedParams.power_unit || mergedParams.powerOutput?.unit || normalizedFilters?.engine_power?.unit || "PS").toUpperCase() === "KW"
             ? "KW"
             : "PS";
 
-        const activeFiltersInput = parseFacetedInput(
-            req.query.active_filters ?? req.query.applied_filters
-        );
-        const normalizedFilters = normalizeFacetedFilters(activeFiltersInput);
-
         const activePower = normalizedFilters?.engine_power || {};
         const hasActivePowerSelection =
-            activePower.min !== null && activePower.min !== undefined ||
-            activePower.max !== null && activePower.max !== undefined;
+            (activePower.min !== null && activePower.min !== undefined) ||
+            (activePower.max !== null && activePower.max !== undefined);
         const hasExplicitRangeSelection = selectedRange.hasSelection || hasActivePowerSelection;
 
         const facetFilters = { ...normalizedFilters };
@@ -193,7 +202,7 @@ export const getEnginePowerAnalytics = async (req, res) => {
                         count: 0
                     }
                 },
-            total_cars_all_power: totalCarsAllPower
+            total_cars_all_power: hasExplicitRangeSelection ? totalCars : totalCarsAllPower
         };
 
         return handleSuccess(
@@ -211,29 +220,38 @@ export const getEnginePowerAnalytics = async (req, res) => {
 
 export const getLeasingAnalytics = async (req, res) => {
     try {
-        const { leasing_price_from, leasing_price_to, min, max, lang = 'en' } = req.query;
+        const lang = req.query?.lang || req.body?.lang || 'en';
+        const rawPayload = req.body || {};
+        const activeFiltersPayload = typeof rawPayload.active_filters === 'object' && rawPayload.active_filters !== null
+            ? rawPayload.active_filters
+            : (typeof rawPayload.applied_filters === 'object' && rawPayload.applied_filters !== null ? rawPayload.applied_filters : {});
+        const activeFiltersQuery = parseFacetedInput(req.query.active_filters ?? req.query.applied_filters);
+        const mergedActiveFilters = { ...activeFiltersQuery, ...activeFiltersPayload };
 
-        const minInput = min ?? leasing_price_from;
-        const maxInput = max ?? leasing_price_to;
+        const activeFiltersInput = parseFacetedInput(
+            req.query.active_filters ?? req.query.applied_filters ?? req.body?.active_filters ?? req.body?.applied_filters ?? req.body
+        );
+        const normalizedFilters = normalizeFacetedFilters({ ...activeFiltersInput, ...mergedActiveFilters });
+
+        const mergedParams = { ...req.query, ...mergedActiveFilters, ...rawPayload };
+
+        const minInput = mergedParams.min ?? mergedParams.from ?? mergedParams.leasing_price_from ?? mergedParams.price?.from ?? mergedParams.price?.min;
+        const maxInput = mergedParams.max ?? mergedParams.to ?? mergedParams.leasing_price_to ?? mergedParams.price?.to ?? mergedParams.price?.max;
         const fromPrice = minInput !== undefined && minInput !== null ? parseFloat(minInput) : null;
         const toPrice = maxInput !== undefined && maxInput !== null ? parseFloat(maxInput) : null;
-        const selectedRange = parseSelectedRange(req.query.selected_ids, fromPrice, toPrice);
-        const activeFiltersInput = parseFacetedInput(
-            req.query.active_filters ?? req.query.applied_filters
-        );
-        const normalizedFilters = normalizeFacetedFilters(activeFiltersInput);
+        const selectedRange = parseSelectedRange(mergedParams.selected_ids, fromPrice, toPrice);
         const hasLegacyRangeParams =
-            req.query.leasing_price_from !== undefined || req.query.leasing_price_to !== undefined;
+            mergedParams.leasing_price_from !== undefined || mergedParams.leasing_price_to !== undefined;
         // commented by raj for faceted filters:
         const shouldUseFacetedMode =
-            hasActiveFiltersInQuery(req) || selectedRange.hasSelection || !hasLegacyRangeParams;
+            hasActiveFiltersInQuery(req) || selectedRange.hasSelection || !hasLegacyRangeParams || Object.keys(mergedActiveFilters).length > 0;
 
         if (shouldUseFacetedMode) {
             const facetFilters = { ...normalizedFilters };
             const activePrice = normalizedFilters?.price || {};
             const hasActivePriceSelection =
-                activePrice.min !== null && activePrice.min !== undefined ||
-                activePrice.max !== null && activePrice.max !== undefined;
+                (activePrice.min !== null && activePrice.min !== undefined) ||
+                (activePrice.max !== null && activePrice.max !== undefined);
             const hasExplicitRangeSelection = selectedRange.hasSelection || hasActivePriceSelection;
 
             if (selectedRange.hasSelection) {
