@@ -128,26 +128,24 @@ export const getDriveTypesModel = async (lang, driveIds = []) => {
         [lang]
     );
 
-    // 2️⃣ Total cars (only if selected)
-    let totalCars = 0;
+    // 2️⃣ Total cars (FILTER AWARE)
+    let totalCarsQuery = `
+    SELECT COUNT(*) AS total
+    FROM tbl_cars
+    WHERE is_active = 1
+      AND is_deleted = 0
+      AND listing_status = 'published'
+    `;
+
+    const params = [];
 
     if (driveIds.length > 0) {
-        const placeholders = driveIds.map(() => "?").join(",");
-
-        const totalCarsResult = await db.query(
-            `
-      SELECT COUNT(*) AS total
-      FROM tbl_cars
-      WHERE is_active = 1
-        AND is_deleted = 0
-        AND listing_status = 'published'
-        AND drive_type_id IN (${placeholders})
-      `,
-            driveIds
-        );
-
-        totalCars = totalCarsResult[0].total;
+        totalCarsQuery += ` AND drive_type_id IN (${driveIds.map(() => "?").join(",")})`;
+        params.push(...driveIds);
     }
+
+    const totalCarsResult = await db.query(totalCarsQuery, params);
+    const totalCars = totalCarsResult[0]?.total || 0;
 
     return { rows, totalCars };
 };
@@ -220,6 +218,7 @@ export const getVehicleStatesModel = async (lang, stateIds = []) => {
       ON c.state_id = vs.id
      AND c.is_active = 1
      AND c.is_deleted = 0
+     AND c.listing_status = 'published'
     WHERE vs.is_active = 1
     GROUP BY vs.id, vs.code, vst.label
     ORDER BY vs.id ASC
@@ -227,27 +226,25 @@ export const getVehicleStatesModel = async (lang, stateIds = []) => {
         [lang]
     );
 
-    // 2️⃣ Total cars ONLY if selected
-    let totalCars = 0;
+    // 2️⃣ Total cars (FILTER AWARE)
+    let totalCarsQuery = `
+    SELECT COUNT(*) AS total
+    FROM tbl_cars
+    WHERE is_active = 1
+      AND is_deleted = 0
+      AND listing_status = 'published'
+    `;
+
+    const params = [];
 
     if (stateIds.length > 0) {
-        const placeholders = stateIds.map(() => "?").join(",");
-
-        const totalCarsResult = await db.query(
-            `
-      SELECT COUNT(*) AS total
-      FROM tbl_cars
-      WHERE is_active = 1
-        AND is_deleted = 0
-        AND state_id IN (${placeholders})
-      `,
-            stateIds
-        );
-
-        totalCars = totalCarsResult[0].total;
+        totalCarsQuery += ` AND state_id IN (${stateIds.map(() => "?").join(",")})`;
+        params.push(...stateIds);
     }
 
-    return { rows, totalCars };
+    const totalCarsResult = await db.query(totalCarsQuery, params);
+
+    return { rows, totalCars: totalCarsResult[0]?.total || 0 };
 };
 
 export const getSeatRangeCountModel = async (min, max) => {
@@ -261,6 +258,7 @@ export const getSeatRangeCountModel = async (min, max) => {
     FROM tbl_cars
     WHERE is_active = 1
       AND is_deleted = 0
+      AND listing_status = 'published'
       AND sittingCapacity BETWEEN ? AND ?
     `,
         [min, max]
@@ -280,6 +278,7 @@ export const getDoorRangeCountModel = async (min, max) => {
     FROM tbl_cars
     WHERE is_active = 1
       AND is_deleted = 0
+      AND listing_status = 'published'
       AND doors BETWEEN ? AND ?
     `,
         [min, max]
@@ -287,7 +286,3 @@ export const getDoorRangeCountModel = async (min, max) => {
 
     return result[0].total;
 };
-
-///////////////////////////////////////////////////////
-
-// Count cars based on optional power output range

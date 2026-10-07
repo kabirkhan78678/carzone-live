@@ -87,7 +87,7 @@ export const getKilometersRangeAnalytics = async (req, res) => {
                         }
                     },
                 cars_found: totalCars,
-                total_cars_all_mileage: mileageFacet?.total_cars || totalCars
+                total_cars_all_mileage: totalCars
             };
 
             return res.status(200).json({

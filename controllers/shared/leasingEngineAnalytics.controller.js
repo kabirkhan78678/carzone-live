@@ -146,6 +146,7 @@ export const getEnginePowerAnalytics = async (req, res) => {
 
         const enginePowerFacet = await getEnginePowerFacetModel(facetFilters);
         const totalCars = await getFacetedTotalCarsModel(facetFilters);
+        const totalCarsAllPower = await getFacetedTotalCarsModel(normalizedFilters, "engine_power");
         const resolvedMin = hasExplicitRangeSelection
             ? (facetFilters.engine_power?.min ?? enginePowerFacet?.min_value ?? null)
             : null;
@@ -181,7 +182,7 @@ export const getEnginePowerAnalytics = async (req, res) => {
                 : {
                     selected_power: {
                         label: "Selected power",
-                        count: totalCars
+                        count: totalCarsAllPower
                     },
                     higher_power: {
                         label: "Higher power",
@@ -192,7 +193,7 @@ export const getEnginePowerAnalytics = async (req, res) => {
                         count: 0
                     }
                 },
-            total_cars_all_power: enginePowerFacet?.total_cars || totalCars
+            total_cars_all_power: totalCarsAllPower
         };
 
         return handleSuccess(
