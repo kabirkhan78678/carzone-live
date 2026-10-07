@@ -434,6 +434,12 @@ export const normalizeFacetedFilters = (rawFilters = {}) => {
         metallic: isMetallicSelected,
         car_type: isSwissVehicleSelected ? "only_ch_cars" : (normalizedCarType ? String(normalizedCarType).toLowerCase().trim() : "all_standard"),
         is_swiss_vehicle: isSwissVehicleSelected,
+        is_reel: Boolean(
+            pickFirstDefined(source, ["is_reel", "has_reel", "only_reels", "for_reels", "reels", "isReel", "hasReel"]) === true ||
+            pickFirstDefined(source, ["is_reel", "has_reel", "only_reels", "for_reels", "reels", "isReel", "hasReel"]) === "true" ||
+            pickFirstDefined(source, ["is_reel", "has_reel", "only_reels", "for_reels", "reels", "isReel", "hasReel"]) === 1 ||
+            pickFirstDefined(source, ["is_reel", "has_reel", "only_reels", "for_reels", "reels", "isReel", "hasReel"]) === "1"
+        ),
         exclude_user_id: toNullableNumber(
             pickFirstDefined(source, ["exclude_user_id", "excluded_user_id", "viewer_user_id", "viewerUserId"])
         ),

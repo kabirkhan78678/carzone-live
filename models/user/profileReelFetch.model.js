@@ -132,7 +132,6 @@ export const fetchMixedReelsByUser = async (
         WHERE c.user_id = ?
         AND c.carReel IS NOT NULL
         AND c.carReel != ''
-        AND c.is_active = 1
         AND c.is_deleted = 0
     `, [
         lang,

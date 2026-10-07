@@ -34,26 +34,124 @@ const parseArrayFilter = (value) => {
     }).filter(Boolean);
 };
 
+const parseRange = (source, minKeys, maxKeys, rangeObjKey) => {
+    let min = null;
+    let max = null;
+
+    for (const k of minKeys) {
+        if (source[k] !== undefined && source[k] !== null && source[k] !== '') {
+            const val = Number(source[k]);
+            if (Number.isFinite(val)) {
+                min = val;
+                break;
+            }
+        }
+    }
+
+    for (const k of maxKeys) {
+        if (source[k] !== undefined && source[k] !== null && source[k] !== '') {
+            const val = Number(source[k]);
+            if (Number.isFinite(val)) {
+                max = val;
+                break;
+            }
+        }
+    }
+
+    if (rangeObjKey && source[rangeObjKey]) {
+        let r = source[rangeObjKey];
+        if (typeof r === 'string') {
+            try {
+                r = JSON.parse(decodeURIComponent(r));
+            } catch {
+                if (r.includes('-')) {
+                    const parts = r.split('-');
+                    if (min === null && parts[0]) min = Number(parts[0]);
+                    if (max === null && parts[1]) max = Number(parts[1]);
+                } else if (r.includes(',')) {
+                    const parts = r.split(',');
+                    if (min === null && parts[0]) min = Number(parts[0]);
+                    if (max === null && parts[1]) max = Number(parts[1]);
+                }
+            }
+        }
+        if (typeof r === 'object' && r !== null) {
+            if (Array.isArray(r)) {
+                if (min === null && r[0] !== undefined) min = Number(r[0]);
+                if (max === null && r[1] !== undefined) max = Number(r[1]);
+            } else {
+                for (const k of minKeys) {
+                    if (min === null && r[k] !== undefined && r[k] !== null && r[k] !== '') {
+                        const val = Number(r[k]);
+                        if (Number.isFinite(val)) min = val;
+                    }
+                }
+                for (const k of maxKeys) {
+                    if (max === null && r[k] !== undefined && r[k] !== null && r[k] !== '') {
+                        const val = Number(r[k]);
+                        if (Number.isFinite(val)) max = val;
+                    }
+                }
+            }
+        }
+    }
+
+    return {
+        from: Number.isFinite(min) ? min : null,
+        to: Number.isFinite(max) ? max : null
+    };
+};
+
 export const fetchAllCarReels = async (req, res) => {
     try {
         let { id, language } = req.user;
-        let page = parseInt(req.query.page) || 1;
+        const source = { ...(req.query || {}), ...(req.body || {}) };
+
+        let page = parseInt(source.page) || 1;
         let limit = 5;
         let offset = (page - 1) * limit;
 
-        const requestedCarId = Number(req.query.car_id) || null;
+        const requestedCarId = Number(source.car_id || source.carId) || null;
+        const priceRange = parseRange(source, ['price_from', 'priceFrom', 'min_price', 'minPrice', 'from_price', 'fromPrice'], ['price_to', 'priceTo', 'max_price', 'maxPrice', 'to_price', 'toPrice'], 'price_range');
+        const yearRange = parseRange(source, ['year_from', 'yearFrom', 'min_year', 'minYear', 'from_year', 'fromYear'], ['year_to', 'yearTo', 'max_year', 'maxYear', 'to_year', 'toYear'], 'year_range');
+        const mileageRange = parseRange(source, ['mileage_from', 'mileageFrom', 'min_km', 'minKm', 'min_mileage', 'minMileage', 'from_km', 'fromKm'], ['mileage_to', 'mileageTo', 'max_km', 'maxKm', 'max_mileage', 'maxMileage', 'to_km', 'toKm'], 'kilometers_range');
+
         const filters = {
             car_id: requestedCarId,
-            make: parseArrayFilter(req.query.make),
-            body_type_id: parseArrayFilter(req.query.body_type_id),
-            price_from: req.query.price_from || null,
-            price_to: req.query.price_to || null
+            make: parseArrayFilter(source.make ?? source['make[]'] ?? source.brandName ?? source['brandName[]'] ?? source.brand_name ?? source['brand_name[]'] ?? source.brand ?? source['brand[]']),
+            model: parseArrayFilter(source.carModel ?? source['carModel[]'] ?? source.model ?? source['model[]'] ?? source.modelName ?? source['modelName[]'] ?? source.car_model ?? source['car_model[]']),
+            body_type_id: parseArrayFilter(source.body_type_id ?? source['body_type_id[]'] ?? source.bodyTypeId ?? source['bodyTypeId[]'] ?? source.body_type ?? source['body_type[]']),
+            fuel_type_id: parseArrayFilter(source.fuel_type_id ?? source['fuel_type_id[]'] ?? source.fuelTypeId ?? source['fuelTypeId[]'] ?? source.fuel_type ?? source['fuel_type[]'] ?? source.fuelType ?? source['fuelType[]']),
+            transmission_id: parseArrayFilter(source.transmission_id ?? source['transmission_id[]'] ?? source.transmissionId ?? source['transmissionId[]'] ?? source.transmission ?? source['transmission[]']),
+            drive_type_id: parseArrayFilter(source.drive_type_id ?? source['drive_type_id[]'] ?? source.driveTypeId ?? source['driveTypeId[]'] ?? source.drive_type ?? source['drive_type[]']),
+            seller_type: parseArrayFilter(source.seller_type ?? source['seller_type[]'] ?? source.sellerType ?? source['sellerType[]'] ?? source.account_type ?? source['account_type[]'] ?? source.accountType ?? source['accountType[]']),
+            state_id: parseArrayFilter(source.state_id ?? source['state_id[]'] ?? source.stateId ?? source['stateId[]'] ?? source.state ?? source['state[]'] ?? source.canton ?? source['canton[]']),
+            price_from: priceRange.from,
+            price_to: priceRange.to,
+            year_from: yearRange.from,
+            year_to: yearRange.to,
+            mileage_from: mileageRange.from,
+            mileage_to: mileageRange.to
         };
 
         // ----------------------new logic to interleave profile reels with car reels----------------------
 
-        const hasFilters = (Array.isArray(filters.make) && filters.make.length > 0) || (Array.isArray(filters.body_type_id) && filters.body_type_id.length > 0) ||
-            filters.price_from || filters.price_to;
+        const hasFilters = Boolean(
+            (Array.isArray(filters.make) && filters.make.length > 0) ||
+            (Array.isArray(filters.model) && filters.model.length > 0) ||
+            (Array.isArray(filters.body_type_id) && filters.body_type_id.length > 0) ||
+            (Array.isArray(filters.fuel_type_id) && filters.fuel_type_id.length > 0) ||
+            (Array.isArray(filters.transmission_id) && filters.transmission_id.length > 0) ||
+            (Array.isArray(filters.drive_type_id) && filters.drive_type_id.length > 0) ||
+            (Array.isArray(filters.seller_type) && filters.seller_type.length > 0) ||
+            (Array.isArray(filters.state_id) && filters.state_id.length > 0) ||
+            filters.price_from !== null ||
+            filters.price_to !== null ||
+            filters.year_from !== null ||
+            filters.year_to !== null ||
+            filters.mileage_from !== null ||
+            filters.mileage_to !== null
+        );
 
         // ----------------------end of new logic to interleave profile reels with car reels----------------------
 

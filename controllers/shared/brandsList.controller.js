@@ -6,7 +6,8 @@ import { getBrandsFacetListModel, getModelsFacetListModel } from '../../models/f
 export const getBrandsList = async (req, res) => {
     try {
         const activeFiltersInput = parseFacetedInput(req.query.active_filters ?? req.query.applied_filters);
-        const normalizedFilters = normalizeFacetedFilters(activeFiltersInput);
+        const mergedInput = { ...(activeFiltersInput || {}), ...(req.query || {}) };
+        const normalizedFilters = normalizeFacetedFilters(mergedInput);
         const result = await getBrandsFacetListModel(normalizedFilters);
         const total_count = result.reduce(
             (sum, item) => sum + (Number(item?.count) || 0),
@@ -39,7 +40,8 @@ export const getModelsList = async (req, res) => {
             return handleError(res, 400, "brand_id is required");
         }
         const activeFiltersInput = parseFacetedInput(req.query.active_filters ?? req.query.applied_filters);
-        const normalizedFilters = normalizeFacetedFilters(activeFiltersInput);
+        const mergedInput = { ...(activeFiltersInput || {}), ...(req.query || {}) };
+        const normalizedFilters = normalizeFacetedFilters(mergedInput);
         const result = await getModelsFacetListModel(brand_id, normalizedFilters);
         const total_count = result.reduce(
             (sum, item) => sum + (Number(item?.count) || 0),

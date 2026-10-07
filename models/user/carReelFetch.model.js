@@ -9,7 +9,6 @@ export const fetchActiveCarReels = async (
 ) => {
 
     let conditions = [
-        "c.is_active = 1",
         "c.is_deleted = 0",
         "c.carReel IS NOT NULL",
         "c.carReel != ''"
@@ -45,6 +44,26 @@ export const fetchActiveCarReels = async (
         }
     }
 
+    // Model Filter
+    if (
+        Array.isArray(filters.model) &&
+        filters.model.length > 0
+    ) {
+        const cleanedModels = filters.model
+            .map(item => String(item).replace(/\+/g, " ").trim().toLowerCase())
+            .filter(Boolean);
+
+        if (cleanedModels.length > 0) {
+            const placeholders = cleanedModels.map(() => "?").join(",");
+
+            conditions.push(`
+                LOWER(TRIM(c.carModel)) IN (${placeholders})
+            `);
+
+            params.push(...cleanedModels);
+        }
+    }
+
     // Body Type Filter
     if (
         Array.isArray(filters.body_type_id) &&
@@ -65,19 +84,157 @@ export const fetchActiveCarReels = async (
         }
     }
 
+    // Fuel Type Filter
+    if (
+        Array.isArray(filters.fuel_type_id) &&
+        filters.fuel_type_id.length > 0
+    ) {
+        const numFuelIds = filters.fuel_type_id
+            .map(item => Number(item))
+            .filter(item => Number.isFinite(item) && item > 0);
+        const strFuelTypes = filters.fuel_type_id
+            .filter(item => !Number.isFinite(Number(item)))
+            .map(item => String(item).trim().toLowerCase())
+            .filter(Boolean);
+
+        const subConditions = [];
+        if (numFuelIds.length > 0) {
+            subConditions.push(`c.fuel_type_id IN (${numFuelIds.map(() => "?").join(",")})`);
+            params.push(...numFuelIds);
+        }
+        if (strFuelTypes.length > 0) {
+            subConditions.push(`LOWER(TRIM(c.fuelType)) IN (${strFuelTypes.map(() => "?").join(",")})`);
+            params.push(...strFuelTypes);
+        }
+        if (subConditions.length > 0) {
+            conditions.push(`(${subConditions.join(" OR ")})`);
+        }
+    }
+
+    // Transmission Filter
+    if (
+        Array.isArray(filters.transmission_id) &&
+        filters.transmission_id.length > 0
+    ) {
+        const numTransIds = filters.transmission_id
+            .map(item => Number(item))
+            .filter(item => Number.isFinite(item) && item > 0);
+        const strTrans = filters.transmission_id
+            .filter(item => !Number.isFinite(Number(item)))
+            .map(item => String(item).trim().toLowerCase())
+            .filter(Boolean);
+
+        const subConditions = [];
+        if (numTransIds.length > 0) {
+            subConditions.push(`c.transmission_id IN (${numTransIds.map(() => "?").join(",")})`);
+            params.push(...numTransIds);
+        }
+        if (strTrans.length > 0) {
+            subConditions.push(`LOWER(TRIM(c.transmission)) IN (${strTrans.map(() => "?").join(",")})`);
+            params.push(...strTrans);
+        }
+        if (subConditions.length > 0) {
+            conditions.push(`(${subConditions.join(" OR ")})`);
+        }
+    }
+
+    // Drive Type Filter
+    if (
+        Array.isArray(filters.drive_type_id) &&
+        filters.drive_type_id.length > 0
+    ) {
+        const cleanedDriveTypes = filters.drive_type_id
+            .map(item => Number(item))
+            .filter(item => Number.isFinite(item) && item > 0);
+
+        if (cleanedDriveTypes.length > 0) {
+            const placeholders = cleanedDriveTypes.map(() => "?").join(",");
+
+            conditions.push(`
+                c.drive_type_id IN (${placeholders})
+            `);
+
+            params.push(...cleanedDriveTypes);
+        }
+    }
+
+    // Seller / Account Type Filter
+    if (
+        Array.isArray(filters.seller_type) &&
+        filters.seller_type.length > 0
+    ) {
+        const cleanedSellerTypes = filters.seller_type
+            .map(item => String(item).trim().toLowerCase())
+            .filter(Boolean);
+
+        if (cleanedSellerTypes.length > 0) {
+            const placeholders = cleanedSellerTypes.map(() => "?").join(",");
+
+            conditions.push(`
+                LOWER(TRIM(u.account_type)) IN (${placeholders})
+            `);
+
+            params.push(...cleanedSellerTypes);
+        }
+    }
+
+    // State / Canton Filter
+    if (
+        Array.isArray(filters.state_id) &&
+        filters.state_id.length > 0
+    ) {
+        const cleanedStateIds = filters.state_id
+            .map(item => Number(item))
+            .filter(item => Number.isFinite(item) && item > 0);
+
+        if (cleanedStateIds.length > 0) {
+            const placeholders = cleanedStateIds.map(() => "?").join(",");
+
+            conditions.push(`
+                c.state_id IN (${placeholders})
+            `);
+
+            params.push(...cleanedStateIds);
+        }
+    }
+
     // Price Range Filter
-    if (filters.price_from && filters.price_to) {
+    if (filters.price_from !== null && filters.price_from !== undefined && filters.price_to !== null && filters.price_to !== undefined) {
         conditions.push("c.selling_price BETWEEN ? AND ?");
         params.push(
             Number(filters.price_from),
             Number(filters.price_to)
         );
-    } else if (filters.price_from) {
+    } else if (filters.price_from !== null && filters.price_from !== undefined) {
         conditions.push("c.selling_price >= ?");
         params.push(Number(filters.price_from));
-    } else if (filters.price_to) {
+    } else if (filters.price_to !== null && filters.price_to !== undefined) {
         conditions.push("c.selling_price <= ?");
         params.push(Number(filters.price_to));
+    }
+
+    // Year Range Filter
+    if (filters.year_from !== null && filters.year_from !== undefined && filters.year_to !== null && filters.year_to !== undefined) {
+        conditions.push("COALESCE(c.selectYear, YEAR(c.first_registration_date)) BETWEEN ? AND ?");
+        params.push(Number(filters.year_from), Number(filters.year_to));
+    } else if (filters.year_from !== null && filters.year_from !== undefined) {
+        conditions.push("COALESCE(c.selectYear, YEAR(c.first_registration_date)) >= ?");
+        params.push(Number(filters.year_from));
+    } else if (filters.year_to !== null && filters.year_to !== undefined) {
+        conditions.push("COALESCE(c.selectYear, YEAR(c.first_registration_date)) <= ?");
+        params.push(Number(filters.year_to));
+    }
+
+    // Mileage Range Filter
+    if (filters.mileage_from !== null && filters.mileage_from !== undefined && filters.mileage_to !== null && filters.mileage_to !== undefined) {
+        conditions.push("CAST(NULLIF(REGEXP_REPLACE(c.carMileage, '[^0-9]', ''), '') AS UNSIGNED) BETWEEN ? AND ?");
+        params.push(Number(filters.mileage_from), Number(filters.mileage_to));
+    } else if (filters.mileage_from !== null && filters.mileage_from !== undefined) {
+        conditions.push("CAST(NULLIF(REGEXP_REPLACE(c.carMileage, '[^0-9]', ''), '') AS UNSIGNED) >= ?");
+        params.push(Number(filters.mileage_from));
+    } else if (filters.mileage_to !== null && filters.mileage_to !== undefined) {
+        conditions.push("CAST(NULLIF(REGEXP_REPLACE(c.carMileage, '[^0-9]', ''), '') AS UNSIGNED) <= ?");
+        params.push(Number(filters.mileage_to));
     }
 
     const query = `

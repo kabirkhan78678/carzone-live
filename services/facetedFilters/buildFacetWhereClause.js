@@ -120,6 +120,10 @@ export const buildFacetedConditions = (
         params.push(excludedUser);
     }
 
+    if (filters.is_reel === true || filters.has_reel === true || filters.only_reels === true || filters.reels === true || filters.is_reel === '1' || filters.is_reel === 1) {
+        conditions.push(`${alias}.carReel IS NOT NULL AND ${alias}.carReel != ''`);
+    }
+
     if (excludeFacet !== "fuel") {
         addInFilter(conditions, params, `${alias}.fuel_type_id`, filters.fuel_type_ids || []);
     }
