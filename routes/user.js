@@ -207,7 +207,7 @@ app.post('/submit-help-request', optionalAuthenticateUser, submitHelpRequestVali
 app.post('/report-cars/:car_id', authenticateUser, reportCarValidation, handleValidationErrors, controller.userController.reportCar);
 app.get('/report-reasons', authenticateUser, reportReasonsValidation, handleValidationErrors, controller.userController.getReportReasons);
 app.get('/cars/:id/download-pdf', idParamValidation, handleValidationErrors, controller.userController.downloadCarPdf);
-app.post('/faceted-filters', filtersValidation, handleValidationErrors, controller.userController.getFacetedFilters);
+app.post('/faceted-filters', optionalAuthenticateUser, filtersValidation, handleValidationErrors, controller.userController.getFacetedFilters);
 app.get('/fuel', controller.userController.getFuelTypes);
 app.get('/transmission', controller.userController.getTransmissionTypes);
 app.get('/drive', controller.userController.getDriveTypes);

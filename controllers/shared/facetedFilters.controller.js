@@ -1,4 +1,4 @@
-import { fetchCarsByIdsWithSellerDetails, fetchCarImagesByCarId } from '../../models/user.model.js';
+import { fetchCarsByIdsWithSellerDetails, fetchCarImagesByCarId, fetchWishlistCarIdsByUserId } from '../../models/user.model.js';
 import { getFilteredCarsByAllFilters } from '../../models/facetedFilter.model.js';
 import jwt from 'jsonwebtoken';
 import { handleError, handleSuccess } from '../../utils/responseHandler.js';
@@ -464,6 +464,17 @@ export const getFacetedFilters = async (req, res) => {
             });
 
             if (data.length) {
+                let wishlistCarIds = new Set();
+                if (normalizedViewerUserId) {
+                    try {
+                        const carIds = data.map(item => item.id).filter(Boolean);
+                        const wishlisted = await fetchWishlistCarIdsByUserId(normalizedViewerUserId, carIds);
+                        wishlistCarIds = new Set(wishlisted);
+                    } catch (wishlistErr) {
+                        console.error("[facetedFilters] Error fetching wishlist:", wishlistErr);
+                    }
+                }
+
                 data = await Promise.all(
                     data.map(async (item) => {
                         const carImages = await fetchCarImagesByCarId(item.id);
@@ -495,7 +506,7 @@ export const getFacetedFilters = async (req, res) => {
                             leasing_value: item.leasing_value ?? item.leasingPrice ?? null,
                             annual_interest_rate: item.annual_interest_rate ?? null,
                             residual_value: item.residual_value ?? null,
-                            isWishlist: false,
+                            isWishlist: wishlistCarIds.has(Number(item.id)),
                             carImages: carImages.map(img => img.images),
                             sellerDetails: {
                                 sellerId: item.seller_id,

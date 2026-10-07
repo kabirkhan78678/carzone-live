@@ -187,3 +187,17 @@ export const modelGetRecentlyViewed = async (userId, limit = 10) => {
   `;
     return db.query(sql, [userId, limit]);
 };
+
+export const fetchWishlistCarIdsByUserId = async (userId, carIds = []) => {
+    if (!userId || !Array.isArray(carIds) || carIds.length === 0) {
+        return [];
+    }
+    const cleanCarIds = carIds.map(Number).filter(id => Number.isFinite(id) && id > 0);
+    if (cleanCarIds.length === 0) return [];
+    const placeholders = cleanCarIds.map(() => '?').join(',');
+    const rows = await db.query(
+        `SELECT carId FROM tbl_car_wishlist WHERE user_id = ? AND carId IN (${placeholders})`,
+        [userId, ...cleanCarIds]
+    );
+    return rows.map(r => Number(r.carId));
+};
