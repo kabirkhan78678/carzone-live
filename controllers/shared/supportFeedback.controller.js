@@ -3,9 +3,11 @@ import {
     submitAppFeedbackModel,
     updateAppFeedbackModel,
     getMyFeedbackModel,
+    getMyFeedbackByIdModel,
     submitHelpRequestModel,
     createSupportModel,
-    getMySupportTicketsModel
+    getMySupportTicketsModel,
+    getMySupportTicketByIdModel
 } from '../../models/user.model.js';
 import { variableTypes } from '../../utils/constant.js';
 import { handleError, handleSuccess } from '../../utils/responseHandler.js';
@@ -186,6 +188,60 @@ export const getMySupportTickets = async (req, res) => {
             res,
             500,
             getMessage(req.user.language, variableTypes.INTERNAL_SERVER_ERROR)
+        );
+    }
+};
+
+export const getMySupportTicketById = async (req, res) => {
+    try {
+        const lang = req.user?.language || "en";
+        const user_id = req.user.id;
+        const { id } = req.params;
+
+        const ticket = await getMySupportTicketByIdModel(user_id, id);
+        if (!ticket) {
+            return handleError(res, 404, "Support ticket not found");
+        }
+
+        return handleSuccess(
+            res,
+            200,
+            getMessage(lang, variableTypes.DATA_FOUND_SUCCESSFULLY),
+            ticket
+        );
+    } catch (error) {
+        console.error("getMySupportTicketById error:", error);
+        return handleError(
+            res,
+            500,
+            getMessage(req.user?.language || "en", variableTypes.INTERNAL_SERVER_ERROR)
+        );
+    }
+};
+
+export const getMyFeedbackById = async (req, res) => {
+    try {
+        const lang = req.user?.language || "en";
+        const seller_id = req.user.id;
+        const { id } = req.params;
+
+        const feedback = await getMyFeedbackByIdModel(seller_id, id);
+        if (!feedback) {
+            return handleError(res, 404, "Feedback not found");
+        }
+
+        return handleSuccess(
+            res,
+            200,
+            getMessage(lang, variableTypes.DATA_FOUND_SUCCESSFULLY),
+            feedback
+        );
+    } catch (error) {
+        console.error("getMyFeedbackById error:", error);
+        return handleError(
+            res,
+            500,
+            getMessage(req.user?.language || "en", variableTypes.INTERNAL_SERVER_ERROR)
         );
     }
 };

@@ -200,6 +200,8 @@ app.post('/schedule-requests/:id/action', authenticateUser, scheduleRequestActio
 app.post('/submit-App-Feedback', authenticateUser, submitAppFeedbackValidation, handleValidationErrors, controller.userController.submitAppFeedback);
 app.post('/submit-feedback', authenticateUser, submitAppFeedbackValidation, handleValidationErrors, controller.userController.submitAppFeedback);
 app.get('/getMyAppFeedback', authenticateUser, controller.userController.getMyAppFeedback);
+app.get('/getMyAppFeedback/:id', authenticateUser, idParamValidation, handleValidationErrors, controller.userController.getMyFeedbackById);
+app.get('/app-feedback/:id', authenticateUser, idParamValidation, handleValidationErrors, controller.userController.getMyFeedbackById);
 app.post('/submitHelpRequest', optionalAuthenticateUser, submitHelpRequestValidation, handleValidationErrors, controller.userController.submitHelpRequest);
 app.post('/submit-help-request', optionalAuthenticateUser, submitHelpRequestValidation, handleValidationErrors, controller.userController.submitHelpRequest);
 
@@ -297,6 +299,8 @@ app.post('/purchase-agreement', authenticateUser, addPurchaseAgreementValidation
 
 app.post('/help-support', authenticateUser, addHelpSupportValidation, handleValidationErrors, controller.userController.addHelpSupport);
 app.get('/help-support/my-tickets', authenticateUser, controller.userController.getMySupportTickets);
+app.get('/help-support/my-tickets/:id', authenticateUser, idParamValidation, handleValidationErrors, controller.userController.getMySupportTicketById);
+app.get('/help-support/:id', authenticateUser, idParamValidation, handleValidationErrors, controller.userController.getMySupportTicketById);
 app.get('/fetchAllSellers', authenticateUser, controller.userController.getAllSellerProfiles);
 app.post('/upload-chat-attachment', authenticateUser, uploadProfile.fields(fieldsConfig), controller.userController.uploadChatAttachment);
 app.delete('/delete-chat-attachment/:id', authenticateUser, idParamValidation, handleValidationErrors, controller.userController.deleteChatAttachment);

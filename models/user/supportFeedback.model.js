@@ -42,6 +42,32 @@ export const getMySupportTicketsModel = async (
     );
 };
 
+export const getMySupportTicketByIdModel = async (user_id, ticket_id) => {
+    const rows = await db.query(
+        `
+        SELECT
+            *
+        FROM tbl_support
+        WHERE
+            id = ?
+            AND user_id = ?
+            AND is_delete = 0
+        `,
+        [ticket_id, user_id]
+    );
+    return rows[0] || null;
+};
+
+export const getMyFeedbackByIdModel = async (seller_id, feedback_id) => {
+    const rows = await db.query(
+        `SELECT id, rating, message, created_at
+         FROM tbl_app_feedback
+         WHERE id = ? AND seller_id = ? AND is_delete = 0`,
+        [feedback_id, seller_id]
+    );
+    return rows[0] || null;
+};
+
 export const checkSellerFeedbackModel = async (seller_id) => {
     return db.query(
         `SELECT id, rating, message, created_at FROM tbl_app_feedback WHERE seller_id = ? AND is_delete = 0`,
