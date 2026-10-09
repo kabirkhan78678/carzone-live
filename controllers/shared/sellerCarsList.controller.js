@@ -136,7 +136,7 @@ const power = powerParts.length ? powerParts.join(" / ") : null;
                         leasing_value: item.leasing_value ?? item.leasingPrice ?? null,
                         annual_interest_rate: item.annual_interest_rate ?? null,
                         residual_value: item.residual_value ?? null,
-                        isWishlist: wishlist.length > 0,
+                        isWishlist: Number(item.seller_id || item.user_id) !== Number(id) && wishlist.length > 0,
                         carImages: carImages.map(img => img.images),
                         sellerDetails: {
                             sellerId: item.seller_id,

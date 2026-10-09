@@ -17,12 +17,11 @@ export const viewCarDetailByCarId = async (req, res) => {
         }
 
         const { id: userId } = req.user;
+        const car = carData[0];
         const wishlist = await fetchAllreadyCarWishlist(userId, carId);
-        const is_in_wishlist = wishlist.length > 0;
+        const is_in_wishlist = Number(car?.user_id) !== Number(userId) && wishlist.length > 0;
         const isSavedCarReel = await isSavedCarReelModel(userId, carId);
         const isSavedReel = isSavedCarReel.length > 0 ? 1 : 0;
-
-        const car = carData[0];
         console.log('car', car);
 
         const images = await getCarImagesByCarIdModel(carId);

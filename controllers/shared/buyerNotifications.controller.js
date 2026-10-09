@@ -27,7 +27,7 @@ export const fetchNotificationByBuyersIds = async (req, res) => {
                 res,
                 200,
                 getMessage(userLanguage, 'noNotificationYet'),
-                { allNotification: [], unReadNotifications: 0, unreadCount: 0 },
+                { allNotification: [], unReadNotifications: 0, unreadCount: 0, unReadCount: 0, unread_count: 0 },
                 userLanguage
             );
         }
@@ -385,6 +385,20 @@ export const fetchNotificationByBuyersIds = async (req, res) => {
                         bodyKey = "PLAN_EXPIRY_REMINDER_BODY";
                         break;
 
+                    case "support_resolved":
+                    case "support":
+                        titleKey = "SUPPORT_TICKET_RESOLVED";
+                        bodyKey = "SUPPORT_TICKET_RESOLVED_BODY";
+                        {
+                            const tMatch = String(item.body || '').match(/ticket\s+#?(\d+)/i);
+                            const rMatch = String(item.body || '').match(/resolved:\s*(.+)$/i);
+                            params = {
+                                ticketId: tMatch ? tMatch[1] : "",
+                                response: rMatch ? rMatch[1] : ""
+                            };
+                        }
+                        break;
+
                     default:
                         break;
                 }
@@ -535,7 +549,12 @@ export const fetchNotificationByBuyersIds = async (req, res) => {
         const data = {
             allNotification: formattedNotifications,
             unReadNotifications: unreadCount,
-            unreadCount: unreadCount
+            unreadCount: unreadCount,
+            unReadCount: unreadCount,
+            unread_count: unreadCount,
+            hasUnread: unreadCount > 0,
+            has_unread: unreadCount > 0,
+            is_unread: unreadCount > 0
         };
 
         return handleSuccess(

@@ -1,4 +1,5 @@
 import { fetchAllreadyCarWishlist, addToWishlistModel, modelFetchAllWishlist, removeCarFromWishlistModel, fetchCarImagesByCarId } from '../../models/user.model.js';
+import db from '../../config/db.js';
 import { variableTypes } from '../../utils/constant.js';
 import { handleError, handleSuccess } from '../../utils/responseHandler.js';
 import { getMessage } from '../../utils/user_helper.js';
@@ -11,6 +12,15 @@ export const addToWishlist = async (req, res) => {
         if (!carId) {
             return handleError(res, 400, "carId is required");
         }
+
+        const carRows = await db.query("SELECT user_id FROM tbl_cars WHERE id = ? AND is_deleted = 0 LIMIT 1", [carId]);
+        if (!carRows || carRows.length === 0) {
+            return handleError(res, 404, getMessage(lang, variableTypes.CAR_NOT_FOUND) || "Vehicle not found");
+        }
+        if (Number(carRows[0].user_id) === Number(user_id)) {
+            return handleSuccess(res, 200, getMessage(lang, variableTypes.CANNOT_FAVORITE_OWN_CAR));
+        }
+
         let isExists = await fetchAllreadyCarWishlist(user_id, carId);
         if (isExists && isExists.length > 0) {
             return handleError(res, 400, getMessage(lang, variableTypes.CAR_ALLREDY_IN_YOUR_WISHLIST));

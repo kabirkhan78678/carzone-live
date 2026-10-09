@@ -83,6 +83,7 @@ export const modelFetchAllWishlist = async (
    AND qs.is_delete = 0
   WHERE w.user_id = ?
     AND c.is_deleted = 0
+    AND c.user_id != w.user_id
 `;
 
 
@@ -196,7 +197,7 @@ export const fetchWishlistCarIdsByUserId = async (userId, carIds = []) => {
     if (cleanCarIds.length === 0) return [];
     const placeholders = cleanCarIds.map(() => '?').join(',');
     const rows = await db.query(
-        `SELECT carId FROM tbl_car_wishlist WHERE user_id = ? AND carId IN (${placeholders})`,
+        `SELECT w.carId FROM tbl_car_wishlist w JOIN tbl_cars c ON c.id = w.carId WHERE w.user_id = ? AND c.user_id != w.user_id AND w.carId IN (${placeholders})`,
         [userId, ...cleanCarIds]
     );
     return rows.map(r => Number(r.carId));

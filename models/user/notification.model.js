@@ -5,8 +5,8 @@ import moment from 'moment';
 export const insertUserNotifications = async (message, status) => {
     try {
         const result = await db.query(
-            `INSERT INTO tbl_notification (sendFrom, sendTo, title, body, notificationType, notificationStatus, carId, isSendTo, purchaseAgreementId)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO tbl_notification (sendFrom, sendTo, title, body, notificationType, notificationStatus, carId, isSendTo, purchaseAgreementId, isRead)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
             [
                 message.data?.sendFrom || null,
                 message.data?.sendTo || null,

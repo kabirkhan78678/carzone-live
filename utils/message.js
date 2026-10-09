@@ -1484,6 +1484,13 @@ const messages = {
         de: "Dieses Auto befindet sich bereits in deiner Wunschliste."
     },
 
+    cannotFavoriteOwnCar: {
+        en: "You cannot add your own vehicle to favorites.",
+        fr: "Vous ne pouvez pas ajouter votre propre véhicule aux favoris.",
+        it: "Non puoi aggiungere il tuo veicolo ai preferiti.",
+        de: "Sie können Ihr eigenes Fahrzeug nicht zu den Favoriten hinzufügen."
+    },
+
     accountVerification: {
         en: "Account Verification",
         fr: "Vérification du compte",

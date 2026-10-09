@@ -117,6 +117,7 @@ export const variableTypes = {
     WISH_LIST_FOUND: "wishListFound",
     REMOVE_CAR_FROM_WISHLIST: "removedCarFromWishlist",
     CAR_ALLREDY_IN_YOUR_WISHLIST: "allredyInYourWishlist",
+    CANNOT_FAVORITE_OWN_CAR: "cannotFavoriteOwnCar",
     ACCOUNT_VERIFICATION: "accountVerification",
     FORGOT_PASSWORD_OTP_SUBJECT: "forgotPasswordOtpSubject",
     LOGIN_SUCCESSFULLY: "loginSuccessfully",

@@ -353,14 +353,15 @@ export const updateSupport = async (req, res) => {
         });
 
         // Trigger in-app notification, push notification, and email asynchronously
-        const supportTicket = support[0];
-        if (supportTicket?.user_id) {
+        const supportTicket = Array.isArray(support) ? support[0] : support;
+        const targetUserId = supportTicket?.user_id || supportTicket?.userId;
+        if (targetUserId) {
             (async () => {
                 try {
-                    const user = await getUserById(supportTicket.user_id);
+                    const user = await getUserById(targetUserId);
                     if (user) {
                         // 1. Send In-App & Firebase Push Notification
-                        await sendNotificationToUser(supportTicket.user_id, {
+                        await sendNotificationToUser(targetUserId, {
                             titleKey: 'SUPPORT_TICKET_RESOLVED',
                             bodyKey: 'SUPPORT_TICKET_RESOLVED_BODY',
                             category: 'transactional',
