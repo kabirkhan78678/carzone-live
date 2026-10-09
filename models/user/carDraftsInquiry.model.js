@@ -82,6 +82,10 @@ LEFT JOIN tbl_mfk_status_translations mfst
        ON ict.color_id = c.interior_color_id
       AND ict.language_code = ?
 
+     LEFT JOIN tbl_quality_seals qs
+       ON qs.id = c.quality_seal_id
+      AND qs.is_delete = 0
+
      WHERE c.user_id = ?
        AND c.is_deleted = 0
        AND c.listing_status = 'draft'

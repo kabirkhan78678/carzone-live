@@ -122,58 +122,58 @@ export const sendCarListedNotification = async ({
             `Success: ${successCount}, Failed: ${failureCount}`
         );
 
-  // ============================================
-// DATABASE NOTIFICATIONS
-// ============================================
+        // ============================================
+        // DATABASE NOTIFICATIONS
+        // ============================================
 
-let dbInsertedCount = 0;
+        let dbInsertedCount = 0;
 
-for (const user of userList) {
-    try {
-        // DB notification should always be stored
-        // in the default/canonical language.
-        const dbTranslated = getNotificationTranslation(
-            "en",
-            "NEW_CAR_LISTED",
-            "NEW_CAR_LISTED_BODY",
-            {}
-        );
+        for (const user of userList) {
+            try {
+                // DB notification should always be stored
+                // in the default/canonical language.
+                const dbTranslated = getNotificationTranslation(
+                    "en",
+                    "NEW_CAR_LISTED",
+                    "NEW_CAR_LISTED_BODY",
+                    {}
+                );
 
-        const dbNotification = {
-            data: {
-                sendFrom: senderId
-                    ? Number(senderId)
-                    : null,
+                const dbNotification = {
+                    data: {
+                        sendFrom: senderId
+                            ? Number(senderId)
+                            : null,
 
-                sendTo: Number(user.id),
+                        sendTo: Number(user.id),
 
-                notificationType: "car_listed",
+                        notificationType: "car_listed",
 
-                carId: Number(carId),
+                        carId: Number(carId),
 
-                isSendTo: 1
-            },
+                        isSendTo: 1
+                    },
 
-            notification: {
-                title: dbTranslated.title,
-                body: dbTranslated.body
+                    notification: {
+                        title: dbTranslated.title,
+                        body: dbTranslated.body
+                    }
+                };
+
+                await insertUserNotifications(
+                    dbNotification,
+                    "success"
+                );
+
+                dbInsertedCount++;
+
+            } catch (dbError) {
+                console.error(
+                    `Failed to insert DB notification for user ${user.id}:`,
+                    dbError
+                );
             }
-        };
-
-        await insertUserNotifications(
-            dbNotification,
-            "success"
-        );
-
-        dbInsertedCount++;
-
-    } catch (dbError) {
-        console.error(
-            `Failed to insert DB notification for user ${user.id}:`,
-            dbError
-        );
-    }
-}
+        }
 
         console.log(
             `Car listed DB notifications inserted: ` +
@@ -393,7 +393,7 @@ export const sendChatNotification = async ({
                 try {
                     await db.query(`UPDATE tbl_users SET fcmToken = NULL WHERE id = ?`, [userId]);
                     console.log(`Cleaned expired FCM token for user ${userId}`);
-                } catch (e) {}
+                } catch (e) { }
             }
         }
 
@@ -567,7 +567,7 @@ export const sendNotificationToUser = async (userId, message) => {
                     try {
                         await db.query(`UPDATE tbl_users SET fcmToken = NULL WHERE id = ?`, [userId]);
                         console.log(`Cleaned expired FCM token for user ${userId}`);
-                    } catch (e) {}
+                    } catch (e) { }
                 }
             }
         } else {
@@ -576,57 +576,57 @@ export const sendNotificationToUser = async (userId, message) => {
             );
         }
 
-// ============================================
-// 2. DATABASE NOTIFICATION
-// ALWAYS INSERT
-// ============================================
+        // ============================================
+        // 2. DATABASE NOTIFICATION
+        // ALWAYS INSERT
+        // ============================================
 
-try {
-    // DB notification should always be stored
-    // in the default/canonical language.
-    const dbTranslated = getNotificationTranslation(
-        "en",
-        message.titleKey,
-        message.bodyKey,
-        message.params || {}
-    );
+        try {
+            // DB notification should always be stored
+            // in the default/canonical language.
+            const dbTranslated = getNotificationTranslation(
+                "en",
+                message.titleKey,
+                message.bodyKey,
+                message.params || {}
+            );
 
-    await insertUserNotifications(
-        {
-            data: {
-                sendFrom: message.data?.sendFrom
-                    ? Number(message.data.sendFrom)
-                    : null,
+            await insertUserNotifications(
+                {
+                    data: {
+                        sendFrom: message.data?.sendFrom
+                            ? Number(message.data.sendFrom)
+                            : null,
 
-                sendTo: Number(userId),
+                        sendTo: Number(userId),
 
-                notificationType,
+                        notificationType,
 
-                carId: (message.data?.carId || message.data?.car_id)
-                    ? Number(message.data?.carId || message.data?.car_id)
-                    : null,
+                        carId: (message.data?.carId || message.data?.car_id)
+                            ? Number(message.data?.carId || message.data?.car_id)
+                            : null,
 
-                isSendTo: 1
-            },
+                        isSendTo: 1
+                    },
 
-            notification: {
-                title: dbTranslated.title,
-                body: dbTranslated.body
-            }
-        },
-        "success"
-    );
+                    notification: {
+                        title: dbTranslated.title,
+                        body: dbTranslated.body
+                    }
+                },
+                "success"
+            );
 
-    console.log(
-        `✅ Notification DB entry inserted for user ${userId}`
-    );
+            console.log(
+                `✅ Notification DB entry inserted for user ${userId}`
+            );
 
-} catch (dbError) {
-    console.error(
-        `❌ Failed to insert notification in DB for user ${userId}:`,
-        dbError
-    );
-}
+        } catch (dbError) {
+            console.error(
+                `❌ Failed to insert notification in DB for user ${userId}:`,
+                dbError
+            );
+        }
 
         return {
             success: true,
@@ -1086,7 +1086,7 @@ export const sendPurchaseAgreementNotification = async ({
 
         const offeredPrice =
             counterPrice !== null &&
-            counterPrice !== undefined
+                counterPrice !== undefined
                 ? counterPrice
                 : salePrice;
 

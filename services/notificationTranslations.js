@@ -133,6 +133,12 @@ export const notificationTranslations = {
 
         SELLER_REJECTED: "Seller Application Declined",
         SELLER_REJECTED_BODY: ({ fullName }) => `Sorry${fullName ? ', ' + fullName : ''}, your application to become a seller was not approved.`,
+
+        SUPPORT_TICKET_RESOLVED: "Support Request Resolved",
+        SUPPORT_TICKET_RESOLVED_BODY: ({ response, ticketId }) =>
+            response
+                ? `Your support request #${ticketId || ''} has been resolved: ${response}`
+                : `Your support request #${ticketId || ''} has been resolved successfully.`,
     },
 
     de: {
@@ -264,6 +270,12 @@ export const notificationTranslations = {
 
         SELLER_REJECTED: "Verkäuferantrag abgelehnt",
         SELLER_REJECTED_BODY: ({ fullName }) => `Entschuldigung${fullName ? ', ' + fullName : ''}, Ihr Antrag als Verkäufer wurde leider nicht genehmigt.`,
+
+        SUPPORT_TICKET_RESOLVED: "Support-Anfrage gelöst",
+        SUPPORT_TICKET_RESOLVED_BODY: ({ response, ticketId }) =>
+            response
+                ? `Ihre Support-Anfrage #${ticketId || ''} wurde gelöst: ${response}`
+                : `Ihre Support-Anfrage #${ticketId || ''} wurde erfolgreich gelöst.`,
     },
 
     fr: {
@@ -395,6 +407,12 @@ export const notificationTranslations = {
 
         SELLER_REJECTED: "Candidature vendeur refusée",
         SELLER_REJECTED_BODY: ({ fullName }) => `Désolé${fullName ? ', ' + fullName : ''}, votre candidature vendeur n'a pas été approuvée.`,
+
+        SUPPORT_TICKET_RESOLVED: "Demande d'assistance résolue",
+        SUPPORT_TICKET_RESOLVED_BODY: ({ response, ticketId }) =>
+            response
+                ? `Votre demande d'assistance #${ticketId || ''} a été résolue : ${response}`
+                : `Votre demande d'assistance #${ticketId || ''} a été résolue avec succès.`,
     },
 
     it: {
@@ -526,6 +544,12 @@ export const notificationTranslations = {
 
         SELLER_REJECTED: "Candidatura venditore rifiutata",
         SELLER_REJECTED_BODY: ({ fullName }) => `Spiacenti${fullName ? ', ' + fullName : ''}, la tua candidatura come venditore non è stata approvata.`,
+
+        SUPPORT_TICKET_RESOLVED: "Richiesta di supporto risolta",
+        SUPPORT_TICKET_RESOLVED_BODY: ({ response, ticketId }) =>
+            response
+                ? `La tua richiesta di supporto #${ticketId || ''} è stata risolta: ${response}`
+                : `La tua richiesta di supporto #${ticketId || ''} è stata risolta con successo.`,
     }
 };
 

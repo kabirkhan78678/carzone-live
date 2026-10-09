@@ -51,7 +51,7 @@ export const authenticateUser = async (res, lang, password, userData, fcmToken, 
     } else {
         const match = bcrypt.compareSync(password, user.password);
         if (!match) {
-            return handleError(res, 400, getMessage(lang, 'invalidPassword'), [],lang);
+            return handleError(res, 400, getMessage(lang, 'invalidPassword'), [], lang);
         }
         if (moduleType == "userLogin") {
             let data = { fcmToken: fcmToken }
@@ -59,7 +59,7 @@ export const authenticateUser = async (res, lang, password, userData, fcmToken, 
         }
         const jwt_token = generateToken(user);
         let response = { jwt_token: jwt_token, role: role, userId: user.id }
-        return handleSuccess(res, 200, getMessage(lang, 'loginSuccess'), response,lang);
+        return handleSuccess(res, 200, getMessage(lang, 'loginSuccess'), response, lang);
     }
 };
 
@@ -380,10 +380,10 @@ export const getLocalIP = () => {
 
 export const getChfFormattedPrice = (amount) => {
     if (!amount || isNaN(amount)) return amount;
- 
+
     const num = parseFloat(amount).toFixed(2); // keep two decimals
     const [whole, decimal] = num.split(".");
- 
+
     const formattedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, "'");
     return `${formattedWhole}.${decimal}.–CHF`;
 };
@@ -564,214 +564,214 @@ export const addIdFilter = (column, value, sqlObj) => {
 };
 
 export const buildMfk = (car) => {
-  if (!car.last_mfk_date || !car.next_mfk_due) {
+    if (!car.last_mfk_date || !car.next_mfk_due) {
+        return {
+            status: "no_data",
+            lastDate: null,
+            nextDue: null
+        };
+    }
+
+    const today = new Date();
+    const nextDue = new Date(car.next_mfk_due);
+
     return {
-      status: "no_data",
-      lastDate: null,
-      nextDue: null
+        status: nextDue >= today ? "valid" : "expired",
+        lastDate: car.last_mfk_date,
+        nextDue: car.next_mfk_due
     };
-  }
-
-  const today = new Date();
-  const nextDue = new Date(car.next_mfk_due);
-
-  return {
-    status: nextDue >= today ? "valid" : "expired",
-    lastDate: car.last_mfk_date,
-    nextDue: car.next_mfk_due
-  };
 };
 
 export const buildFirstRegistrationDateFromMonthYear = (arg1 = {}, arg2) => {
-  let registration_month, registration_year, first_registration_date;
-  if (typeof arg1 === 'object' && arg1 !== null) {
-    ({ registration_month, registration_year, first_registration_date } = arg1);
-  } else {
-    registration_month = arg1;
-    registration_year = arg2;
-  }
+    let registration_month, registration_year, first_registration_date;
+    if (typeof arg1 === 'object' && arg1 !== null) {
+        ({ registration_month, registration_year, first_registration_date } = arg1);
+    } else {
+        registration_month = arg1;
+        registration_year = arg2;
+    }
 
-  if (first_registration_date) return first_registration_date;
+    if (first_registration_date) return first_registration_date;
 
-  const hasMonth = registration_month !== undefined && registration_month !== null && registration_month !== "";
-  const hasYear = registration_year !== undefined && registration_year !== null && registration_year !== "";
+    const hasMonth = registration_month !== undefined && registration_month !== null && registration_month !== "";
+    const hasYear = registration_year !== undefined && registration_year !== null && registration_year !== "";
 
-  if (!hasMonth && !hasYear) return undefined;
-  if (hasMonth !== hasYear) return null; // incomplete pair
+    if (!hasMonth && !hasYear) return undefined;
+    if (hasMonth !== hasYear) return null; // incomplete pair
 
-  const month = Number(registration_month);
-  const year = Number(registration_year);
-  const currentYear = new Date().getFullYear();
+    const month = Number(registration_month);
+    const year = Number(registration_year);
+    const currentYear = new Date().getFullYear();
 
-  if (!Number.isInteger(month) || month < 1 || month > 12) return null;
-  if (!Number.isInteger(year) || year < 1900 || year > currentYear) return null;
+    if (!Number.isInteger(month) || month < 1 || month > 12) return null;
+    if (!Number.isInteger(year) || year < 1900 || year > currentYear) return null;
 
-  return `${year}-${String(month).padStart(2, "0")}-01`;
+    return `${year}-${String(month).padStart(2, "0")}-01`;
 };
 
 // WRITE helper (use in listCar before data object)
 export const normalizeArrayField = (value) => {
-  if (value === undefined || value === null || value === "") return null;
+    if (value === undefined || value === null || value === "") return null;
 
-  if (Array.isArray(value)) {
-    return JSON.stringify(value.map(v => String(v).trim()).filter(Boolean));
-  }
+    if (Array.isArray(value)) {
+        return JSON.stringify(value.map(v => String(v).trim()).filter(Boolean));
+    }
 
-  if (typeof value === "string") {
-    const raw = value.trim();
-    try {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        return JSON.stringify(parsed.map(v => String(v).trim()).filter(Boolean));
-      }
-    } catch (_) {}
-    return JSON.stringify(raw.split(",").map(v => v.trim()).filter(Boolean));
-  }
+    if (typeof value === "string") {
+        const raw = value.trim();
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return JSON.stringify(parsed.map(v => String(v).trim()).filter(Boolean));
+            }
+        } catch (_) { }
+        return JSON.stringify(raw.split(",").map(v => v.trim()).filter(Boolean));
+    }
 
-  return JSON.stringify([String(value).trim()].filter(Boolean));
+    return JSON.stringify([String(value).trim()].filter(Boolean));
 };
 
 export const parseArrayField = (val, fallback = []) => {
-  if (val === undefined || val === null || val === "") return fallback;
-  if (Array.isArray(val)) return val;
+    if (val === undefined || val === null || val === "") return fallback;
+    if (Array.isArray(val)) return val;
 
-  if (typeof val === "string") {
-    const raw = val.trim();
-    try {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed.map(v => String(v).trim()).filter(Boolean);
-    } catch (_) {}
-    return raw.split(",").map(v => v.trim()).filter(Boolean);
-  }
-  return fallback;
+    if (typeof val === "string") {
+        const raw = val.trim();
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed.map(v => String(v).trim()).filter(Boolean);
+        } catch (_) { }
+        return raw.split(",").map(v => v.trim()).filter(Boolean);
+    }
+    return fallback;
 };
 
 export const parseJsonObjectSafe = (value) => {
-  if (!value || typeof value !== "string") return {};
-  try {
-    const parsed = JSON.parse(value);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed;
-    }
-  } catch (_) { }
-  return {};
+    if (!value || typeof value !== "string") return {};
+    try {
+        const parsed = JSON.parse(value);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            return parsed;
+        }
+    } catch (_) { }
+    return {};
 };
 
 export const parseFacetedInput = (value) => {
-  if (value === null || value === undefined) return {};
-  if (typeof value === "string") return parseJsonObjectSafe(value);
-  if (typeof value === "object" && !Array.isArray(value)) return value;
-  return {};
+    if (value === null || value === undefined) return {};
+    if (typeof value === "string") return parseJsonObjectSafe(value);
+    if (typeof value === "object" && !Array.isArray(value)) return value;
+    return {};
 };
 
 export const parseSelectedIds = (value) => {
-  if (value === null || value === undefined || value === "") return [];
+    if (value === null || value === undefined || value === "") return [];
 
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => Number(item))
-      .filter((item) => Number.isFinite(item) && item > 0);
-  }
+    if (Array.isArray(value)) {
+        return value
+            .map((item) => Number(item))
+            .filter((item) => Number.isFinite(item) && item > 0);
+    }
 
-  if (typeof value === "number") {
-    return Number.isFinite(value) && value > 0 ? [value] : [];
-  }
+    if (typeof value === "number") {
+        return Number.isFinite(value) && value > 0 ? [value] : [];
+    }
 
-  return String(value)
-    .split(",")
-    .map((item) => Number(String(item).trim()))
-    .filter((item) => Number.isFinite(item) && item > 0);
+    return String(value)
+        .split(",")
+        .map((item) => Number(String(item).trim()))
+        .filter((item) => Number.isFinite(item) && item > 0);
 };
 
 export const parseSelectedRange = (selectedIdsValue, fallbackMin = null, fallbackMax = null) => {
-  let min = null;
-  let max = null;
-  let hasSelection = false;
+    let min = null;
+    let max = null;
+    let hasSelection = false;
 
-  if (selectedIdsValue !== null && selectedIdsValue !== undefined && selectedIdsValue !== "") {
-    const rawParts = String(selectedIdsValue).split(",").map((item) => item.trim()).filter(Boolean);
-    if (rawParts.length >= 2) {
-      const parsedMin = Number(rawParts[0]);
-      const parsedMax = Number(rawParts[1]);
+    if (selectedIdsValue !== null && selectedIdsValue !== undefined && selectedIdsValue !== "") {
+        const rawParts = String(selectedIdsValue).split(",").map((item) => item.trim()).filter(Boolean);
+        if (rawParts.length >= 2) {
+            const parsedMin = Number(rawParts[0]);
+            const parsedMax = Number(rawParts[1]);
 
-      if (Number.isFinite(parsedMin) && Number.isFinite(parsedMax)) {
-        min = parsedMin;
-        max = parsedMax;
-        hasSelection = true;
-      }
+            if (Number.isFinite(parsedMin) && Number.isFinite(parsedMax)) {
+                min = parsedMin;
+                max = parsedMax;
+                hasSelection = true;
+            }
+        }
     }
-  }
 
-  if (!hasSelection) {
-    const parsedFallbackMin = fallbackMin === null || fallbackMin === undefined || fallbackMin === ""
-      ? null
-      : Number(fallbackMin);
-    const parsedFallbackMax = fallbackMax === null || fallbackMax === undefined || fallbackMax === ""
-      ? null
-      : Number(fallbackMax);
+    if (!hasSelection) {
+        const parsedFallbackMin = fallbackMin === null || fallbackMin === undefined || fallbackMin === ""
+            ? null
+            : Number(fallbackMin);
+        const parsedFallbackMax = fallbackMax === null || fallbackMax === undefined || fallbackMax === ""
+            ? null
+            : Number(fallbackMax);
 
-    if (Number.isFinite(parsedFallbackMin) && Number.isFinite(parsedFallbackMax)) {
-      min = parsedFallbackMin;
-      max = parsedFallbackMax;
-      hasSelection = true;
+        if (Number.isFinite(parsedFallbackMin) && Number.isFinite(parsedFallbackMax)) {
+            min = parsedFallbackMin;
+            max = parsedFallbackMax;
+            hasSelection = true;
+        }
     }
-  }
 
-  if (hasSelection && min > max) {
-    const swapValue = min;
-    min = max;
-    max = swapValue;
-  }
+    if (hasSelection && min > max) {
+        const swapValue = min;
+        min = max;
+        max = swapValue;
+    }
 
-  return { min, max, hasSelection };
+    return { min, max, hasSelection };
 };
 
 export const hasActiveFiltersInQuery = (req) =>
-  req?.query?.active_filters !== undefined || req?.query?.applied_filters !== undefined;
+    req?.query?.active_filters !== undefined || req?.query?.applied_filters !== undefined;
 
 export const toTimeHHMM = (timeStr) => {
-  if (!timeStr) return null;
-  const str = String(timeStr).trim();
-  if (/^\d{2}:\d{2}/.test(str)) return str.substring(0, 5);
-  return str;
+    if (!timeStr) return null;
+    const str = String(timeStr).trim();
+    if (/^\d{2}:\d{2}/.test(str)) return str.substring(0, 5);
+    return str;
 };
 
 export const normalizeOpeningTimes = (rows) => {
-  if (!Array.isArray(rows)) return [];
-  return rows.map((row) => ({
-    ...row,
-    open_time: toTimeHHMM(row.open_time),
-    close_time: toTimeHHMM(row.close_time)
-  }));
+    if (!Array.isArray(rows)) return [];
+    return rows.map((row) => ({
+        ...row,
+        open_time: toTimeHHMM(row.open_time),
+        close_time: toTimeHHMM(row.close_time)
+    }));
 };
 
 export const stripHtml = (html) => {
-  if (!html || typeof html !== "string") return html || "";
-  return html
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<\/p>|<\/div>|<br\s*\/?>/gi, " ")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/\s+/g, " ")
-    .trim();
+    if (!html || typeof html !== "string") return html || "";
+    return html
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+        .replace(/<\/p>|<\/div>|<br\s*\/?>/gi, " ")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&nbsp;/gi, " ")
+        .replace(/&amp;/gi, "&")
+        .replace(/&lt;/gi, "<")
+        .replace(/&gt;/gi, ">")
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/gi, "'")
+        .replace(/\s+/g, " ")
+        .trim();
 };
 
 export { normalizeFacetedFilters };
 
 // Register helpers on global scope for backward compatibility with older controllers
 if (typeof global !== "undefined") {
-  global.parseFacetedInput = parseFacetedInput;
-  global.parseSelectedRange = parseSelectedRange;
-  global.parseSelectedIds = parseSelectedIds;
-  global.hasActiveFiltersInQuery = hasActiveFiltersInQuery;
-  global.toTimeHHMM = toTimeHHMM;
-  global.normalizeOpeningTimes = normalizeOpeningTimes;
-  global.normalizeFacetedFilters = normalizeFacetedFilters;
-  global.stripHtml = stripHtml;
+    global.parseFacetedInput = parseFacetedInput;
+    global.parseSelectedRange = parseSelectedRange;
+    global.parseSelectedIds = parseSelectedIds;
+    global.hasActiveFiltersInQuery = hasActiveFiltersInQuery;
+    global.toTimeHHMM = toTimeHHMM;
+    global.normalizeOpeningTimes = normalizeOpeningTimes;
+    global.normalizeFacetedFilters = normalizeFacetedFilters;
+    global.stripHtml = stripHtml;
 }
