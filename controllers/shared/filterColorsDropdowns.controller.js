@@ -16,6 +16,7 @@ export const getExteriorColors = async (req, res) => {
             "Exterior colors fetched successfully",
             {
                 types: exteriorColorFacet.options,
+                metallic_count: exteriorColorFacet.metallic_count ?? 0,
                 total_cars: totalCars
             }
         );
