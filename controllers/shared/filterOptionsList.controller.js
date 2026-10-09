@@ -53,39 +53,61 @@ const extractViewerUserId = (req) => {
 export const getFilters = async (req, res) => {
     try {
         const viewerUserId = extractViewerUserId(req);
-        const rawFilters = req.query || {};
-        const filters = {
-            ...rawFilters,
-            // direct-web object compatibility aliases for legacy getAllFilters
-            seller_type: rawFilters.seller_type ?? rawFilters.sellerType,
-            fuel_type_id: rawFilters.fuel_type_id ?? rawFilters.fuelType,
-            transmission_id: rawFilters.transmission_id ?? rawFilters.transmission,
-            body_type_id: rawFilters.body_type_id ?? rawFilters.body_type,
-            drive_type_id: rawFilters.drive_type_id ?? rawFilters.drive_type,
-            state_id: rawFilters.state_id ?? rawFilters.state_ids,
-            interior_color_id: rawFilters.interior_color_id ?? rawFilters.interior_color_ids ?? rawFilters.interior_color,
-            exterior_color_id: rawFilters.exterior_color_id ?? rawFilters.exterior_color_ids ?? rawFilters.exterior_color,
-            brand_name: rawFilters.brand_name ?? rawFilters.brandName,
-            model_name: rawFilters.model_name ?? rawFilters.carModel ?? rawFilters.model,
-            km_from: rawFilters.km_from ?? rawFilters.from_km,
-            km_to: rawFilters.km_to ?? rawFilters.to_km,
-            quality_seals: rawFilters.quality_seals ?? rawFilters.quality_seal_ids ?? rawFilters.quality_seal ?? rawFilters.quality_seal_id ?? rawFilters.qualitySeals,
-            exclude_user_id: viewerUserId,
-            excluded_user_id: viewerUserId
-        };
-        const lang = req.query.lang || "en";
-        const data = await getAllFilters(filters);
+        const lang = req.query.lang || req.body?.lang || "en";
 
-        // Keep legacy web payload and append missing faceted blocks.
-        const activeFiltersInput = parseFacetedInput(
-            req.query.active_filters ?? req.query.applied_filters
+        const rawQuery = req.query || {};
+        const rawBody = req.body || {};
+
+        const activeFiltersPayload = typeof rawBody.active_filters === 'object' && rawBody.active_filters !== null
+            ? rawBody.active_filters
+            : (typeof rawBody.applied_filters === 'object' && rawBody.applied_filters !== null ? rawBody.applied_filters : {});
+        const activeFiltersQuery = parseFacetedInput(
+            rawQuery.active_filters ?? rawQuery.applied_filters
         );
+        const parsedActivePayload = typeof rawBody.active_filters === 'string'
+            ? parseFacetedInput(rawBody.active_filters)
+            : (typeof rawBody.applied_filters === 'string' ? parseFacetedInput(rawBody.applied_filters) : {});
+
+        const mergedActiveFilters = {
+            ...rawQuery,
+            ...rawBody,
+            ...(typeof activeFiltersPayload === 'object' ? activeFiltersPayload : {}),
+            ...(typeof parsedActivePayload === 'object' ? parsedActivePayload : {}),
+            ...(typeof activeFiltersQuery === 'object' ? activeFiltersQuery : {})
+        };
+
         const normalizedFilters = normalizeFacetedFilters({
-            ...filters,
-            ...(activeFiltersInput || {}),
+            ...mergedActiveFilters,
             exclude_user_id: viewerUserId,
             excluded_user_id: viewerUserId
         });
+
+        const filters = {
+            ...mergedActiveFilters,
+            // direct-web object compatibility aliases for legacy getAllFilters
+            seller_type: mergedActiveFilters.seller_type ?? mergedActiveFilters.sellerType ?? (normalizedFilters.seller_types?.length ? normalizedFilters.seller_types : undefined),
+            fuel_type_id: mergedActiveFilters.fuel_type_id ?? mergedActiveFilters.fuelType ?? (normalizedFilters.fuel_type_ids?.length ? normalizedFilters.fuel_type_ids : undefined),
+            transmission_id: mergedActiveFilters.transmission_id ?? mergedActiveFilters.transmission ?? (normalizedFilters.transmission_ids?.length ? normalizedFilters.transmission_ids : undefined),
+            body_type_id: mergedActiveFilters.body_type_id ?? mergedActiveFilters.body_type ?? (normalizedFilters.body_type_ids?.length ? normalizedFilters.body_type_ids : undefined),
+            drive_type_id: mergedActiveFilters.drive_type_id ?? mergedActiveFilters.drive_type ?? (normalizedFilters.drive_ids?.length ? normalizedFilters.drive_ids : undefined),
+            state_id: mergedActiveFilters.state_id ?? mergedActiveFilters.state_ids ?? (normalizedFilters.state_ids?.length ? normalizedFilters.state_ids : undefined),
+            interior_color_id: mergedActiveFilters.interior_color_id ?? mergedActiveFilters.interior_color_ids ?? mergedActiveFilters.interior_color ?? (normalizedFilters.interior_color_ids?.length ? normalizedFilters.interior_color_ids : undefined),
+            exterior_color_id: mergedActiveFilters.exterior_color_id ?? mergedActiveFilters.exterior_color_ids ?? mergedActiveFilters.exterior_color ?? (normalizedFilters.exterior_color_ids?.length ? normalizedFilters.exterior_color_ids : undefined),
+            brand_name: mergedActiveFilters.brand_name ?? mergedActiveFilters.brandName ?? (normalizedFilters.brand_names?.length ? normalizedFilters.brand_names : undefined),
+            model_name: mergedActiveFilters.model_name ?? mergedActiveFilters.carModel ?? mergedActiveFilters.model ?? (normalizedFilters.model_names?.length ? normalizedFilters.model_names : undefined),
+            km_from: mergedActiveFilters.km_from ?? mergedActiveFilters.from_km ?? (normalizedFilters.mileage?.min !== null ? normalizedFilters.mileage?.min : undefined),
+            km_to: mergedActiveFilters.km_to ?? mergedActiveFilters.to_km ?? (normalizedFilters.mileage?.max !== null ? normalizedFilters.mileage?.max : undefined),
+            price_from: mergedActiveFilters.price_from ?? mergedActiveFilters.from_price ?? (normalizedFilters.price?.min !== null ? normalizedFilters.price?.min : undefined),
+            price_to: mergedActiveFilters.price_to ?? mergedActiveFilters.to_price ?? (normalizedFilters.price?.max !== null ? normalizedFilters.price?.max : undefined),
+            year_from: mergedActiveFilters.year_from ?? mergedActiveFilters.from_year ?? (normalizedFilters.year?.min !== null ? normalizedFilters.year?.min : undefined),
+            year_to: mergedActiveFilters.year_to ?? mergedActiveFilters.to_year ?? (normalizedFilters.year?.max !== null ? normalizedFilters.year?.max : undefined),
+            quality_seals: mergedActiveFilters.quality_seals ?? mergedActiveFilters.quality_seal_ids ?? mergedActiveFilters.quality_seal ?? mergedActiveFilters.quality_seal_id ?? mergedActiveFilters.qualitySeals ?? (normalizedFilters.quality_seal_ids?.length ? normalizedFilters.quality_seal_ids : undefined),
+            exclude_user_id: viewerUserId,
+            excluded_user_id: viewerUserId,
+            lang
+        };
+
+        const data = await getAllFilters(filters, normalizedFilters);
 
         const [
             accidentFacet,
@@ -240,15 +262,26 @@ export const getSortList = async (req, res) => {
 
 export const getExtrasList = async (req, res) => {
     try {
-        const lang = req.query.lang || "en";
+        const lang = req.query.lang || req.body?.lang || "en";
         const viewerUserId = extractViewerUserId(req);
 
-        const activeFiltersInput = parseFacetedInput(
+        const rawPayload = req.body || {};
+        const activeFiltersPayload = typeof rawPayload.active_filters === 'object' && rawPayload.active_filters !== null
+            ? rawPayload.active_filters
+            : (typeof rawPayload.applied_filters === 'object' && rawPayload.applied_filters !== null ? rawPayload.applied_filters : {});
+        const activeFiltersQuery = parseFacetedInput(
             req.query.active_filters ?? req.query.applied_filters
         );
 
+        const mergedActiveFilters = {
+            ...req.query,
+            ...rawPayload,
+            ...(typeof activeFiltersPayload === 'object' ? activeFiltersPayload : {}),
+            ...(typeof activeFiltersQuery === 'object' ? activeFiltersQuery : {})
+        };
+
         const normalizedFilters = normalizeFacetedFilters({
-            ...(activeFiltersInput || {}),
+            ...mergedActiveFilters,
             exclude_user_id: viewerUserId,
             excluded_user_id: viewerUserId
         });
@@ -268,6 +301,7 @@ export const getExtrasList = async (req, res) => {
                 sort_order: row.sort_order,
                 icon: row.icon,
                 name: row.name,
+                title: row.title || row.name || row.display_key,
                 count: Number(row.count || 0)
             }));
 
@@ -293,7 +327,7 @@ export const getExtrasList = async (req, res) => {
             res,
             500,
             getMessage(
-                req.query.lang || "en",
+                req.query.lang || req.body?.lang || "en",
                 variableTypes.INTERNAL_SERVER_ERROR
             )
         );
@@ -302,16 +336,26 @@ export const getExtrasList = async (req, res) => {
 
 export const getFeaturesList = async (req, res) => {
     try {
-        const lang = req.query.lang || "en";
+        const lang = req.query.lang || req.body?.lang || "en";
         const viewerUserId = extractViewerUserId(req);
 
-        // Active filters
-        const activeFiltersInput = parseFacetedInput(
+        const rawPayload = req.body || {};
+        const activeFiltersPayload = typeof rawPayload.active_filters === 'object' && rawPayload.active_filters !== null
+            ? rawPayload.active_filters
+            : (typeof rawPayload.applied_filters === 'object' && rawPayload.applied_filters !== null ? rawPayload.applied_filters : {});
+        const activeFiltersQuery = parseFacetedInput(
             req.query.active_filters ?? req.query.applied_filters
         );
 
+        const mergedActiveFilters = {
+            ...req.query,
+            ...rawPayload,
+            ...(typeof activeFiltersPayload === 'object' ? activeFiltersPayload : {}),
+            ...(typeof activeFiltersQuery === 'object' ? activeFiltersQuery : {})
+        };
+
         const normalizedFilters = normalizeFacetedFilters({
-            ...(activeFiltersInput || {}),
+            ...mergedActiveFilters,
             exclude_user_id: viewerUserId,
             excluded_user_id: viewerUserId
         });
@@ -340,7 +384,6 @@ export const getFeaturesList = async (req, res) => {
             normalizedFilters
         );
 
-        console.log(extraRows, "qqqqqqqqqqqqq")
         const extras = extraRows
             .filter((row) => row.extra_key === "eight_tyres")
             .map((row) => ({

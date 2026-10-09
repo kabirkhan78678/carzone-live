@@ -260,7 +260,9 @@ export const getSortListModel = async (lang = "en") => {
 
 export const getExtrasListModel = async (lang = "en", filters = {}) => {
     try {
-        const { conditions, params } = buildFacetedConditions(filters, {
+        const normalized = normalizeFacetedFilters(filters);
+
+        const { conditions, params } = buildFacetedConditions(normalized, {
             alias: "c",
             excludeFacet: "extras"
         });

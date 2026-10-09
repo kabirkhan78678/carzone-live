@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 import db from '../config/db.js';
 import { sendEmail } from '../utils/emailService.js';
 import { getEmailLogoConfig } from '../utils/user_helper.js';
+import '../config/firebase.js';
+import { getFirestore } from 'firebase-admin/firestore';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -62,13 +64,16 @@ const safeQuery = async (sql, params = []) => {
 
 /**
  * Helper to convert array of objects into RFC-4180 compliant CSV string
+ * Includes UTF-8 BOM (\uFEFF) for optimal rendering in Microsoft Excel and international spreadsheet viewers.
  */
 export const convertArrayToCsv = (rows, defaultHeaders = []) => {
+    const BOM = '\uFEFF';
+
     if (!rows || rows.length === 0) {
         if (defaultHeaders && defaultHeaders.length > 0) {
-            return defaultHeaders.join(',') + '\r\n"No records found"\r\n';
+            return BOM + defaultHeaders.join(',') + '\r\n"No records found"\r\n';
         }
-        return 'Status\r\n"No records found"\r\n';
+        return BOM + 'Status\r\n"No records found"\r\n';
     }
 
     const headers = Object.keys(rows[0]);
@@ -85,7 +90,7 @@ export const convertArrayToCsv = (rows, defaultHeaders = []) => {
 
     const headerLine = headers.join(',');
     const dataLines = rows.map(row => headers.map(h => escapeVal(row[h])).join(','));
-    return [headerLine, ...dataLines].join('\r\n');
+    return BOM + [headerLine, ...dataLines].join('\r\n');
 };
 
 /**
@@ -127,203 +132,194 @@ export const createZipBuffer = (files) => {
 };
 
 /**
- * Fetches all user data across all tables, formats into CSVs, creates a zip archive, and sends via email.
+ * Fetches user data, formats into exactly the 7 requested CSV files, creates a zip archive, and sends via email.
+ * 
+ * Strict 7 CSV Categories:
+ * 1. my_profile.csv                  - Complete personal, account, company, and role details
+ * 2. vehicle_list.csv               - All listed cars with complete technical specs
+ * 3. physical_visits.csv            - Test drives & physical showroom visits (buyer & seller)
+ * 4. plan_slots.csv                 - Subscriptions, plan slots, and slot requests
+ * 5. chat_history.csv               - Direct user chat conversations ONLY (no notifications)
+ * 6. purchases_and_transactions.csv - Financial purchases, slot upgrades, and transactions
+ * 7. saved_cars.csv                 - Wishlisted cars (excluding user's own cars)
  * 
  * @param {number|string} userId
  * @returns {Promise<{success: boolean, email: string, fileName: string}>}
  */
 export const exportAndEmailUserData = async (userId) => {
-    // 1. Fetch User Record
-    const userRows = await safeQuery("SELECT * FROM tbl_users WHERE id = ? LIMIT 1", [userId]);
+    // -------------------------------------------------------------
+    // 1. My Profile
+    // -------------------------------------------------------------
+    const userRows = await safeQuery(
+        `SELECT u.id, u.fullName, u.email, u.phoneNumber, u.countryCode,
+                u.whatsappNumber, u.whatsappCountryCode, u.account_type,
+                CASE WHEN u.isSeller = 1 THEN 'Yes' ELSE 'No' END AS isSeller,
+                u.sellerType,
+                CASE WHEN u.is_activated = 1 THEN 'Yes' ELSE 'No' END AS is_activated,
+                CASE WHEN u.isVerified = 1 THEN 'Yes' ELSE 'No' END AS isVerified,
+                CASE WHEN u.status = 1 THEN 'Active' ELSE 'Inactive' END AS account_status,
+                CASE WHEN u.isPhysicalVisitAllowed = 1 THEN 'Yes' ELSE 'No' END AS isPhysicalVisitAllowed,
+                u.language, u.companyName, u.companyAddress, u.commercial_register_number,
+                u.legalForm, u.vat, u.business_phone, u.businessCountryCode,
+                u.websiteUrl, u.tagline, u.description, u.location, u.city, u.pincode,
+                u.fullAddress, u.google_rating, u.profileImage, u.coverImage,
+                CASE WHEN u.isNotification = 1 THEN 'Enabled' ELSE 'Disabled' END AS notifications_enabled,
+                u.createdAt, u.updatedAt
+         FROM tbl_users u
+         WHERE u.id = ? LIMIT 1`,
+        [userId]
+    );
+
     if (!userRows || userRows.length === 0) {
         throw new Error('User not found');
     }
-    const user = userRows[0];
+    const user = { ...userRows[0] };
     const userEmail = user.email;
 
     if (!userEmail) {
         throw new Error('User email not found');
     }
 
-    // 2. User Profile (Sanitize sensitive fields)
-    const safeUserProfile = { ...user };
-    delete safeUserProfile.password;
-    delete safeUserProfile.code;
-    delete safeUserProfile.forgotPasswordOtp;
-    delete safeUserProfile.remember_token;
-
-    // 3. User Roles & Notification Settings
-    const roles = await safeQuery(
+    const userRoles = await safeQuery(
         "SELECT role, seller_type, is_active, created_at, updated_at FROM tbl_roles WHERE user_id = ?",
         [userId]
     );
+    user.assigned_roles = userRoles.map(r => r.role).filter(Boolean).join(', ') || 'User';
 
-    const notifSettings = await safeQuery(
-        `SELECT user_id, new_matching_vehicles, price_changes, favorited_vehicle_updates, 
-                marketing_promotional, chat_messages, vehicle_inquiries, appointments, listing_updates 
-         FROM tbl_user_notification_settings 
-         WHERE user_id = ?`,
+    // -------------------------------------------------------------
+    // 2. Vehicle List (Complete Automotive Specs & Status)
+    // -------------------------------------------------------------
+    const listedCars = await safeQuery(
+        `SELECT 
+            c.id AS car_id,
+            c.brandName AS brand,
+            c.carModel AS model,
+            c.version,
+            c.selectYear AS model_year,
+            c.first_registration_date,
+            c.selling_price AS price_chf,
+            c.totalPrice AS total_price_chf,
+            c.new_price AS original_new_price_chf,
+            c.carMileage AS mileage_km,
+            COALESCE(c.fuelType, ft.code) AS fuel_type,
+            COALESCE(c.transmission, tr.code) AS transmission,
+            COALESCE(c.body_type, bt.code) AS body_type,
+            COALESCE(drv.code, '') AS drive_type,
+            COALESCE(c.carColor, col.color_key, c.exterior_color_custom) AS exterior_color,
+            CASE WHEN c.is_metallic = 1 THEN 'Yes' ELSE 'No' END AS is_metallic_paint,
+            COALESCE(c.interior_color_custom, '') AS interior_color,
+            c.doors,
+            c.sittingCapacity AS seats,
+            c.power_kw,
+            c.power_ps,
+            c.cubic_capacity AS displacement_ccm,
+            c.cylinders,
+            c.gears,
+            c.consumption AS consumption_l_per_100km,
+            c.co2Emission AS co2_emission_g_per_km,
+            c.energy_efficiency,
+            c.euro_norm,
+            c.empty_weight AS empty_weight_kg,
+            c.total_weight AS total_weight_kg,
+            c.braked_towing_capacity_kg,
+            c.wltp_range AS electric_range_km,
+            c.battery_capacity AS battery_capacity_kwh,
+            c.vin_number AS vin,
+            c.type_approval,
+            c.registration_master_number AS stamm_number,
+            COALESCE(vcond.condition_key, c.carCondition) AS car_condition,
+            c.mfk_status,
+            c.last_mfk_date,
+            c.next_mfk_due,
+            CASE WHEN c.is_swiss_vehicle = 1 THEN 'Yes' ELSE 'No' END AS is_swiss_vehicle,
+            COALESCE(vas.code, CASE WHEN c.is_accident_vehicle = 1 THEN 'accident' ELSE 'no_accident' END) AS accident_status,
+            CASE WHEN c.is_fresh_from_service = 1 THEN 'Yes' ELSE 'No' END AS is_fresh_from_service,
+            CASE WHEN c.isLeasing = 1 THEN 'Yes' ELSE 'No' END AS is_leasing_available,
+            c.leasingPrice AS monthly_leasing_price_chf,
+            c.warranty_type_text AS warranty_type,
+            c.warranty_number_of_months AS warranty_months,
+            c.warranty_kilometer AS warranty_max_km,
+            c.warranty_from,
+            c.warranty_to,
+            c.warranty_description,
+            c.extras AS optional_equipment,
+            c.carFeatures AS standard_features,
+            c.location,
+            c.listing_status,
+            c.listing_step,
+            CASE WHEN c.is_active = 1 THEN 'Active' ELSE 'Inactive' END AS is_active,
+            CASE WHEN c.is_deleted = 1 THEN 'Yes' ELSE 'No' END AS is_deleted,
+            c.createdAt AS created_at,
+            c.updatedAt AS updated_at
+         FROM tbl_cars c
+         LEFT JOIN tbl_fuel_types ft ON c.fuel_type_id = ft.id
+         LEFT JOIN tbl_transmissions tr ON c.transmission_id = tr.id
+         LEFT JOIN tbl_body_types bt ON c.body_type_id = bt.id
+         LEFT JOIN tbl_drives drv ON c.drive_type_id = drv.id
+         LEFT JOIN tbl_colors col ON (c.exterior_color_id = col.id OR c.color_id = col.id)
+         LEFT JOIN tbl_vehicle_conditions vcond ON c.carCondition = vcond.id
+         LEFT JOIN tbl_vehicle_accident_status vas ON c.vehicle_accident_status_id = vas.id
+         WHERE c.user_id = ?
+         ORDER BY c.id DESC`,
         [userId]
     );
 
-    // 4. Seller Details (Working Hours, Team, Services, Showroom Media)
-    const openingTimes = await safeQuery(
-        `SELECT day, is_closed, morning_open_time, morning_close_time, afternoon_open_time, afternoon_close_time 
-         FROM seller_opening_times 
-         WHERE user_id = ?`,
-        [userId]
-    );
-
-    const teamMembers = await safeQuery(
-        `SELECT fullName, role, phoneNumber, email, languages, profilePhoto 
-         FROM seller_team_members 
-         WHERE user_id = ?`,
-        [userId]
-    );
-
-    const services = await safeQuery(
-        "SELECT service_name, isActive FROM seller_services WHERE user_id = ?",
-        [userId]
-    );
-
-    const advantages = await safeQuery(
-        "SELECT title FROM seller_advantages WHERE user_id = ?",
-        [userId]
-    );
-
-    const showroomMedia = await safeQuery(
-        `SELECT 'image' AS media_type, imageUrl AS media_url, createdAt 
-         FROM seller_images WHERE user_id = ?
-         UNION ALL
-         SELECT 'video' AS media_type, videoUrl AS media_url, createdAt 
-         FROM seller_videos WHERE user_id = ?`,
-        [userId, userId]
-    );
-
-    // 5. Saved Cars / Wishlist
-    const savedCars = await safeQuery(
-        `SELECT w.id AS wishlist_id, w.carId, c.brandName, c.carModel, c.selectYear, 
-                c.selling_price, c.totalPrice, c.carMileage, c.fuelType, c.carColor, w.createdAt AS saved_at
-         FROM tbl_car_wishlist w
-         LEFT JOIN tbl_cars c ON w.carId = c.id
-         WHERE w.user_id = ?
-         ORDER BY w.id DESC`,
-        [userId]
-    );
-
-    // 6. Chat History (ACCURATE: only user direct chat messages & vehicle inquiries)
-    const chatHistory = await safeQuery(
-        `SELECT n.id, n.sendFrom, n.sendTo, 
-                uSender.fullName AS sender_name,
-                uReceiver.fullName AS receiver_name,
-                n.title, n.body AS message_text, 
-                n.carId, c.brandName, c.carModel,
-                n.isRead, n.createdAt
-         FROM tbl_notification n
-         LEFT JOIN tbl_users uSender ON n.sendFrom = uSender.id
-         LEFT JOIN tbl_users uReceiver ON n.sendTo = uReceiver.id
-         LEFT JOIN tbl_cars c ON n.carId = c.id
-         WHERE (n.sendTo = ? OR n.sendFrom = ?)
-           AND (
-               n.notificationType IN ('chat', 'SEND_MESSAGE', '4', 'SEND_MESSAGE_NOTIFICATION', 'car_inquiry')
-               OR LOWER(n.title) LIKE '%message%'
-               OR LOWER(n.title) LIKE '%chat%'
-           )
-         ORDER BY n.id DESC`,
-        [userId, userId]
-    );
-
-    // 7. Chat Attachments (ACCURATE: unified from chat_attachments and tbl_chat_attachments)
-    const att1 = await safeQuery(
-        "SELECT id, user_id, attachment_url, attachment_type, original_name, file_size, created_at FROM chat_attachments WHERE user_id = ?",
-        [userId]
-    );
-    const att2 = await safeQuery(
-        "SELECT id, user_id, attachment_url, attachment_type, original_name, file_size, createdAt AS created_at FROM tbl_chat_attachments WHERE user_id = ?",
-        [userId]
-    );
-    const chatAttachments = [...att1, ...att2].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-    // 8. General Notifications & Alerts (Filtered for user)
-    const userNotifications = await safeQuery(
-        `SELECT n.id, n.title, n.body, n.notificationType, n.carId, c.brandName, c.carModel, n.isRead, n.createdAt
-         FROM tbl_notification n
-         LEFT JOIN tbl_cars c ON n.carId = c.id
-         WHERE n.sendTo = ?
-           AND n.notificationType NOT IN ('chat', 'SEND_MESSAGE', '4', 'SEND_MESSAGE_NOTIFICATION', 'car_inquiry')
-         ORDER BY n.id DESC
-         LIMIT 100`,
-        [userId]
-    );
-
-    // 9. Activity - Recently Viewed Cars
-    const recentlyViewed = await safeQuery(
-        `SELECT rv.id, rv.car_id, c.brandName, c.carModel, c.selectYear, c.selling_price, c.totalPrice, rv.viewed_at
-         FROM tbl_recently_viewed rv
-         LEFT JOIN tbl_cars c ON rv.car_id = c.id
-         WHERE rv.user_id = ?
-         ORDER BY rv.id DESC`,
-        [userId]
-    );
-
-    // 10. Physical Visits / Test Drives
+    // -------------------------------------------------------------
+    // 3. Physical Visits (Test Drives & Showroom Viewings)
+    // -------------------------------------------------------------
     const physicalVisits = await safeQuery(
-        `SELECT pv.id, pv.car_id, c.brandName, c.carModel, pv.seller_id, pv.user_id, 
-                pv.full_name, pv.email, pv.phone_number, pv.visit_date, pv.visit_time, 
-                pv.status, pv.message, pv.created_at
+        `SELECT 
+            pv.id AS visit_id,
+            pv.car_id,
+            c.brandName AS car_brand,
+            c.carModel AS car_model,
+            c.selectYear AS car_year,
+            c.selling_price AS car_price_chf,
+            CASE WHEN pv.user_id = ? THEN 'Buyer (Booked by Me)' ELSE 'Seller (My Vehicle)' END AS my_role,
+            pv.user_id AS buyer_id,
+            COALESCE(u_buyer.fullName, pv.full_name) AS buyer_name,
+            COALESCE(pv.email, u_buyer.email) AS buyer_email,
+            COALESCE(pv.phone_number, u_buyer.phoneNumber) AS buyer_phone,
+            pv.seller_id,
+            u_seller.fullName AS seller_name,
+            u_seller.email AS seller_email,
+            u_seller.phoneNumber AS seller_phone,
+            pv.visit_date,
+            pv.visit_time,
+            pv.rescheduled_date,
+            pv.rescheduled_time,
+            pv.status AS seller_status,
+            pv.buyer_side_status,
+            pv.seller_note,
+            pv.message AS buyer_message,
+            pv.created_at
          FROM tbl_physical_visits pv
          LEFT JOIN tbl_cars c ON pv.car_id = c.id
+         LEFT JOIN tbl_users u_seller ON pv.seller_id = u_seller.id
+         LEFT JOIN tbl_users u_buyer ON pv.user_id = u_buyer.id
          WHERE pv.user_id = ? OR pv.seller_id = ?
          ORDER BY pv.id DESC`,
-        [userId, userId]
+        [userId, userId, userId]
     );
 
-    // 11. Saved Searches & Saved Reels
-    const savedSearches = await safeQuery(
-        "SELECT id, search_name, filters, is_active, created_at, updated_at FROM tbl_saved_searches WHERE user_id = ?",
-        [userId]
-    );
-
-    const savedReels = await safeQuery(
-        `SELECT sr.id, sr.userId, sr.carId, c.brandName, c.carModel, sr.reelType, sr.createdAt
-         FROM tbl_saved_car_reels sr
-         LEFT JOIN tbl_cars c ON sr.carId = c.id
-         WHERE sr.userId = ?
-         ORDER BY sr.id DESC`,
-        [userId]
-    );
-
-    const userUploadedReels = await safeQuery(
-        "SELECT id, user_id, reel_url, thumbnail, captions, is_active, createdAt FROM users_reels WHERE user_id = ? ORDER BY id DESC",
-        [userId]
-    );
-
-    // 12. Purchase Agreements (Sales Contracts)
-    const userPhone = user.phoneNumber || '';
-    const purchaseAgreements = await safeQuery(
-        `SELECT pa.id, pa.status, pa.seller_user_id, pa.buyer_full_name, pa.buyer_phone, 
-                pa.make, pa.model, pa.vin, pa.purchase_price, pa.handover_date, pa.created_at
-         FROM purchase_agreements pa
-         WHERE pa.seller_user_id = ? OR (pa.buyer_phone = ? AND pa.buyer_phone != '')
-         ORDER BY pa.id DESC`,
-        [userId, userPhone]
-    );
-
-    // 13. Purchases & Financial Transactions
-    const purchases = await safeQuery(
-        `SELECT p.id, p.user_id, p.plan_id, pl.name AS plan_name, p.purchased_slots, 
-                p.prorated_price, p.purchase_date, p.payment_status, p.plan_type, p.transaction_id
-         FROM tbl_purchases p
-         LEFT JOIN tbl_plans pl ON p.plan_id = pl.id
-         WHERE p.user_id = ?
-         ORDER BY p.id DESC`,
-        [userId]
-    );
-
-    // 14. Active Plans & Slot Requests
+    // -------------------------------------------------------------
+    // 4. Plan Slots (Subscriptions & Custom Slot Requests)
+    // -------------------------------------------------------------
     const userPlans = await safeQuery(
-        `SELECT up.id, up.user_id, up.plan_id, up.start_date, up.end_date, up.total_slots, 
-                up.is_active, p.name AS plan_name, p.price AS plan_price
+        `SELECT 
+            up.id AS id,
+            'Subscription Plan' AS entry_type,
+            COALESCE(p.name, CASE WHEN up.is_basic_signup = 1 THEN 'Free Basic Signup Plan' ELSE 'Custom Dealer Plan' END) AS plan_name,
+            COALESCE(p.plan_type, 'main') AS plan_type,
+            COALESCE(p.duration_type, 'monthly') AS duration_type,
+            COALESCE(p.price, '0.00') AS price_chf,
+            up.total_slots,
+            up.start_date,
+            up.end_date,
+            CASE WHEN up.is_active = 1 THEN 'Active' ELSE 'Inactive/Expired' END AS status,
+            CASE WHEN up.is_basic_signup = 1 THEN 'Yes' ELSE 'No' END AS is_basic_signup,
+            '' AS notes,
+            up.created_at
          FROM tbl_user_plans up
          LEFT JOIN tbl_plans p ON up.plan_id = p.id
          WHERE up.user_id = ?
@@ -332,155 +328,318 @@ export const exportAndEmailUserData = async (userId) => {
     );
 
     const slotRequests = await safeQuery(
-        `SELECT id, user_id, requested_slots, message, status, approved_price, duration_type, created_at 
-         FROM slot_requests 
-         WHERE user_id = ?
-         ORDER BY id DESC`,
+        `SELECT 
+            sr.id AS id,
+            'Custom Slot Request' AS entry_type,
+            'Custom Additional Slots' AS plan_name,
+            'additional' AS plan_type,
+            COALESCE(sr.duration_type, 'monthly') AS duration_type,
+            COALESCE(sr.approved_price, '0.00') AS price_chf,
+            sr.requested_slots AS total_slots,
+            sr.created_at AS start_date,
+            NULL AS end_date,
+            sr.status AS status,
+            'No' AS is_basic_signup,
+            CONCAT_WS(' | ', 
+                IF(sr.message IS NOT NULL AND sr.message != '', CONCAT('User Request: ', sr.message), NULL),
+                IF(sr.admin_message IS NOT NULL AND sr.admin_message != '', CONCAT('Admin Response: ', sr.admin_message), NULL)
+            ) AS notes,
+            sr.created_at
+         FROM slot_requests sr
+         WHERE sr.user_id = ?
+         ORDER BY sr.id DESC`,
         [userId]
     );
 
-    // 15. User Listed Cars
-    const listedCars = await safeQuery(
-        `SELECT id, brandName, carModel, selectYear, selling_price, totalPrice, 
-                carMileage, fuelType, transmission, body_type, listing_status, is_active, createdAt AS created_at 
-         FROM tbl_cars 
-         WHERE user_id = ? 
-         ORDER BY id DESC`,
+    const combinedPlansAndSlots = [...userPlans, ...slotRequests].sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+    );
+
+    // -------------------------------------------------------------
+    // 5. Chat History (ACCURATE: Firestore Direct Messages + Media Attachments + MySQL Attachments)
+    // -------------------------------------------------------------
+    const chatHistory = [];
+    const userIdsToFetch = new Set([String(userId)]);
+    const seenMediaUrls = new Set();
+
+    try {
+        const firestoreDb = getFirestore();
+        const strUserId = String(userId);
+
+        // Fetch all chat threads where participants array contains the user
+        const stringQuery = await firestoreDb.collection('chats').where('participants', 'array-contains', strUserId).get();
+        const chatDocMap = new Map();
+        stringQuery.docs.forEach(d => chatDocMap.set(d.id, d));
+
+        // Also check if stored as number in participants array
+        const numUserId = Number(userId);
+        if (!isNaN(numUserId)) {
+            const numQuery = await firestoreDb.collection('chats').where('participants', 'array-contains', numUserId).get();
+            numQuery.docs.forEach(d => {
+                if (!chatDocMap.has(d.id)) chatDocMap.set(d.id, d);
+            });
+        }
+
+        // Loop over each thread and extract messages from the subcollection 'messages'
+        for (const chatDoc of chatDocMap.values()) {
+            const chatData = chatDoc.data() || {};
+            const participants = (chatData.participants || []).map(String);
+            participants.forEach(p => userIdsToFetch.add(p));
+            const otherParticipantId = participants.find(p => p !== strUserId) || '';
+
+            const msgsSnap = await chatDoc.ref.collection('messages').get();
+            msgsSnap.forEach(mDoc => {
+                const m = mDoc.data() || {};
+                const senderId = String(m.senderId || '');
+                const receiverId = String(m.otherUserId || (senderId === strUserId ? otherParticipantId : strUserId));
+
+                if (senderId) userIdsToFetch.add(senderId);
+                if (receiverId) userIdsToFetch.add(receiverId);
+
+                const isSender = (senderId === strUserId);
+                const direction = isSender ? 'Sent' : 'Received';
+                const rawType = m.type || (m.mediaUrl ? 'attachment' : 'text');
+
+                let messageText = '';
+                if (m.text && m.text !== '📷 Photo') {
+                    messageText = m.fileName ? `${m.text} (${m.fileName})` : m.text;
+                } else if (m.fileName) {
+                    messageText = `[${rawType.toUpperCase()}] ${m.fileName}`;
+                } else if (m.mediaUrl) {
+                    messageText = `[${rawType.toUpperCase()}] Attachment`;
+                } else {
+                    messageText = m.text || '';
+                }
+
+                const attachmentUrl = m.mediaUrl || '';
+                if (attachmentUrl) {
+                    seenMediaUrls.add(attachmentUrl);
+                }
+
+                let sentAt = '';
+                if (m.createdAt && typeof m.createdAt.toDate === 'function') {
+                    sentAt = m.createdAt.toDate().toISOString().replace('T', ' ').slice(0, 19);
+                } else if (m.createdAt && m.createdAt._seconds) {
+                    sentAt = new Date(m.createdAt._seconds * 1000).toISOString().replace('T', ' ').slice(0, 19);
+                } else if (m.createdAt) {
+                    sentAt = new Date(m.createdAt).toISOString().replace('T', ' ').slice(0, 19);
+                }
+
+                const readBy = Array.isArray(m.readBy) ? m.readBy.map(String) : [];
+                const isRead = readBy.includes(receiverId) || readBy.length > 1;
+                const readStatus = isRead ? 'Read' : (isSender ? 'Delivered' : 'Received');
+
+                chatHistory.push({
+                    message_id: mDoc.id,
+                    message_type: rawType,
+                    direction,
+                    sender_id: senderId,
+                    receiver_id: receiverId,
+                    message_text: messageText,
+                    attachment_url: attachmentUrl,
+                    read_status: readStatus,
+                    sent_at: sentAt
+                });
+            });
+        }
+    } catch (fsErr) {
+        console.warn('[userDataExport] Firestore chat history fetch error:', fsErr.message);
+    }
+
+    // Resolve user names from MySQL tbl_users
+    const userMap = new Map();
+    if (userIdsToFetch.size > 0) {
+        const idsArray = Array.from(userIdsToFetch).filter(Boolean);
+        if (idsArray.length > 0) {
+            const usersRows = await safeQuery('SELECT id, fullName, email FROM tbl_users WHERE id IN (?)', [idsArray]);
+            for (const u of usersRows) {
+                userMap.set(String(u.id), u.fullName || u.email || `User #${u.id}`);
+            }
+        }
+    }
+
+    // Attach sender_name and receiver_name to each Firestore message
+    for (const item of chatHistory) {
+        if (item.sender_id === String(userId)) {
+            item.sender_name = user.fullName || 'You';
+            item.receiver_name = userMap.get(item.receiver_id) || (item.receiver_id ? `User #${item.receiver_id}` : 'Other User');
+        } else {
+            item.sender_name = userMap.get(item.sender_id) || (item.sender_id ? `User #${item.sender_id}` : 'Other User');
+            item.receiver_name = user.fullName || 'You';
+        }
+    }
+
+    // Merge any MySQL chat attachments (tbl_chat_attachments and chat_attachments) not already captured from Firestore
+    const attachments1 = await safeQuery(
+        `SELECT 
+            ca.id AS message_id,
+            COALESCE(ca.attachment_type, 'attachment') AS message_type,
+            'Sent' AS direction,
+            ca.user_id AS sender_id,
+            COALESCE(u.fullName, 'You') AS sender_name,
+            '' AS receiver_id,
+            'Chat Partner' AS receiver_name,
+            CONCAT('[', UPPER(COALESCE(ca.attachment_type, 'FILE')), '] ', COALESCE(ca.original_name, 'Attachment')) AS message_text,
+            ca.attachment_url,
+            'Sent' AS read_status,
+            DATE_FORMAT(ca.created_at, '%Y-%m-%d %H:%i:%s') AS sent_at
+         FROM chat_attachments ca
+         LEFT JOIN tbl_users u ON ca.user_id = u.id
+         WHERE ca.user_id = ?`,
         [userId]
     );
 
-    // 16. Support, Help Requests, App Feedback & Reported Listings
-    const supportTickets = await safeQuery(
-        "SELECT id, user_id, issue, admin_response, status, created_at FROM tbl_support WHERE user_id = ? ORDER BY id DESC",
+    const attachments2 = await safeQuery(
+        `SELECT 
+            ca.id AS message_id,
+            COALESCE(ca.attachment_type, 'attachment') AS message_type,
+            'Sent' AS direction,
+            ca.user_id AS sender_id,
+            COALESCE(u.fullName, 'You') AS sender_name,
+            '' AS receiver_id,
+            'Chat Partner' AS receiver_name,
+            CONCAT('[', UPPER(COALESCE(ca.attachment_type, 'FILE')), '] ', COALESCE(ca.original_name, 'Attachment')) AS message_text,
+            ca.attachment_url,
+            'Sent' AS read_status,
+            DATE_FORMAT(ca.createdAt, '%Y-%m-%d %H:%i:%s') AS sent_at
+         FROM tbl_chat_attachments ca
+         LEFT JOIN tbl_users u ON ca.user_id = u.id
+         WHERE ca.user_id = ?`,
         [userId]
     );
 
-    const helpRequests = await safeQuery(
-        "SELECT id, user_id, full_name, email, description, created_at FROM tbl_help_support WHERE user_id = ? OR email = ? ORDER BY id DESC",
-        [userId, userEmail]
+    for (const att of [...attachments1, ...attachments2]) {
+        if (att.attachment_url && !seenMediaUrls.has(att.attachment_url)) {
+            chatHistory.push(att);
+            seenMediaUrls.add(att.attachment_url);
+        }
+    }
+
+    // Merge any MySQL tbl_notification chat messages if not duplicate
+    const mysqlChatNotifs = await safeQuery(
+        `SELECT 
+            n.id AS message_id,
+            'text' AS message_type,
+            CASE 
+                WHEN n.sendFrom = ? THEN 'Sent' 
+                WHEN n.sendTo = ? THEN 'Received' 
+                ELSE 'Direct Message' 
+            END AS direction,
+            n.sendFrom AS sender_id,
+            COALESCE(uSender.fullName, CASE WHEN n.sendFrom = ? THEN 'You' WHEN n.title != 'New Message' AND n.title != '' THEN n.title ELSE 'Other User' END) AS sender_name,
+            n.sendTo AS receiver_id,
+            COALESCE(uReceiver.fullName, CASE WHEN n.sendTo = ? THEN 'You' ELSE 'Other User' END) AS receiver_name,
+            n.body AS message_text,
+            '' AS attachment_url,
+            CASE WHEN n.isRead = 1 THEN 'Read' ELSE 'Delivered' END AS read_status,
+            DATE_FORMAT(n.createdAt, '%Y-%m-%d %H:%i:%s') AS sent_at
+         FROM tbl_notification n
+         LEFT JOIN tbl_users uSender ON n.sendFrom = uSender.id
+         LEFT JOIN tbl_users uReceiver ON n.sendTo = uReceiver.id
+         WHERE (n.sendTo = ? OR n.sendFrom = ?)
+           AND n.notificationType = 'chat'
+         ORDER BY n.id ASC`,
+        [userId, userId, userId, userId, userId, userId]
     );
 
-    const appFeedbacks = await safeQuery(
-        "SELECT id, seller_id, rating, message, created_at FROM tbl_app_feedback WHERE seller_id = ? ORDER BY id DESC",
-        [userId]
-    );
+    // If chatHistory is empty or has non-duplicates from MySQL notifications, merge them
+    const seenTexts = new Set(chatHistory.map(c => `${c.sender_id}_${c.message_text}`));
+    for (const notif of mysqlChatNotifs) {
+        const key = `${notif.sender_id}_${notif.message_text}`;
+        if (!seenTexts.has(key)) {
+            chatHistory.push(notif);
+            seenTexts.add(key);
+        }
+    }
 
-    const reportedCars = await safeQuery(
-        `SELECT rc.id, rc.car_id, c.brandName, c.carModel, rc.reasons, rc.custom_message, rc.status, rc.created_at
-         FROM tbl_report_car rc
-         LEFT JOIN tbl_cars c ON rc.car_id = c.id
-         WHERE rc.user_id = ?
-         ORDER BY rc.id DESC`,
+    // Sort all messages chronologically
+    chatHistory.sort((a, b) => new Date(a.sent_at) - new Date(b.sent_at));
+
+    // -------------------------------------------------------------
+    // 6. Purchases & Financial Transactions
+    // -------------------------------------------------------------
+    const purchases = await safeQuery(
+        `SELECT 
+            p.id AS purchase_id,
+            p.user_id,
+            p.plan_id,
+            COALESCE(pl.name, 'Slots Package') AS plan_name,
+            p.plan_type,
+            p.purchased_slots,
+            p.prorated_price AS amount_chf,
+            'CHF' AS currency,
+            p.payment_status,
+            COALESCE(p.transaction_id, 'N/A') AS stripe_transaction_id,
+            p.purchase_date
+         FROM tbl_purchases p
+         LEFT JOIN tbl_plans pl ON p.plan_id = pl.id
+         WHERE p.user_id = ?
+         ORDER BY p.id DESC`,
         [userId]
     );
 
     // -------------------------------------------------------------
-    // Generate CSV Strings
+    // 7. Saved Cars / Wishlist (Strictly Excluding User's Own Cars)
     // -------------------------------------------------------------
-    const profileCsv = convertArrayToCsv([safeUserProfile]);
-    const rolesCsv = convertArrayToCsv(roles, ['role', 'seller_type', 'is_active', 'created_at']);
-    const notifSettingsCsv = convertArrayToCsv(notifSettings, ['user_id', 'new_matching_vehicles', 'price_changes', 'chat_messages', 'appointments']);
-    const openingTimesCsv = convertArrayToCsv(openingTimes, ['day', 'is_closed', 'morning_open_time', 'morning_close_time', 'afternoon_open_time', 'afternoon_close_time']);
-    const teamMembersCsv = convertArrayToCsv(teamMembers, ['fullName', 'role', 'phoneNumber', 'email', 'languages']);
-    const servicesAdvantagesCsv = convertArrayToCsv(
-        [
-            ...services.map(s => ({ type: 'Service', name_or_title: s.service_name, active: s.isActive })),
-            ...advantages.map(a => ({ type: 'Advantage', name_or_title: a.title, active: 1 }))
-        ],
-        ['type', 'name_or_title', 'active']
+    const savedCars = await safeQuery(
+        `SELECT 
+            w.id AS wishlist_id,
+            w.carId AS car_id,
+            c.brandName AS brand,
+            c.carModel AS model,
+            c.version,
+            c.selectYear AS model_year,
+            c.first_registration_date,
+            c.selling_price AS price_chf,
+            c.totalPrice AS total_price_chf,
+            c.carMileage AS mileage_km,
+            COALESCE(c.fuelType, ft.code) AS fuel_type,
+            COALESCE(c.transmission, tr.code) AS transmission,
+            COALESCE(c.body_type, bt.code) AS body_type,
+            COALESCE(c.carColor, col.color_key, c.exterior_color_custom) AS color,
+            c.power_kw,
+            c.power_ps,
+            c.location,
+            u_seller.fullName AS seller_name,
+            u_seller.phoneNumber AS seller_phone,
+            w.createdAt AS saved_at
+         FROM tbl_car_wishlist w
+         JOIN tbl_cars c ON w.carId = c.id
+         LEFT JOIN tbl_fuel_types ft ON c.fuel_type_id = ft.id
+         LEFT JOIN tbl_transmissions tr ON c.transmission_id = tr.id
+         LEFT JOIN tbl_body_types bt ON c.body_type_id = bt.id
+         LEFT JOIN tbl_colors col ON (c.exterior_color_id = col.id OR c.color_id = col.id)
+         LEFT JOIN tbl_users u_seller ON c.user_id = u_seller.id
+         WHERE w.user_id = ?
+           AND c.user_id != w.user_id
+           AND c.is_deleted = 0
+         ORDER BY w.id DESC`,
+        [userId]
     );
-    const showroomMediaCsv = convertArrayToCsv(showroomMedia, ['media_type', 'media_url', 'createdAt']);
-    const savedCarsCsv = convertArrayToCsv(savedCars, ['wishlist_id', 'carId', 'brandName', 'carModel', 'selectYear', 'selling_price', 'totalPrice', 'carMileage', 'fuelType', 'saved_at']);
-    const chatHistoryCsv = convertArrayToCsv(chatHistory, ['id', 'sendFrom', 'sendTo', 'sender_name', 'receiver_name', 'title', 'message_text', 'carId', 'brandName', 'carModel', 'isRead', 'createdAt']);
-    const chatAttachmentsCsv = convertArrayToCsv(chatAttachments, ['id', 'user_id', 'attachment_url', 'attachment_type', 'original_name', 'file_size', 'created_at']);
-    const notificationsCsv = convertArrayToCsv(userNotifications, ['id', 'title', 'body', 'notificationType', 'carId', 'brandName', 'carModel', 'isRead', 'createdAt']);
-    const activityCsv = convertArrayToCsv(recentlyViewed, ['id', 'car_id', 'brandName', 'carModel', 'selectYear', 'selling_price', 'totalPrice', 'viewed_at']);
-    const visitsCsv = convertArrayToCsv(physicalVisits, ['id', 'car_id', 'brandName', 'carModel', 'seller_id', 'user_id', 'full_name', 'email', 'phone_number', 'visit_date', 'visit_time', 'status', 'message', 'created_at']);
-    const savedSearchesCsv = convertArrayToCsv(savedSearches, ['id', 'search_name', 'filters', 'is_active', 'created_at']);
-    const savedReelsCsv = convertArrayToCsv(savedReels, ['id', 'userId', 'carId', 'brandName', 'carModel', 'reelType', 'createdAt']);
-    const userUploadedReelsCsv = convertArrayToCsv(userUploadedReels, ['id', 'user_id', 'reel_url', 'captions', 'is_active', 'createdAt']);
-    const purchaseAgreementsCsv = convertArrayToCsv(purchaseAgreements, ['id', 'status', 'seller_user_id', 'buyer_full_name', 'buyer_phone', 'make', 'model', 'vin', 'purchase_price', 'handover_date', 'created_at']);
-    const purchasesCsv = convertArrayToCsv(purchases, ['id', 'user_id', 'plan_id', 'plan_name', 'purchased_slots', 'prorated_price', 'purchase_date', 'payment_status', 'plan_type', 'transaction_id']);
-    const plansAndSlotsCsv = convertArrayToCsv(
-        [
-            ...userPlans.map(up => ({ entry_type: 'Active Plan', id: up.id, name: up.plan_name, price: up.plan_price, total_slots: up.total_slots, start_date: up.start_date, end_date: up.end_date, status: up.is_active ? 'Active' : 'Inactive' })),
-            ...slotRequests.map(sr => ({ entry_type: 'Slot Request', id: sr.id, name: 'Additional Slots', price: sr.approved_price, total_slots: sr.requested_slots, start_date: sr.created_at, end_date: '', status: sr.status }))
-        ],
-        ['entry_type', 'id', 'name', 'price', 'total_slots', 'start_date', 'end_date', 'status']
+
+    // -------------------------------------------------------------
+    // Generate Exactly the 7 CSV Strings
+    // -------------------------------------------------------------
+    const profileCsv = convertArrayToCsv([user]);
+    const vehicleListCsv = convertArrayToCsv(listedCars);
+    const physicalVisitsCsv = convertArrayToCsv(physicalVisits);
+    const planSlotsCsv = convertArrayToCsv(combinedPlansAndSlots);
+    const chatHistoryCsv = convertArrayToCsv(
+        chatHistory,
+        ['message_id', 'message_type', 'direction', 'sender_id', 'sender_name', 'receiver_id', 'receiver_name', 'message_text', 'attachment_url', 'read_status', 'sent_at']
     );
-    const listedCarsCsv = convertArrayToCsv(listedCars, ['id', 'brandName', 'carModel', 'selectYear', 'selling_price', 'totalPrice', 'carMileage', 'fuelType', 'transmission', 'body_type', 'listing_status', 'is_active', 'created_at']);
-    const supportTicketsCsv = convertArrayToCsv(supportTickets, ['id', 'user_id', 'issue', 'admin_response', 'status', 'created_at']);
-    const helpRequestsCsv = convertArrayToCsv(helpRequests, ['id', 'user_id', 'full_name', 'email', 'description', 'created_at']);
-    const appFeedbackCsv = convertArrayToCsv(appFeedbacks, ['id', 'seller_id', 'rating', 'message', 'created_at']);
-    const reportedCarsCsv = convertArrayToCsv(reportedCars, ['id', 'car_id', 'brandName', 'carModel', 'reasons', 'custom_message', 'status', 'created_at']);
+    const purchasesCsv = convertArrayToCsv(purchases);
+    const savedCarsCsv = convertArrayToCsv(savedCars);
 
-    // Readme file
-    const readmeContent = `=====================================================
-CARZONE - USER DATA EXPORT ARCHIVE
-=====================================================
-Export Timestamp: ${new Date().toISOString()}
-User ID: ${userId}
-User Full Name: ${user.fullName || 'N/A'}
-User Email: ${userEmail}
-Account Type: ${user.account_type || 'N/A'}
-
-Archive Contents:
------------------
-1. profile_details.csv          - Complete user personal and account profile
-2. user_roles.csv               - Account roles (Buyer / Seller / Dealer)
-3. notification_settings.csv    - Push and alert preferences
-4. seller_opening_times.csv     - Showroom working hours (if seller)
-5. seller_team_members.csv      - Team members and contacts (if seller)
-6. seller_services_advantages.csv- Dealer services and advantages
-7. seller_showroom_media.csv    - Showroom photos and promo videos
-8. saved_cars.csv               - Wishlisted and saved cars
-9. chat_history.csv             - Direct chat messages and car inquiries
-10. chat_attachments.csv        - Uploaded chat media (images, docs, videos)
-11. notifications.csv           - System and vehicle alerts
-12. recently_viewed_cars.csv    - Vehicle browsing history
-13. physical_visits.csv         - Test-drive and showroom visit bookings
-14. saved_searches.csv          - Saved search filters and criteria
-15. saved_reels.csv             - Saved video reels
-16. user_uploaded_reels.csv     - Reels uploaded by the user
-17. purchase_agreements.csv     - Vehicle purchase agreements and contracts
-18. purchases_and_transactions.csv - Stripe invoices and payment transactions
-19. plans_and_slots.csv         - Plan subscriptions and slot requests
-20. my_listed_cars.csv          - Vehicles listed for sale by the user
-21. support_tickets.csv         - Customer support tickets
-22. help_requests.csv           - Help and inquiry requests
-23. app_feedback.csv            - User submitted app feedback
-24. reported_cars.csv           - Listing reports submitted by user
-
-=====================================================
-`;
-
-    // Package all CSVs into Zip Buffer
+    // Package ONLY the 7 required CSV files into the Zip Buffer
     const zipFiles = [
-        { name: 'README.txt', content: readmeContent },
-        { name: 'profile_details.csv', content: profileCsv },
-        { name: 'user_roles.csv', content: rolesCsv },
-        { name: 'notification_settings.csv', content: notifSettingsCsv },
-        { name: 'seller_opening_times.csv', content: openingTimesCsv },
-        { name: 'seller_team_members.csv', content: teamMembersCsv },
-        { name: 'seller_services_advantages.csv', content: servicesAdvantagesCsv },
-        { name: 'seller_showroom_media.csv', content: showroomMediaCsv },
-        { name: 'saved_cars.csv', content: savedCarsCsv },
+        { name: 'my_profile.csv', content: profileCsv },
+        { name: 'vehicle_list.csv', content: vehicleListCsv },
+        { name: 'physical_visits.csv', content: physicalVisitsCsv },
+        { name: 'plan_slots.csv', content: planSlotsCsv },
         { name: 'chat_history.csv', content: chatHistoryCsv },
-        { name: 'chat_attachments.csv', content: chatAttachmentsCsv },
-        { name: 'notifications.csv', content: notificationsCsv },
-        { name: 'recently_viewed_cars.csv', content: activityCsv },
-        { name: 'physical_visits.csv', content: visitsCsv },
-        { name: 'saved_searches.csv', content: savedSearchesCsv },
-        { name: 'saved_reels.csv', content: savedReelsCsv },
-        { name: 'user_uploaded_reels.csv', content: userUploadedReelsCsv },
-        { name: 'purchase_agreements.csv', content: purchaseAgreementsCsv },
         { name: 'purchases_and_transactions.csv', content: purchasesCsv },
-        { name: 'plans_and_slots.csv', content: plansAndSlotsCsv },
-        { name: 'my_listed_cars.csv', content: listedCarsCsv },
-        { name: 'support_tickets.csv', content: supportTicketsCsv },
-        { name: 'help_requests.csv', content: helpRequestsCsv },
-        { name: 'app_feedback.csv', content: appFeedbackCsv },
-        { name: 'reported_cars.csv', content: reportedCarsCsv }
+        { name: 'saved_cars.csv', content: savedCarsCsv }
     ];
 
     const zipBuffer = await createZipBuffer(zipFiles);
@@ -511,6 +670,6 @@ Archive Contents:
         ]
     });
 
-    console.log(`[userDataExport] User data ZIP successfully sent to ${userEmail}`);
+    console.log(`[userDataExport] User data ZIP successfully sent to ${userEmail} (${fileName}) containing exactly 7 CSVs.`);
     return { success: true, email: userEmail, fileName };
 };

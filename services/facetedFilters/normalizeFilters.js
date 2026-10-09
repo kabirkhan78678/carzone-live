@@ -169,10 +169,10 @@ export const parseJsonObjectSafe = (value) => {
 export const normalizeFacetedFilters = (rawFilters = {}) => {
     const source = parseJsonObjectSafe(rawFilters);
 
-    const rawPrice = parseJsonObjectSafe(source.price || {});
-    const rawLeasing = parseJsonObjectSafe(source.leasing || {});
-    const rawYear = parseJsonObjectSafe(source.year || {});
-    const rawMileage = parseJsonObjectSafe(source.mileage || {});
+    const rawPrice = parseJsonObjectSafe(source.price || source.price_range || {});
+    const rawLeasing = parseJsonObjectSafe(source.leasing || source.leasing_rate || {});
+    const rawYear = parseJsonObjectSafe(source.year || source.year_range || {});
+    const rawMileage = parseJsonObjectSafe(source.mileage || source.kilometers_range || source.km_range || {});
     const rawPower = parseJsonObjectSafe(
         source.engine_power || source.power || source.power_output || source.powerOutput || source.enginePower || {}
     );
@@ -267,19 +267,19 @@ export const normalizeFacetedFilters = (rawFilters = {}) => {
 
     return {
         fuel_type_ids: normalizeIdArray(
-            pickFirstDefined(source, ["fuel_type_ids", "fuelType", "selected_ids"])
+            pickFirstDefined(source, ["fuel_type_ids", "fuel_type_id", "fuel_type", "fuelType", "fuel", "selected_ids"])
         ),
         transmission_ids: normalizeIdArray(
-            pickFirstDefined(source, ["transmission_ids", "transmission"])
+            pickFirstDefined(source, ["transmission_ids", "transmission_id", "transmission", "transmissions"])
         ),
         body_type_ids: normalizeIdArray(
-            pickFirstDefined(source, ["body_type_ids", "body_type", "bodytypeIds"])
+            pickFirstDefined(source, ["body_type_ids", "body_type_id", "body_type", "bodyType", "bodytypeIds"])
         ),
         drive_ids: normalizeIdArray(
-            pickFirstDefined(source, ["drive_ids", "drive_type"])
+            pickFirstDefined(source, ["drive_ids", "drive_type_id", "drive_type", "driveType", "drive"])
         ),
         state_ids: normalizeIdArray(
-            pickFirstDefined(source, ["state_ids"])
+            pickFirstDefined(source, ["state_ids", "state_id", "state", "vehicle_state", "vehicle_state_id"])
         ),
         accident_status_ids: normalizeAccidentStatusIds(source, rawAccidentStatus),
         mfk_warranty_ids: rawMfkWarrantyIds,
@@ -288,7 +288,7 @@ export const normalizeFacetedFilters = (rawFilters = {}) => {
         ),
         vehicle_condition_ids: normalizeIdArray(
             pickFirstDefined(rawVehicleCondition, ["ids", "selected_ids", "values"]) ??
-            pickFirstDefined(source, ["vehicle_condition_ids", "condition_id", "carCondition"])
+            pickFirstDefined(source, ["vehicle_condition_ids", "vehicle_condition_id", "vehicle_condition", "condition_id", "carCondition", "condition"])
         ),
         energy_efficiency_codes: normalizeStringArray(
             pickFirstDefined(rawEnergyEfficiency, ["codes", "ids", "selected_ids", "values"]) ??
@@ -296,21 +296,12 @@ export const normalizeFacetedFilters = (rawFilters = {}) => {
         ),
         listing_age_days: normalizeIdArray(
             pickFirstDefined(rawListingAge, ["ids", "selected_ids", "values"]) ??
-            pickFirstDefined(source, ["listing_age_days", "listing_age"])
+            pickFirstDefined(source, ["listing_age_days", "listing_age", "listingAge", "age_listing", "age"])
         ),
-
-        // exterior_color_ids: normalizeIdArray(
-        //     pickFirstDefined(rawExteriorColor, ["ids", "selected_ids", "values"]) ??
-        //     pickFirstDefined(source, ["exterior_color_ids", "exterior_color_id", "exterior_color"])
-        // ),
-        // interior_color_ids: normalizeIdArray(
-        //     pickFirstDefined(rawInteriorColor, ["ids", "selected_ids", "values"]) ??
-        //     pickFirstDefined(source, ["interior_color_ids", "interior_color_id", "interior_color"])
-        // ),
 
         exterior_color_ids: normalizeIdArray(
             pickFirstDefined(rawExteriorColor, ["ids", "selected_ids", "values"]) ??
-            pickFirstDefined(source, ["exterior_color_ids", "exterior_color_id", "exterior_color"])
+            pickFirstDefined(source, ["exterior_color_ids", "exterior_color_id", "exterior_color", "color_ids", "color_id", "color"])
         ),
         interior_color_ids: normalizeIdArray(
             pickFirstDefined(rawInteriorColor, ["ids", "selected_ids", "values"]) ??
@@ -318,35 +309,35 @@ export const normalizeFacetedFilters = (rawFilters = {}) => {
         ),
         price: {
             min: toNullableNumber(
-                pickFirstDefined(rawPrice, ["min", "from"]) ??
-                pickFirstDefined(rawLeasing, ["min", "from"]) ??
-                pickFirstDefined(source, ["price_min", "price_from", "car_price_from"])
+                pickFirstDefined(rawPrice, ["min", "from", "min_price"]) ??
+                pickFirstDefined(rawLeasing, ["min", "from", "min_price"]) ??
+                pickFirstDefined(source, ["price_min", "price_from", "car_price_from", "min_price", "from_price", "price_range_from"])
             ),
             max: toNullableNumber(
-                pickFirstDefined(rawPrice, ["max", "to"]) ??
-                pickFirstDefined(rawLeasing, ["max", "to"]) ??
-                pickFirstDefined(source, ["price_max", "price_to", "car_price_to"])
+                pickFirstDefined(rawPrice, ["max", "to", "max_price"]) ??
+                pickFirstDefined(rawLeasing, ["max", "to", "max_price"]) ??
+                pickFirstDefined(source, ["price_max", "price_to", "car_price_to", "max_price", "to_price", "price_range_to"])
             ),
             type: normalizedPriceType
         },
         year: {
             min: toNullableNumber(
-                pickFirstDefined(rawYear, ["min", "from"]) ??
-                pickFirstDefined(source, ["year_min", "year_from", "from_year"])
+                pickFirstDefined(rawYear, ["min", "from", "min_year"]) ??
+                pickFirstDefined(source, ["year_min", "year_from", "from_year", "min_year", "year_range_from"])
             ),
             max: toNullableNumber(
-                pickFirstDefined(rawYear, ["max", "to"]) ??
-                pickFirstDefined(source, ["year_max", "year_to", "to_year"])
+                pickFirstDefined(rawYear, ["max", "to", "max_year"]) ??
+                pickFirstDefined(source, ["year_max", "year_to", "to_year", "max_year", "year_range_to"])
             )
         },
         mileage: {
             min: toNullableNumber(
-                pickFirstDefined(rawMileage, ["min", "from"]) ??
-                pickFirstDefined(source, ["mileage_min", "mileage_from", "min_mileage", "from_km"])
+                pickFirstDefined(rawMileage, ["min", "from", "min_km", "from_km"]) ??
+                pickFirstDefined(source, ["mileage_min", "mileage_from", "min_mileage", "from_km", "min_km", "km_from", "kilometers_range_from"])
             ),
             max: toNullableNumber(
-                pickFirstDefined(rawMileage, ["max", "to"]) ??
-                pickFirstDefined(source, ["mileage_max", "mileage_to", "max_mileage", "to_km"])
+                pickFirstDefined(rawMileage, ["max", "to", "max_km", "to_km"]) ??
+                pickFirstDefined(source, ["mileage_max", "mileage_to", "max_mileage", "to_km", "max_km", "km_to", "kilometers_range_to"])
             )
         },
         engine_power: {
@@ -475,13 +466,13 @@ export const normalizeFacetedFilters = (rawFilters = {}) => {
             )
         },
         brand_names: normalizeStringArray(
-            pickFirstDefined(source, ["brand_names", "brandName", "make", "makes"])
+            pickFirstDefined(source, ["brand_names", "brand_name", "brandName", "brand", "make", "makes"])
         ),
         model_names: normalizeStringArray(
-            pickFirstDefined(source, ["model_names", "carModel", "models", "model"])
+            pickFirstDefined(source, ["model_names", "model_name", "car_model", "carModel", "model", "models"])
         ),
         seller_types: normalizeStringArray(
-            pickFirstDefined(source, ["seller_types", "sellerType"])
+            pickFirstDefined(source, ["seller_types", "seller_type", "sellerType", "sellerTypes"])
         ).filter((item) => String(item).toLowerCase() !== "all"),
         extra_filter_ids: normalizeIdArray(
             pickFirstDefined(source, ["extra_filter_ids", "extra_filters", "extraFilters", "extras_filters", "extras"])

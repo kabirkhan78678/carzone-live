@@ -272,56 +272,49 @@ export const sendChatNotification = async ({
         }
 
         // ============================================
-        // FCM TOKEN
-        // ============================================
-
-        if (
-            !user.fcmToken ||
-            String(user.fcmToken).trim() === ""
-        ) {
-            console.warn(
-                `No FCM token found for user ${userId}`
-            );
-
-            return {
-                success: false,
-                reason: "FCM token not found",
-            };
-        }
-
-        // ============================================
-        // RECEIVER LANGUAGE
-        // ============================================
-
-        const language = user.language || "en";
-
-        // ============================================
-        // CHAT TITLE
-        // Sender name should be title
+        // CHAT TITLE & MESSAGE BODY
         // ============================================
 
         const title = String(senderName || "New Message").trim();
-
-        // ============================================
-        // ACTUAL CHAT MESSAGE
-        // Do NOT translate chat message
-        // ============================================
-
         const notificationBody = String(body).trim();
 
         // ============================================
-        // CAR DETAILS
-        // FCM DATA VALUES MUST BE STRINGS
+        // IN-APP DATABASE INSERTION FOR CHAT (ALWAYS SAVED)
         // ============================================
+        try {
+            await insertUserNotifications({
+                data: {
+                    sendFrom: senderId ? Number(senderId) : null,
+                    sendTo: Number(userId),
+                    notificationType: 'chat',
+                    carId: null,
+                    isSendTo: 1
+                },
+                notification: {
+                    title: title,
+                    body: notificationBody
+                }
+            }, "sent");
+            console.log(`✅ In-app chat message saved to DB for user ${userId}`);
+        } catch (dbErr) {
+            console.error("Chat in-app DB notification insert error:", dbErr.message);
+        }
+
+        // ============================================
+        // FIREBASE PUSH NOTIFICATION (IF FCM TOKEN EXISTS)
+        // ============================================
+
+        if (!user.fcmToken || String(user.fcmToken).trim() === "") {
+            console.warn(`No FCM token found for user ${userId}. In-app message saved to DB.`);
+            return {
+                success: true,
+                messageId: "db_saved_no_fcm",
+            };
+        }
 
         const serializedCarDetails = carDetails
             ? JSON.stringify(carDetails)
             : "";
-
-        // ============================================
-        // FIREBASE PAYLOAD
-        // Same pattern as physical visit
-        // ============================================
 
         const payload = {
             token: String(user.fcmToken).trim(),
@@ -333,37 +326,19 @@ export const sendChatNotification = async ({
 
             data: {
                 type: "chat",
-
                 notification_type: "chat",
-
-                id: chatId
-                    ? String(chatId)
-                    : "",
-
-                chat_id: chatId
-                    ? String(chatId)
-                    : "",
-
-                sender_id: senderId
-                    ? String(senderId)
-                    : "",
-
+                id: chatId ? String(chatId) : "",
+                chat_id: chatId ? String(chatId) : "",
+                sender_id: senderId ? String(senderId) : "",
                 receiver_id: String(userId),
-
                 body: notificationBody,
-
                 car_details: serializedCarDetails,
-
-                sendFrom: senderId
-                    ? String(senderId)
-                    : "",
-
+                sendFrom: senderId ? String(senderId) : "",
                 sendTo: String(userId),
             },
 
             android: {
                 priority: "high",
-
                 notification: {
                     sound: "default",
                 },
@@ -395,27 +370,6 @@ export const sendChatNotification = async ({
                     console.log(`Cleaned expired FCM token for user ${userId}`);
                 } catch (e) { }
             }
-        }
-
-        // ============================================
-        // IN-APP DATABASE INSERTION FOR CHAT
-        // ============================================
-        try {
-            await insertUserNotifications({
-                data: {
-                    sendFrom: senderId ? Number(senderId) : null,
-                    sendTo: Number(userId),
-                    notificationType: 'chat',
-                    carId: null,
-                    isSendTo: 1
-                },
-                notification: {
-                    title: title,
-                    body: notificationBody
-                }
-            }, "sent");
-        } catch (dbErr) {
-            console.error("Chat in-app DB notification insert error:", dbErr.message);
         }
 
         return {

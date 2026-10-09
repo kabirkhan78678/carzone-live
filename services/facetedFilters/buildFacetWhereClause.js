@@ -510,7 +510,7 @@ export const buildFacetedConditions = (
     // EXTRA FILTERS
     // ============================================
 
-    if (excludeFacet !== "extra_filters") {
+    if (excludeFacet !== "extra_filters" && excludeFacet !== "extras") {
         const rawExtraFilterIds = filters.extra_filter_ids || filters.extra_filters || [];
         const normalizedExtraFilterIds = normalizePositiveIdArray(rawExtraFilterIds);
         if (normalizedExtraFilterIds.length) {

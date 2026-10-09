@@ -262,8 +262,8 @@ app.post('/web/listYourCar', authenticateUser, uploadProfile.fields(fieldsConfig
 app.delete('/web/deleteAccount', authenticateUser, deleteAccount);
 app.post('/web/deleteAccount', authenticateUser, deleteAccount);
 app.delete('/web/delete-account', authenticateUser, deleteAccount);
-app.post('/web/delete-account', authenticateUser, deleteAccount);
-app.get('/web/filters', controller.userController.getFilters);
+app.get('/web/filters', optionalAuthenticateUser, controller.userController.getFilters);
+app.post('/web/filters', optionalAuthenticateUser, controller.userController.getFilters);
 app.get('/web/all-makes', getAllMakes);
 app.get('/web/models-by-make/:brand_id', modelsByMakeValidation, handleValidationErrors, controller.userController.getModelsListWeb);
 
@@ -319,8 +319,10 @@ app.get('/purchase-agreement/template', controller.userController.downloadBlankP
 app.get('/getMfkStatusList', controller.userController.getMfkStatusList);
 app.get('/sort-data', controller.userController.getSortList);
 
-app.get('/extras-data', controller.userController.getExtrasList);
-app.get('/features-data', controller.userController.getFeaturesList);
+app.get('/extras-data', optionalAuthenticateUser, controller.userController.getExtrasList);
+app.post('/extras-data', optionalAuthenticateUser, controller.userController.getExtrasList);
+app.get('/features-data', optionalAuthenticateUser, controller.userController.getFeaturesList);
+app.post('/features-data', optionalAuthenticateUser, controller.userController.getFeaturesList);
 
 // Notification Settings & FCM Routes
 app.get('/notification-settings', authenticateUser, controller.userController.getNotificationSettings);

@@ -1,5 +1,6 @@
 
 import { getExtrasListModel } from './analytics.model.js';
+import { normalizeFacetedFilters } from '../../services/facetedFilters/normalizeFilters.js';
 import {
     getTextValues,
     buildWhereConditions,
@@ -13,7 +14,7 @@ import {
 } from './filtersDropdownQueries.js';
 import { queryRangeAndTotalsFacets } from './filtersRangeQueries.js';
 
-export const getAllFilters = async (filters) => {
+export const getAllFilters = async (filters, normalizedFilters = null) => {
     if (filters.vehicle_accident_status_id === undefined && filters.accident_vehicle !== undefined) {
         filters.vehicle_accident_status_id = filters.accident_vehicle;
     }
@@ -35,13 +36,14 @@ export const getAllFilters = async (filters) => {
     const whereNonCar = nonCarConditions.length ? `WHERE ${nonCarConditions.join(" AND ")}` : "WHERE 1=1";
 
     const lang = filters.lang || "en";
+    const effectiveNormalized = normalizedFilters || normalizeFacetedFilters(filters);
 
     const [{ brand_name_list, model_name_list }, categorical, age_of_listing_raw, rangeTotals, extrasRows] = await Promise.all([
         queryBrandAndModelFacets(sellerJoin, baseWhere),
         queryCategoricalFacets(carJoinClause, sellerJoin, whereNonCar),
         queryAgeOfListingFacet(sellerJoin, baseWhere),
         queryRangeAndTotalsFacets(filters, sellerJoin, baseWhere),
-        getExtrasListModel(lang, filters)
+        getExtrasListModel(lang, effectiveNormalized)
     ]);
 
     const extras = (extrasRows || [])
@@ -55,6 +57,7 @@ export const getAllFilters = async (filters) => {
             is_active: row.is_active,
             real_name_id: row.real_name_id,
             title: row.title || row.name || row.display_key || row.extra_key,
+            name: row.name || row.title || row.display_key || row.extra_key,
             count: Number(row.count || 0)
         }));
 
