@@ -423,9 +423,17 @@ export const listCarmobile = async (req, res) => {
             currentStep === LISTING_STEP.PREVIEW &&
             toBool(is_final_submit) === 1;
 
-        if (shouldPublish) {
-            data.listing_status = "published";
-        }
+        data.listing_status = shouldPublish ? "published" : "draft";
+        data.is_active = shouldPublish ? 1 : 0;
+
+        delete data.seller_type;
+        delete data.sellerType;
+        delete data.account_type;
+        delete data.package_id;
+        delete data.listing_type;
+        delete data.duration_option;
+        delete data.payment_status;
+        delete data.listing_expires_at;
 
         console.log(data);
 
