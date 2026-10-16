@@ -4,7 +4,7 @@ import { baseurl } from '../../config/path.js';
 import { detectText } from '../rekognitionService.js';
 import { sendCarListedNotification } from '../notification.service.js';
 import { notifyListingEvent, notifyMatchingSearchUsers } from '../notificationDispatchers.js';
-import { fetchUsersById, getUserActivePlans, getUserTotalSlots, countUserCars, insertSellerCars, updateSellerCars, replaceCarLeasingByCarId, clearCarLeasingByCarId, replaceCarContactByCarId, addCarImagesByCarId, replaceCarFeatures } from '../../models/user.model.js';
+import { fetchUsersById, fetchUserRoleData, getUserActivePlans, getUserTotalSlots, countUserCars, insertSellerCars, updateSellerCars, replaceCarLeasingByCarId, clearCarLeasingByCarId, replaceCarContactByCarId, addCarImagesByCarId, replaceCarFeatures } from '../../models/user.model.js';
 import { handleError, handleSuccess, getRequestLanguage } from '../../utils/responseHandler.js';
 import { getMessage, hasExplicitContent } from '../../utils/user_helper.js';
 import { variableTypes } from '../../utils/constant.js';
@@ -16,16 +16,51 @@ export const handleListingCar = async (req, res, platform = 'web') => {
         const lang = getRequestLanguage(req);
 
         const user = await fetchUsersById(user_id);
-        const plans = await getUserActivePlans(user_id);
 
-        if (!plans || plans.length === 0) {
-            return handleError(res, 400, getMessage(lang, 'no active plan'));
+        const normalizeType = (val) => String(val ?? '').trim().toLowerCase();
+
+        const inputSellerType = normalizeType(
+            req.body?.seller_type ||
+            req.body?.sellerType ||
+            req.body?.account_type ||
+            req.query?.seller_type ||
+            req.query?.sellerType ||
+            req.query?.account_type
+        );
+
+        const currentUser = (Array.isArray(user) && user.length > 0) ? user[0] : (req.user || {});
+        const userAccountType = normalizeType(currentUser.account_type || req.user?.account_type);
+
+        const roleData = await fetchUserRoleData(user_id);
+        const sellerRole = Array.isArray(roleData) ? roleData.find(r => r.role === 'seller') : null;
+        const roleSellerType = normalizeType(sellerRole?.seller_type);
+
+        const isExplicitCompany = ['company', 'business', 'dealer'].includes(inputSellerType);
+        const isExplicitPrivate = ['private', 'personal', 'individual'].includes(inputSellerType);
+
+        let isPrivateSeller = false;
+        if (isExplicitPrivate) {
+            isPrivateSeller = true;
+        } else if (isExplicitCompany) {
+            isPrivateSeller = false;
+        } else if (userAccountType === 'company' || userAccountType === 'business' || roleSellerType === 'business') {
+            isPrivateSeller = false;
+        } else {
+            isPrivateSeller = true;
         }
-        const slotLimit = await getUserTotalSlots(user_id);
-        const listedCarCount = await countUserCars(user_id);
 
-        if (listedCarCount >= slotLimit) {
-            return handleError(res, 400, getMessage(lang, variableTypes.SLOT_LIMIT_EXCEEDED));
+        if (!isPrivateSeller) {
+            const plans = await getUserActivePlans(user_id);
+
+            if (!plans || plans.length === 0) {
+                return handleError(res, 400, getMessage(lang, 'no active plan'));
+            }
+            const slotLimit = await getUserTotalSlots(user_id);
+            const listedCarCount = await countUserCars(user_id);
+
+            if (listedCarCount >= slotLimit) {
+                return handleError(res, 400, getMessage(lang, variableTypes.SLOT_LIMIT_EXCEEDED));
+            }
         }
 
         let carReel = null, carImages = [], document = null, reelThumbnails = null;

@@ -419,12 +419,49 @@ export const listCarmobile = async (req, res) => {
         if (currentStep === LISTING_STEP.PREVIEW && !car_id) {
             return handleError(res, 400, "car_id is required for preview submit");
         }
-        const shouldPublish =
-            currentStep === LISTING_STEP.PREVIEW &&
-            toBool(is_final_submit) === 1;
 
-        if (shouldPublish) {
-            data.listing_status = "published";
+        const isDealer = req.user?.account_type === 'company';
+        let existingCar = null;
+        if (car_id) {
+            const [fetchedCar] = await findCarByIdAndUser(car_id, user_id);
+            existingCar = fetchedCar || null;
+        }
+
+        const isFinalSubmit = currentStep === LISTING_STEP.PREVIEW && toBool(is_final_submit) === 1;
+        let shouldPublish = false;
+
+        if (isDealer) {
+            data.listing_type = 'subscription_slot';
+            data.payment_status = 'paid';
+            if (isFinalSubmit) {
+                shouldPublish = true;
+                data.listing_status = "published";
+                data.is_active = 1;
+            } else {
+                data.listing_status = existingCar?.listing_status || "draft";
+                data.is_active = existingCar?.is_active ?? 2;
+            }
+        } else {
+            // Private Seller: Pay-per-vehicle model
+            data.listing_type = 'per_vehicle';
+            const isAlreadyPaid = existingCar && existingCar.payment_status === 'paid' && existingCar.listing_status === 'published';
+
+            if (isAlreadyPaid) {
+                data.payment_status = 'paid';
+                if (isFinalSubmit) {
+                    shouldPublish = true;
+                    data.listing_status = "published";
+                    data.is_active = 1;
+                } else {
+                    data.listing_status = "published";
+                    data.is_active = 1;
+                }
+            } else {
+                data.payment_status = 'unpaid';
+                data.listing_status = 'draft';
+                data.is_active = 2;
+                shouldPublish = false;
+            }
         }
 
         console.log(data);
@@ -435,7 +472,6 @@ export const listCarmobile = async (req, res) => {
             const result = await insertSellerCars({ ...data, listing_step: currentStep || 1 });
             car_id_final = result.insertId;
         } else {
-            const [existingCar] = await findCarByIdAndUser(car_id, user_id);
             const cleanData = Object.fromEntries(
                 Object.entries(data).filter(([_, v]) => v !== undefined)
             );
@@ -561,9 +597,15 @@ export const listCarmobile = async (req, res) => {
             }
         }
 
-        return handleSuccess(res, 200, "Car created successfully", {
+        const requiresPayment = !isDealer && (!existingCar || existingCar.payment_status !== 'paid') && isFinalSubmit;
+
+        return handleSuccess(res, 200, requiresPayment ? "Car saved as draft. Please complete payment to publish." : "Car created successfully", {
             car_id: final_car_id,
             page: currentStep || 1,
+            requires_payment: requiresPayment,
+            listing_status: shouldPublish ? "published" : "draft",
+            is_active: data.is_active ?? 0,
+            account_type: isDealer ? 'company' : 'private'
         });
 
     } catch (err) {

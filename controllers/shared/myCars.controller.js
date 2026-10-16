@@ -21,10 +21,13 @@ export const getMyCar = async (req, res) => {
         let id = req.user.id;
         let data = await fetchCarsById(id, lang);
 
-        // Only fully listed cars
-        data = (data || []).filter(
-            (item) => String(item.listing_status || "").toLowerCase() === "published"
-        );
+        // Optional filter by status if provided (e.g., ?status=published or ?status=draft)
+        const statusFilter = req.query?.status || req.query?.listing_status;
+        if (statusFilter && statusFilter.toLowerCase() !== 'all') {
+            data = (data || []).filter(
+                (item) => String(item.listing_status || "").toLowerCase() === statusFilter.toLowerCase()
+            );
+        }
 
         const totalSlots = await getUserTotalSlots(id);
         const activeCarsCount = (data || []).filter(item => Number(item.is_active) === 1).length;
@@ -48,13 +51,42 @@ export const getMyCar = async (req, res) => {
                 delete item.warranty_type_id_resolved;
 
                 const isActive = Number(item.is_active) === 1;
-                item.is_active = isActive ? 1 : 0;
-                item.is_plan_expired = !isActive;
-                item.can_renew = true;
-                item.can_activate = isActive ? true : (availableSlots > 0);
-                item.status_message = isActive 
-                    ? "Active" 
-                    : "Expired / Inactive (Renew subscription to activate)";
+                const isDraft = Number(item.is_active) === 2 || String(item.listing_status || '').toLowerCase() === 'draft';
+                item.is_active = isActive ? 1 : (isDraft ? 2 : 0);
+                item.is_plan_expired = !isActive && !isDraft;
+                item.can_renew = !isDraft;
+
+                if (isDraft) {
+                    item.duration_label = "Draft (Payment Pending)";
+                    item.days_remaining = null;
+                    item.status_message = "Draft (Payment Pending)";
+                    item.requires_payment = true;
+                    item.can_activate = false;
+                } else if (item.listing_type === 'per_vehicle') {
+                    // Private seller per-vehicle listing
+                    item.can_activate = false;
+                    item.requires_payment = false;
+                    if (item.duration_option === 'until_sold') {
+                        item.duration_label = "Until Sold";
+                        item.days_remaining = null;
+                        item.status_message = isActive ? "Active (Until Sold)" : "Ended / Inactive";
+                    } else {
+                        const now = new Date();
+                        const expiresAt = item.listing_expires_at ? new Date(item.listing_expires_at) : null;
+                        const daysLeft = expiresAt ? Math.max(0, Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24))) : 0;
+                        item.days_remaining = daysLeft;
+                        item.duration_label = `${daysLeft} days left`;
+                        item.status_message = isActive 
+                            ? `Active (${daysLeft} days left)` 
+                            : "Expired (Renew to activate)";
+                    }
+                } else {
+                    // Dealer subscription slot listing
+                    item.can_activate = isActive ? true : (availableSlots > 0);
+                    item.status_message = isActive 
+                        ? "Active" 
+                        : "Expired / Inactive (Renew subscription to activate)";
+                }
 
                 return item;
             }));
@@ -95,25 +127,34 @@ export const toggleCarActiveStatus = async (req, res) => {
             targetActive = Number(car.is_active) !== 1;
         }
 
-        if (targetActive) {
-            const activePlans = await getUserActivePlans(user_id);
-            if (!activePlans || activePlans.length === 0) {
-                return handleError(res, 400, "No active subscription plan found. Please purchase or renew a plan to activate this car.", lang);
-            }
+        const isDealer = req.user?.account_type === 'company' || car.listing_type === 'subscription_slot';
 
-            const totalSlots = await getUserTotalSlots(user_id);
-            const [activeCountRow] = await db.query(
-                `SELECT COUNT(*) AS count FROM tbl_cars WHERE user_id = ? AND is_deleted = 0 AND is_active = 1 AND id != ?`,
-                [user_id, carId]
-            );
-            const currentActiveCount = activeCountRow?.count || 0;
-            if (currentActiveCount >= totalSlots) {
-                return handleError(
-                    res,
-                    400,
-                    `Slot limit reached! You are already using ${currentActiveCount}/${totalSlots} slot(s). Please upgrade your plan or deactivate an active car first.`,
-                    lang
+        if (targetActive) {
+            if (isDealer) {
+                const activePlans = await getUserActivePlans(user_id);
+                if (!activePlans || activePlans.length === 0) {
+                    return handleError(res, 400, "No active subscription plan found. Please purchase or renew a plan to activate this car.", lang);
+                }
+
+                const totalSlots = await getUserTotalSlots(user_id);
+                const [activeCountRow] = await db.query(
+                    `SELECT COUNT(*) AS count FROM tbl_cars WHERE user_id = ? AND is_deleted = 0 AND is_active = 1 AND id != ?`,
+                    [user_id, carId]
                 );
+                const currentActiveCount = activeCountRow?.count || 0;
+                if (currentActiveCount >= totalSlots) {
+                    return handleError(
+                        res,
+                        400,
+                        `Slot limit reached! You are already using ${currentActiveCount}/${totalSlots} slot(s). Please upgrade your plan or deactivate an active car first.`,
+                        lang
+                    );
+                }
+            } else {
+                // Private seller: cannot activate unpaid listing
+                if (car.payment_status !== 'paid') {
+                    return handleError(res, 400, "This vehicle listing has not been paid for yet. Please complete payment to publish/activate.", lang);
+                }
             }
 
             await db.query(

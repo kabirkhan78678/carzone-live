@@ -93,6 +93,74 @@ cron.schedule('0 1 * * *', async () => {
                 }
             }
         }
+
+        // 4. Private Seller Listings Expiry Lifecycle (1 Month Option)
+        // A. 3-day reminder before vehicle listing expires
+        const expiringCars = await db.query(`
+            SELECT id, user_id, brandName, carModel, selectYear, listing_expires_at 
+            FROM tbl_cars 
+            WHERE listing_type = 'per_vehicle' 
+              AND duration_option = '1_month' 
+              AND is_active = 1 
+              AND listing_status = 'published'
+              AND listing_expires_at IS NOT NULL
+              AND DATEDIFF(listing_expires_at, NOW()) = 3
+        `);
+
+        for (const car of expiringCars) {
+            const carName = [car.selectYear, car.brandName, car.carModel].filter(Boolean).join(' ') || 'Vehicle';
+            const reminderMsg = {
+                data: {
+                    sendFrom: 1,
+                    sendTo: car.user_id,
+                    notificationType: 'vehicle_listing_expiry_reminder',
+                    carId: car.id,
+                    isSendTo: 1
+                },
+                notification: {
+                    title: "⏰ Listing Expiry Reminder",
+                    body: `Your listing for ${carName} will expire in 3 days. Renew now to keep it visible on CarZone.`
+                }
+            };
+            await insertUserNotifications(reminderMsg, "success");
+        }
+
+        // B. Vehicle listing expired (1 Month reached)
+        const expiredCars = await db.query(`
+            SELECT id, user_id, brandName, carModel, selectYear 
+            FROM tbl_cars 
+            WHERE listing_type = 'per_vehicle' 
+              AND duration_option = '1_month' 
+              AND is_active = 1 
+              AND listing_status = 'published'
+              AND listing_expires_at IS NOT NULL
+              AND listing_expires_at <= NOW()
+        `);
+
+        for (const car of expiredCars) {
+            const carName = [car.selectYear, car.brandName, car.carModel].filter(Boolean).join(' ') || 'Vehicle';
+            await removeCarFromWishlistModelByCarId(car.id);
+            await db.query(
+                `UPDATE tbl_cars SET is_active = 0, listing_status = 'expired', payment_status = 'expired' WHERE id = ?`,
+                [car.id]
+            );
+
+            const expiredMsg = {
+                data: {
+                    sendFrom: 1,
+                    sendTo: car.user_id,
+                    notificationType: 'vehicle_listing_expired',
+                    carId: car.id,
+                    isSendTo: 1
+                },
+                notification: {
+                    title: "🚫 Listing Expired",
+                    body: `Your listing for ${carName} has expired. Renew anytime from My Listings to reactivate it.`
+                }
+            };
+            await insertUserNotifications(expiredMsg, "expired");
+            console.log(`[Cron] Expired private listing ${car.id} for user ${car.user_id}`);
+        }
     }
     catch (error) {
         console.error('Cron job error:', error);
