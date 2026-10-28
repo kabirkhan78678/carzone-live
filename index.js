@@ -6,7 +6,9 @@ import http from 'http';
 import path from 'path';
 import dotenv from 'dotenv';
 import route from './routes/index.js';
+import storyRoutes from './routes/story.js';
 import { fileURLToPath } from 'url';
+
 import { getLocalIP } from './utils/user_helper.js';
 import { stripeWebhook } from './controllers/user_controller.js';
 import './utils/cronJob.js';
@@ -50,6 +52,8 @@ app.get(['/', '/health'], (req, res) => {
 
 // Routes
 app.use('/api', route);
+app.use('/stories', storyRoutes);
+
 
 const port = process.env.PORT || 4000;
 

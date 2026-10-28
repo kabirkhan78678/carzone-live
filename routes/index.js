@@ -3,6 +3,7 @@ import userRoutes from './user.js';
 import adminRoutes from './admin.js'
 import eurotaxRoutes from './eurotax.js';
 import vehiclesRoutes from './vehicles.js';
+import storyRoutes from './story.js';
 import { getApiRateLimiter } from '../middleware/rateLimiter.js';
 import { getRequestLanguage } from '../utils/responseHandler.js';
 
@@ -27,5 +28,7 @@ router.use('/user', userRoutes);
 router.use('/admin', adminRoutes);
 router.use('/eurotax', eurotaxRoutes);
 router.use('/carapi', vehiclesRoutes);
+router.use('/stories', storyRoutes);
+router.use('/user/stories', storyRoutes);
 
-export default router;
+export default router;

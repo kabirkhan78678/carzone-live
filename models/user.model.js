@@ -26,3 +26,4 @@ export * from './user/chatAttachment.model.js';
 export * from './user/notificationSettings.model.js';
 export * from './user/savedSearch.model.js';
 export * from './user/accountDeletion.model.js';
+export * from './user/story.model.js';

@@ -11,3 +11,4 @@ export * from './analyticsValidation.js';
 export * from './vehicleValidation.js';
 export * from './adminValidation.js';
 export * from './notificationValidation.js';
+export * from './storyValidation.js';

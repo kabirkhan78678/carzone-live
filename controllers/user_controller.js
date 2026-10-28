@@ -79,3 +79,4 @@ export * from './shared/wishlist.controller.js';
 export * from './shared/yearAnalytics.controller.js';
 export * from './shared/notificationSettings.controller.js';
 export * from './shared/savedSearch.controller.js';
+export * from './shared/story.controller.js';
