@@ -197,12 +197,17 @@ export const asGuestUserGetCar = async (req, res) => {
                 }))
         };
 
-        const isActive = Number(car.is_active) === 1;
-        const isPlanExpired = !isActive;
-        const carStatus = isActive ? "active" : "expired";
+        const rawActive = Number(car.is_active ?? 0);
+        const isDraft = rawActive === 2 || String(car.listing_status || "").toLowerCase() === "draft";
+        const isActive = rawActive === 1;
+        const carActiveStatus = isActive ? 1 : (isDraft ? 2 : 0);
+        const isPlanExpired = !isActive && !isDraft;
+        const carStatus = isActive ? "active" : (isDraft ? "draft" : "expired");
         const statusMessage = isActive 
             ? "Active" 
-            : "Expired / Inactive (Renew subscription to activate)";
+            : (isDraft 
+                ? "Draft (Complete payment to publish)" 
+                : "Expired / Inactive (Renew subscription to activate)");
 
         const formatDateReadable = (value) => {
         if (!value) return null;
@@ -234,10 +239,15 @@ export const asGuestUserGetCar = async (req, res) => {
         }
 
         return res.status(200).json({
-            is_active: isActive ? 1 : 0,
+            is_active: carActiveStatus,
             is_plan_expired: isPlanExpired,
             status: carStatus,
             status_message: statusMessage,
+            listing_status: car.listing_status || (carActiveStatus === 1 ? "published" : carActiveStatus === 2 ? "draft" : "inactive"),
+            payment_status: car.payment_status || (carActiveStatus === 1 ? "paid" : carActiveStatus === 2 ? "unpaid" : "unpaid"),
+            listing_type: car.listing_type || null,
+            duration_option: car.duration_option || null,
+            requires_payment: carActiveStatus === 2 || car.payment_status === "unpaid",
             plan_start_date: planStartDate,
             plan_end_date: planEndDate,
             valid_until: planEndDate,

@@ -2,7 +2,7 @@ import { getPurchasesWithPlanDetails } from '../../utils/user_helper.js';
 import { getPlanById, deactivateUserPlans, insertUserPlan, insertPurchase, getUserActivePlans, updateUserPlanTotalSlots, reactivateUserCarsUpToLimit } from '../../models/user.model.js';
 import Stripe from 'stripe';
 import db from '../../config/db.js';
-import { notifyListingEvent } from '../../services/notificationDispatchers.js';
+import { notifyListingEvent, notifyMatchingSearchUsers } from '../../services/notificationDispatchers.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -77,6 +77,58 @@ console.log("========== DATE DEBUG END ==========");
             const isYearly = (plan?.duration_type || session.metadata.duration_type || '').toLowerCase() === 'yearly' || 
                              (plan?.duration_type || session.metadata.duration_type || '').toLowerCase() === 'annual';
             const durationDays = isYearly ? 365 : 30;
+
+            // ================= PRIVATE SELLER VEHICLE LISTING PAYMENT =================
+            if (purchaseType === 'private_vehicle_listing') {
+                const car_id = parseInt(session.metadata.car_id);
+                const duration_option = session.metadata.duration_option || '1_month';
+                let expiresAt = null;
+
+                if (duration_option === '1_month' || duration_option === 'monthly') {
+                    expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+                }
+
+                // Activate and publish specific vehicle
+                await db.query(
+                    `UPDATE tbl_cars 
+                     SET is_active = 1, 
+                         listing_status = 'published', 
+                         payment_status = 'paid', 
+                         listing_type = 'per_vehicle', 
+                         duration_option = ?, 
+                         listing_expires_at = ?,
+                         slot_deleted_at = NULL 
+                     WHERE id = ? AND user_id = ?`,
+                    [duration_option === 'until_sold' ? 'until_sold' : '1_month', expiresAt, car_id, user_id]
+                );
+
+                // Insert purchase record linked directly to this car
+                await db.query(
+                    `INSERT INTO tbl_purchases 
+                     (user_id, car_id, plan_id, purchased_slots, prorated_price, payment_status, plan_type, transaction_id, purchase_date)
+                     VALUES (?, ?, ?, 1, ?, 'paid', 'private_listing', ?, NOW())`,
+                    [user_id, car_id, plan_id || null, proratedPrice || (plan ? plan.price : 0), transactionId]
+                );
+
+                // Fetch car record and send notifications
+                const cars = await db.query(`SELECT * FROM tbl_cars WHERE id = ?`, [car_id]);
+                if (cars && cars.length > 0) {
+                    const carRecord = cars[0];
+                    const carName = [carRecord.selectYear, carRecord.brandName, carRecord.carModel].filter(Boolean).join(' ') || 'Vehicle';
+                    notifyListingEvent({
+                        sellerId: user_id,
+                        carId: car_id,
+                        event: 'published',
+                        carName
+                    }).catch(e => console.error('Notify listing event error:', e));
+
+                    notifyMatchingSearchUsers(carRecord).catch(e => console.error('Notify matching search error:', e));
+                }
+
+                console.log(`✅ Private vehicle listing ${car_id} activated for user ${user_id} (${duration_option}, expires: ${expiresAt})`);
+                return res.status(200).send("Webhook received");
+            }
+            // =========================================================================
 
             if (purchaseType === 'initial' || purchaseType === 'upgrade') {
                 // ✅ Deactivate old main plans only

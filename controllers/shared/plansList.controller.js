@@ -2,6 +2,7 @@ import { variableTypes } from '../../utils/constant.js';
 import { getChfFormattedPrice, getMessage } from '../../utils/user_helper.js';
 import { getUserLastPlan, getUserBasicPlan, getUserPlan, countUserCars, countSwapsThisMonth, getAllPlans, fetchSlotRequests } from '../../models/user.model.js';
 import Stripe from 'stripe';
+import db from '../../config/db.js';
 import { handleError, handleSuccess, handleSuccessNew } from '../../utils/responseHandler.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -9,7 +10,35 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 export const getAllPlan = async (req, res) => {
     try {
         const user_id = req.user?.id;
-        console.log('user_id', user_id)
+        const isDealer = req.user?.account_type === 'company';
+        console.log('user_id', user_id, 'isDealer', isDealer);
+
+        if (!isDealer) {
+            const privatePlans = await db.query(
+                `SELECT id, name, price, duration_type, slot_count, plan_type 
+                 FROM tbl_plans 
+                 WHERE plan_type = 'private_listing' 
+                 ORDER BY price ASC`
+            );
+
+            const listingOptions = privatePlans.map(p => ({
+                id: p.id,
+                name: p.name,
+                duration_type: p.duration_type,
+                duration_label: p.duration_type === 'until_sold' ? 'Until Sold' : '1 Month',
+                duration_days: p.duration_type === 'until_sold' ? null : 30,
+                price: getChfFormattedPrice(Number(p.price)),
+                raw_price: Number(p.price)
+            }));
+
+            return res.status(200).json({
+                success: true,
+                message: "Private listing options fetched successfully",
+                account_type: 'private',
+                plans: listingOptions,
+                listing_options: listingOptions
+            });
+        }
 
         const plans = await getAllPlans(user_id);
         console.log(plans);

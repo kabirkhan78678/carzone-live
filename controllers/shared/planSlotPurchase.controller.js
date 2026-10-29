@@ -1,6 +1,7 @@
 import { variableTypes } from '../../utils/constant.js';
 import { getPlanById, getUserBasicPlan, getUserActivePlans } from '../../models/user.model.js';
 import Stripe from 'stripe';
+import db from '../../config/db.js';
 import { handleError, handleSuccess, handleSuccessNew } from '../../utils/responseHandler.js';
 import { getMessage } from '../../utils/user_helper.js';
 
@@ -10,12 +11,78 @@ export const purchaseSlotPlan = async (req, res) => {
     try {
         const user_id = req.user.id;
         const lang = req.user.language || "en";
-        const { plan_id, success_url, cancel_url } = req.body;
+        const { success_url, cancel_url } = req.body;
+        let plan_id = req.body.plan_id;
+
+        // Auto-resolve plan_id if duration_option is passed for private listing
+        const requestedDuration = req.body.duration_option || req.body.durationType;
+        if (!plan_id && requestedDuration) {
+            const mappedDuration = String(requestedDuration).toLowerCase().includes('sold') ? 'until_sold' : 'monthly';
+            const matchedPlans = await db.query(
+                `SELECT * FROM tbl_plans WHERE plan_type = 'private_listing' AND duration_type = ? LIMIT 1`,
+                [mappedDuration]
+            );
+            if (matchedPlans && matchedPlans.length > 0) plan_id = matchedPlans[0].id;
+        }
 
         const [plan] = await getPlanById(plan_id);
         if (!plan) {
             return handleError(res, 404, getMessage(lang, "PLAN_NOT_FOUND"));
         }
+
+        // ================= PRIVATE SELLER PAY-PER-VEHICLE LISTING FLOW =================
+        if (plan.plan_type === 'private_listing') {
+            const carId = req.body.car_id || req.body.carId || req.query.car_id || req.query.carId;
+            if (!carId) {
+                return handleError(res, 400, "car_id is required for vehicle listing purchase");
+            }
+            const cars = await db.query(`SELECT * FROM tbl_cars WHERE id = ? AND user_id = ? AND is_deleted = 0`, [carId, user_id]);
+            if (!cars || cars.length === 0) {
+                return handleError(res, 404, "Vehicle not found or unauthorized");
+            }
+            const car = cars[0];
+            const finalPrice = Number(plan.price);
+            const stripeCurrency = 'chf';
+            const finalPriceInCents = Math.round(finalPrice * 100);
+
+            const successUrl = success_url || `${process.env.CLIENT_URL}/payment-success?car_id=${carId}`;
+            const cancelUrl = cancel_url || `${process.env.CLIENT_URL}/payment-cancelled?car_id=${carId}`;
+
+            const durationLabel = plan.duration_type === 'until_sold' ? 'Until Sold' : '1 Month';
+            const carTitle = [car.selectYear, car.brandName, car.carModel].filter(Boolean).join(' ') || 'Vehicle';
+
+            const session = await stripe.checkout.sessions.create({
+                payment_method_types: ["card", 'twint'],
+                mode: "payment",
+                line_items: [
+                    {
+                        price_data: {
+                            currency: stripeCurrency,
+                            product_data: {
+                                name: `Vehicle Listing: ${carTitle} (${durationLabel})`
+                            },
+                            unit_amount: finalPriceInCents,
+                        },
+                        quantity: 1,
+                    },
+                ],
+                metadata: {
+                    user_id: user_id.toString(),
+                    plan_id: plan.id.toString(),
+                    car_id: carId.toString(),
+                    purchase_type: 'private_vehicle_listing',
+                    duration_option: plan.duration_type === 'until_sold' ? 'until_sold' : '1_month',
+                    duration_type: plan.duration_type || 'monthly',
+                    prorated_price: finalPrice.toFixed(2),
+                },
+                success_url: successUrl,
+                cancel_url: cancelUrl,
+            });
+
+            console.log(`Private seller ${user_id} purchasing vehicle listing ${carId} for CHF ${finalPrice}`);
+            return res.json({ url: session.url, session_id: session.id });
+        }
+        // ==============================================================================
 
         const existingBasicPlan = await getUserBasicPlan(user_id, plan.id);
         if (plan.id === 1 && existingBasicPlan.length > 0) {

@@ -691,26 +691,35 @@ export const updateCar = async (req, res) => {
             data.is_active = 0;
         } else if (isMarkedAvailable || rawCarData.is_active !== undefined) {
             const willBeActive = isMarkedAvailable || toBool(rawCarData.is_active) === 1;
-            if (willBeActive) {
-                if (Number(car.is_active) !== 1) {
-                    const activePlans = await getUserActivePlans(user_id);
-                    if (!activePlans || activePlans.length === 0) {
-                        return handleError(res, 400, "No active subscription plan found. Please purchase or renew a plan to activate this car.", lang);
-                    }
+            const isDealer = req.user?.account_type === 'company' || car.listing_type === 'subscription_slot';
 
-                    const totalSlots = await getUserTotalSlots(user_id);
-                    const [activeCountRow] = await db.query(
-                        `SELECT COUNT(*) AS count FROM tbl_cars WHERE user_id = ? AND is_deleted = 0 AND is_active = 1 AND id != ?`,
-                        [user_id, carId]
-                    );
-                    const currentActiveCount = activeCountRow?.count || 0;
-                    if (currentActiveCount >= totalSlots) {
-                        return handleError(
-                            res,
-                            400,
-                            `Slot limit reached! You are already using ${currentActiveCount}/${totalSlots} slot(s). Please upgrade your plan or deactivate an active car first.`,
-                            lang
+            if (willBeActive) {
+                if (isDealer) {
+                    if (Number(car.is_active) !== 1) {
+                        const activePlans = await getUserActivePlans(user_id);
+                        if (!activePlans || activePlans.length === 0) {
+                            return handleError(res, 400, "No active subscription plan found. Please purchase or renew a plan to activate this car.", lang);
+                        }
+
+                        const totalSlots = await getUserTotalSlots(user_id);
+                        const [activeCountRow] = await db.query(
+                            `SELECT COUNT(*) AS count FROM tbl_cars WHERE user_id = ? AND is_deleted = 0 AND is_active = 1 AND id != ?`,
+                            [user_id, carId]
                         );
+                        const currentActiveCount = activeCountRow?.count || 0;
+                        if (currentActiveCount >= totalSlots) {
+                            return handleError(
+                                res,
+                                400,
+                                `Slot limit reached! You are already using ${currentActiveCount}/${totalSlots} slot(s). Please upgrade your plan or deactivate an active car first.`,
+                                lang
+                            );
+                        }
+                    }
+                } else {
+                    // Private seller: Requires payment before activation
+                    if (car.payment_status !== 'paid') {
+                        return handleError(res, 400, "This vehicle has not been paid for yet. Please complete payment to publish/activate.", lang);
                     }
                 }
                 data.is_sold = 0;
