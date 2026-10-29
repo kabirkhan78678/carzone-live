@@ -223,19 +223,33 @@ export const asGuestUserGetCar = async (req, res) => {
         return formatted ? `Valid till ${formatted}` : null;
     };
 
-        const planStartDate = formatDateReadable(car.plan_start_date);
-        const planEndDate = formatDateReadable(car.plan_end_date);
-        const validTillText = toValidTillText(car.plan_end_date);
+        const isUntilSold = car.duration_option === 'until_sold';
+        const effectiveStartDate = car.plan_start_date || car.createdAt;
+        const effectiveEndDate = isUntilSold ? null : (car.listing_expires_at || car.plan_end_date || null);
 
+        const planStartDate = formatDateReadable(effectiveStartDate);
+        let planEndDate = null;
+        let validTillText = null;
         let daysRemaining = null;
-        if (car.plan_end_date) {
+
+        if (isUntilSold) {
+            planEndDate = "Until Sold";
+            validTillText = "Valid Until Sold";
+            daysRemaining = null;
+        } else if (effectiveEndDate) {
+            planEndDate = formatDateReadable(effectiveEndDate);
+            validTillText = toValidTillText(effectiveEndDate);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const end = new Date(car.plan_end_date);
+            const end = new Date(effectiveEndDate);
             end.setHours(0, 0, 0, 0);
             const diffTime = end.getTime() - today.getTime();
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             daysRemaining = diffDays >= 0 ? diffDays : 0;
+        } else if (isDraft) {
+            planEndDate = "Payment Pending";
+            validTillText = "Draft (Payment Pending)";
+            daysRemaining = null;
         }
 
         return res.status(200).json({
