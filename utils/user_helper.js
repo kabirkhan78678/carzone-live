@@ -388,6 +388,15 @@ export const getChfFormattedPrice = (amount) => {
     return `${formattedWhole}.${decimal}.–CHF`;
 };
 
+export const getYearlyPlanMonthlySlots = (plan) => {
+    if (!plan) return 0;
+    const nameMatch = String(plan.name || plan.plan_name || '').match(/yearly\s*(\d+)/i);
+    if (nameMatch && nameMatch[1]) {
+        return parseInt(nameMatch[1], 10);
+    }
+    return Math.max(1, Math.round(Number(plan.slot_count || 0) / 12));
+};
+
 export const sendNotificationToUser = async (userId, message) => {
     try {
         const fcmToken = await getUserFcmToken(userId);

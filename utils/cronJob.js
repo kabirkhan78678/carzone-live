@@ -1,3 +1,4 @@
+import { getYearlyPlanMonthlySlots } from './user_helper.js';
 import { recalcMfk } from './user_helper.js';
 import db from '../config/db.js';
 import cron from 'node-cron';
@@ -9,7 +10,8 @@ import {
     getCarsByUserId,
     markExpiryNotificationSent,
     getExpiredPlansPastGracePeriod,
-    deactivateUserCarsAfterGracePeriod
+    deactivateUserCarsAfterGracePeriod,
+    reactivateUserCarsUpToLimit
 } from '../models/user.model.js';
 import { insertUserNotifications } from '../models/user.model.js';
 
@@ -160,6 +162,45 @@ cron.schedule('0 1 * * *', async () => {
             };
             await insertUserNotifications(expiredMsg, "expired");
             console.log(`[Cron] Expired private listing ${car.id} for user ${car.user_id}`);
+
+            // 5. Yearly Subscription Monthly Slot Unlock (+10 / +15 / +20 slots every 30 days)
+            const activeYearlyPlans = await db.query(`
+                SELECT up.id, up.user_id, up.start_date, up.total_slots, p.slot_count, p.name AS plan_name
+                FROM tbl_user_plans up
+                JOIN tbl_plans p ON up.plan_id = p.id
+                WHERE up.is_active = 1 AND p.duration_type = 'yearly'
+            `);
+
+            if (activeYearlyPlans && activeYearlyPlans.length > 0) {
+                for (const yPlan of activeYearlyPlans) {
+                    const startMoment = moment(yPlan.start_date).startOf('day');
+                    const daysPassed = now.diff(startMoment, 'days');
+                    const currentMonthIndex = Math.min(12, Math.floor(daysPassed / 30) + 1);
+                    const monthlySlots = getYearlyPlanMonthlySlots(yPlan);
+                    const expectedSlots = Math.min(Number(yPlan.slot_count), currentMonthIndex * monthlySlots);
+
+                    if (Number(yPlan.total_slots) < expectedSlots) {
+                        await db.query(`UPDATE tbl_user_plans SET total_slots = ? WHERE id = ?`, [expectedSlots, yPlan.id]);
+                        await reactivateUserCarsUpToLimit(yPlan.user_id, expectedSlots);
+
+                        const slotNotice = {
+                            data: {
+                                sendFrom: 1,
+                                sendTo: yPlan.user_id,
+                                notificationType: 'slots_unlocked',
+                                carId: null,
+                                isSendTo: 1
+                            },
+                            notification: {
+                                title: '🎉 New Slots Unlocked!',
+                                body: `Your yearly plan has unlocked ${monthlySlots} additional slots for Month ${currentMonthIndex}. You now have ${expectedSlots} active slots!`
+                            }
+                        };
+                        await insertUserNotifications(slotNotice, 'success');
+                        console.log(`[Cron] Unlocked ${monthlySlots} slots for user ${yPlan.user_id} (total_slots now: ${expectedSlots})`);
+                    }
+                }
+            }
         }
     }
     catch (error) {

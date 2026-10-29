@@ -1,3 +1,4 @@
+import { getYearlyPlanMonthlySlots } from '../../utils/user_helper.js';
 import db from '../../config/db.js';
 
 export const getAllPlans = async (currentUserId) => {
@@ -199,14 +200,30 @@ export const getAllActiveUserPlans = () => {
 
 export const getUserTotalSlots = async (user_id) => {
     const query = `
-       SELECT total_slots
-        FROM tbl_user_plans
-        WHERE user_id = ? 
-          AND is_active = 1
-        ORDER BY end_date DESC
+       SELECT up.id, up.total_slots, up.start_date, p.slot_count, p.name AS plan_name, p.duration_type
+        FROM tbl_user_plans up
+        JOIN tbl_plans p ON up.plan_id = p.id
+        WHERE up.user_id = ? 
+          AND up.is_active = 1
+        ORDER BY up.end_date DESC
         LIMIT 1
     `;
 
     const [result] = await db.query(query, [user_id]);
-    return result?.total_slots || 0;
+    if (!result) return 0;
+
+    if (result.duration_type === 'yearly') {
+        const start = new Date(result.start_date);
+        const daysPassed = Math.max(0, Math.floor((Date.now() - start.getTime()) / (1000 * 60 * 60 * 24)));
+        const currentMonthIndex = Math.min(12, Math.floor(daysPassed / 30) + 1);
+        const monthlySlots = getYearlyPlanMonthlySlots(result);
+        const expectedSlots = Math.min(Number(result.slot_count), currentMonthIndex * monthlySlots);
+
+        if (Number(result.total_slots) < expectedSlots) {
+            await db.query(`UPDATE tbl_user_plans SET total_slots = ? WHERE id = ?`, [expectedSlots, result.id]);
+            return expectedSlots;
+        }
+    }
+
+    return result.total_slots || 0;
 };

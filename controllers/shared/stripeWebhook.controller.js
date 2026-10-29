@@ -1,4 +1,4 @@
-import { getPurchasesWithPlanDetails } from '../../utils/user_helper.js';
+import { getPurchasesWithPlanDetails, getYearlyPlanMonthlySlots } from '../../utils/user_helper.js';
 import { getPlanById, deactivateUserPlans, insertUserPlan, insertPurchase, getUserActivePlans, updateUserPlanTotalSlots, reactivateUserCarsUpToLimit } from '../../models/user.model.js';
 import Stripe from 'stripe';
 import db from '../../config/db.js';
@@ -152,7 +152,7 @@ console.log("====================================");
                     start_date: now,
                     plan_id,
                     end_date: endDate,
-                    total_slots: plan.slot_count,
+                    total_slots: isYearly ? getYearlyPlanMonthlySlots(plan) : plan.slot_count,
                     is_active: 1,
                     is_basic_signup: existingPlans.length === 0 ? 1 : 0
                 };
@@ -305,7 +305,7 @@ console.log("INSERTED PLAN FROM DB:", insertedPlan)
                         start_date: now,
                         plan_id,
                         end_date: endDate,
-                        total_slots: plan.slot_count,
+                        total_slots: isYearly ? getYearlyPlanMonthlySlots(plan) : plan.slot_count,
                         is_active: 1,
                         is_basic_signup: 0
                     };

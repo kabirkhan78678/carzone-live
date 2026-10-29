@@ -1,5 +1,5 @@
 import { variableTypes } from '../../utils/constant.js';
-import { getChfFormattedPrice, getMessage } from '../../utils/user_helper.js';
+import { getChfFormattedPrice, getMessage, getYearlyPlanMonthlySlots } from '../../utils/user_helper.js';
 import { getUserLastPlan, getUserBasicPlan, getUserPlan, countUserCars, countSwapsThisMonth, getAllPlans, fetchSlotRequests } from '../../models/user.model.js';
 import Stripe from 'stripe';
 import db from '../../config/db.js';

@@ -146,6 +146,7 @@ export const fetchCarsById = async (id, lang = "en") => {
                 ON cl.car_id = c.id
             WHERE c.user_id = ?
               AND c.is_deleted = 0
+              AND (c.listing_status != 'draft' OR COALESCE(c.is_submitted, 0) = 1)
             ORDER BY c.createdAt DESC
             `,
             [lang, lang, lang, lang, lang, lang, lang, lang, lang, lang, id]
@@ -153,7 +154,7 @@ export const fetchCarsById = async (id, lang = "en") => {
     } catch (error) {
         console.error("fetchCarsById enriched query failed, falling back:", error?.sqlMessage || error?.message);
         return db.query(
-            "SELECT * FROM tbl_cars WHERE user_id = ? AND is_deleted = 0 ORDER BY createdAt DESC",
+            "SELECT * FROM tbl_cars WHERE user_id = ? AND is_deleted = 0 AND (listing_status != 'draft' OR COALESCE(is_submitted, 0) = 1) ORDER BY createdAt DESC",
             [id]
         );
     }

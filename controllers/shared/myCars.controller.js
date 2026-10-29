@@ -21,6 +21,11 @@ export const getMyCar = async (req, res) => {
         let id = req.user.id;
         let data = await fetchCarsById(id, lang);
 
+        // Exclude incomplete drafts that have not completed final submit
+        data = (data || []).filter(
+            (item) => !(String(item.listing_status || '').toLowerCase() === 'draft' && Number(item.is_submitted || 0) === 0)
+        );
+
         // Optional filter by status if provided (e.g., ?status=published or ?status=draft)
         const statusFilter = req.query?.status || req.query?.listing_status;
         if (statusFilter && statusFilter.toLowerCase() !== 'all') {
