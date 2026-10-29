@@ -89,6 +89,7 @@ LEFT JOIN tbl_mfk_status_translations mfst
      WHERE c.user_id = ?
        AND c.is_deleted = 0
        AND c.listing_status = 'draft'
+       AND COALESCE(c.is_submitted, 0) = 0
      ORDER BY c.updatedAt DESC, c.id DESC
      LIMIT 1`,
         [lang, lang, lang, lang, lang, lang, lang, lang, lang, lang, user_id]

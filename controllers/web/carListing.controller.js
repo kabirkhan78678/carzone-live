@@ -438,6 +438,10 @@ export const listCarweb = async (req, res) => {
         const isFinalSubmit = currentStep === LISTING_STEP.PREVIEW && toBool(is_final_submit) === 1;
         let shouldPublish = false;
 
+        if (isFinalSubmit) {
+            data.is_submitted = 1;
+        }
+
         if (isDealer) {
             data.listing_type = 'subscription_slot';
             data.payment_status = 'paid';
