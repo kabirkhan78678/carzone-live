@@ -224,19 +224,26 @@ export const asGuestUserGetCar = async (req, res) => {
     };
 
         const isUntilSold = car.duration_option === 'until_sold';
+        const fallbackExpiresAt = (car.duration_option === '1_month' && car.createdAt)
+            ? new Date(new Date(car.createdAt).getTime() + 30 * 24 * 60 * 60 * 1000)
+            : null;
         const effectiveStartDate = car.plan_start_date || car.createdAt;
-        const effectiveEndDate = isUntilSold ? null : (car.listing_expires_at || car.plan_end_date || null);
+        const effectiveEndDate = isUntilSold ? null : (car.listing_expires_at || car.plan_end_date || fallbackExpiresAt || null);
 
-        const planStartDate = formatDateReadable(effectiveStartDate);
+        const planStartDate = formatDateReadable(effectiveStartDate) || formatDateReadable(new Date());
         let planEndDate = null;
         let validTillText = null;
         let daysRemaining = null;
 
-        if (isUntilSold) {
+        if (isDraft) {
+            planEndDate = "Payment Pending";
+            validTillText = "Draft (Payment Pending)";
+            daysRemaining = null;
+        } else if (isUntilSold) {
             planEndDate = "Until Sold";
             validTillText = "Valid Until Sold";
             daysRemaining = null;
-        } else if (effectiveEndDate) {
+        } else if (effectiveEndDate && formatDateReadable(effectiveEndDate)) {
             planEndDate = formatDateReadable(effectiveEndDate);
             validTillText = toValidTillText(effectiveEndDate);
             const today = new Date();
@@ -246,10 +253,14 @@ export const asGuestUserGetCar = async (req, res) => {
             const diffTime = end.getTime() - today.getTime();
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             daysRemaining = diffDays >= 0 ? diffDays : 0;
-        } else if (isDraft) {
-            planEndDate = "Payment Pending";
-            validTillText = "Draft (Payment Pending)";
+        } else if (isActive) {
+            planEndDate = "Until Sold";
+            validTillText = "Valid Until Sold";
             daysRemaining = null;
+        } else {
+            planEndDate = "Expired";
+            validTillText = "Expired";
+            daysRemaining = 0;
         }
 
         return res.status(200).json({

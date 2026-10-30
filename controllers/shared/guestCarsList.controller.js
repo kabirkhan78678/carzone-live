@@ -261,33 +261,44 @@ export const buildVehicleDetailPayload = (car, openingTimes, mfk) => {
     };
 
     const isUntilSold = car.duration_option === 'until_sold';
-        const effectiveStartDate = car.plan_start_date || car.createdAt;
-        const effectiveEndDate = isUntilSold ? null : (car.listing_expires_at || car.plan_end_date || null);
+    const fallbackExpiresAt = (car.duration_option === '1_month' && car.createdAt)
+        ? new Date(new Date(car.createdAt).getTime() + 30 * 24 * 60 * 60 * 1000)
+        : null;
+    const effectiveStartDate = car.plan_start_date || car.createdAt;
+    const effectiveEndDate = isUntilSold ? null : (car.listing_expires_at || car.plan_end_date || fallbackExpiresAt || null);
 
-        const planStartDate = formatDateReadable(effectiveStartDate);
-        let planEndDate = null;
-        let validTillText = null;
-        let daysRemaining = null;
+    const planStartDate = formatDateReadable(effectiveStartDate) || formatDateReadable(new Date());
+    let planEndDate = null;
+    let validTillText = null;
+    let daysRemaining = null;
 
-        if (isUntilSold) {
-            planEndDate = "Until Sold";
-            validTillText = "Valid Until Sold";
-            daysRemaining = null;
-        } else if (effectiveEndDate) {
-            planEndDate = formatDateReadable(effectiveEndDate);
-            validTillText = toValidTillText(effectiveEndDate);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const end = new Date(effectiveEndDate);
-            end.setHours(0, 0, 0, 0);
-            const diffTime = end.getTime() - today.getTime();
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            daysRemaining = diffDays >= 0 ? diffDays : 0;
-        } else if (isDraft) {
-            planEndDate = "Payment Pending";
-            validTillText = "Draft (Payment Pending)";
-            daysRemaining = null;
-        }
+    if (isDraft) {
+        planEndDate = "Payment Pending";
+        validTillText = "Draft (Payment Pending)";
+        daysRemaining = null;
+    } else if (isUntilSold) {
+        planEndDate = "Until Sold";
+        validTillText = "Valid Until Sold";
+        daysRemaining = null;
+    } else if (effectiveEndDate && formatDateReadable(effectiveEndDate)) {
+        planEndDate = formatDateReadable(effectiveEndDate);
+        validTillText = toValidTillText(effectiveEndDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const end = new Date(effectiveEndDate);
+        end.setHours(0, 0, 0, 0);
+        const diffTime = end.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        daysRemaining = diffDays >= 0 ? diffDays : 0;
+    } else if (isActive) {
+        planEndDate = "Until Sold";
+        validTillText = "Valid Until Sold";
+        daysRemaining = null;
+    } else {
+        planEndDate = "Expired";
+        validTillText = "Expired";
+        daysRemaining = 0;
+    }
     const firstRegistrationDate = toDateString(car.first_registration_date);
     const parsedDate = firstRegistrationDate ? new Date(firstRegistrationDate) : null;
     const selectYearNum = Number(car.selectYear);
