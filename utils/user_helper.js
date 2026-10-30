@@ -738,6 +738,27 @@ export const parseSelectedRange = (selectedIdsValue, fallbackMin = null, fallbac
 export const hasActiveFiltersInQuery = (req) =>
     req?.query?.active_filters !== undefined || req?.query?.applied_filters !== undefined;
 
+export const formatTime12Hour = (timeStr) => {
+    if (!timeStr) return null;
+    const str = String(timeStr).trim();
+    const match = str.match(/^(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*(AM|PM))?$/i);
+    if (!match) return str;
+    let [_, hours, mins, modifier] = match;
+    let h = parseInt(hours, 10);
+    let ampm = 'AM';
+    if (modifier) {
+        ampm = modifier.toUpperCase();
+        if (h === 0) h = 12;
+        if (h > 12) h = h % 12 || 12;
+    } else {
+        ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12;
+        if (h === 0) h = 12;
+    }
+    const formattedHour = String(h).padStart(2, '0');
+    return `${formattedHour}:${mins}${ampm}`;
+};
+
 export const toTimeHHMM = (timeStr) => {
     if (!timeStr) return null;
     const str = String(timeStr).trim();

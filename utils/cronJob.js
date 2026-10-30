@@ -142,6 +142,7 @@ cron.schedule('0 1 * * *', async () => {
         for (const car of expiredCars) {
             const carName = [car.selectYear, car.brandName, car.carModel].filter(Boolean).join(' ') || 'Vehicle';
             await removeCarFromWishlistModelByCarId(car.id);
+            await db.query(`DELETE FROM tbl_recently_viewed WHERE car_id = ?`, [car.id]);
             await db.query(
                 `UPDATE tbl_cars SET is_active = 0, listing_status = 'expired', payment_status = 'expired' WHERE id = ?`,
                 [car.id]

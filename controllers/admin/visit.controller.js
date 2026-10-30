@@ -5,7 +5,7 @@ import {
     getPhysicalVisitByIdModel
 } from '../../models/admin.model.js';
 import { handleError, handleSuccess } from '../../utils/responseHandler.js';
-import { getMessage } from '../../utils/user_helper.js';
+import { getMessage, formatTime12Hour } from '../../utils/user_helper.js';
 
 export const formatAdminScheduleVisit = (item) => ({
     id: item.id,
@@ -30,7 +30,8 @@ export const formatAdminScheduleVisit = (item) => ({
         image: item.car_image
     },
     visit_date: item.visit_date,
-    visit_time: item.visit_time,
+    visit_time: formatTime12Hour(item.visit_time),
+    visit_time_raw: item.visit_time,
     status: item.status,
     created_at: item.created_at
 });
@@ -58,7 +59,8 @@ export const formatAdminScheduleVisitDetails = (item) => ({
     },
     visit: {
         date: item.visit_date,
-        time: item.visit_time,
+        time: formatTime12Hour(item.visit_time),
+        time_raw: item.visit_time,
         address: item.address,
         message: item.message
     },

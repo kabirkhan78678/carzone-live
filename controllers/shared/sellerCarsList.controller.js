@@ -1,7 +1,7 @@
 import { fetchUserByIdCount, fetchUserById, fetchAllreadyCarWishlist, fetchCarsById, fetchCarImagesByCarId } from '../../models/user.model.js';
 import { variableTypes } from '../../utils/constant.js';
 import { handleError, handleSuccess, handleSuccessNew } from '../../utils/responseHandler.js';
-import { getChfFormattedPrice, getMessage } from '../../utils/user_helper.js';
+import { getChfFormattedPrice, getMessage, formatTime12Hour } from '../../utils/user_helper.js';
 
 export const fetchOtherSellerCarsList = async (req, res) => {
     try {
@@ -239,7 +239,9 @@ export const formatScheduleRequestItem = (visit) => {
         status: visit.status || "pending",
         requested_on: visit.created_at || null,
         preferred_date: preferredDate,
-        preferred_time: preferredTime,
+        preferred_time: formatTime12Hour(preferredTime),
+        preferred_time_formatted: formatTime12Hour(preferredTime),
+        preferred_time_raw: preferredTime,
         message: visit.message || null,
         requester: {
             user_id: visit.user_id || null,
@@ -275,9 +277,11 @@ export const formatScheduleRequestDetail = (visit) => {
             created_at: visit.created_at || null,
             updated_at: visit.updated_at || null,
             original_visit_date: visit.visit_date || null,
-            original_visit_time: visit.visit_time || null,
+            original_visit_time: formatTime12Hour(visit.visit_time),
+            original_visit_time_raw: visit.visit_time || null,
             rescheduled_date: visit.rescheduled_date || null,
-            rescheduled_time: visit.rescheduled_time || null
+            rescheduled_time: formatTime12Hour(visit.rescheduled_time),
+            rescheduled_time_raw: visit.rescheduled_time || null
         }
     };
 };

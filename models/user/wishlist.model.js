@@ -178,13 +178,15 @@ export const modelGetRecentlyViewed = async (userId, limit = 10) => {
       FROM tbl_recently_viewed
       WHERE user_id = ?
       GROUP BY car_id
-      ORDER BY MAX(viewed_at) DESC
-      LIMIT ?
     ) rv
     JOIN tbl_cars c ON c.id = rv.car_id
     JOIN tbl_users u on u.id = c.user_id
     WHERE c.is_deleted = 0
+      AND c.is_active = 1
+      AND c.listing_status = 'published'
+      AND (c.listing_expires_at IS NULL OR c.listing_expires_at > NOW())
     ORDER BY rv.viewed_at DESC
+    LIMIT ?
   `;
     return db.query(sql, [userId, limit]);
 };

@@ -4,6 +4,7 @@ import { formatScheduleRequestItem, formatScheduleRequestDetail } from './seller
 import { handleError, handleSuccess } from '../../utils/responseHandler.js';
 import { normalizeMySQLDate } from '../../utils/DateConvertor.js';
 import { notifyAppointmentEvent } from '../../services/notificationDispatchers.js';
+import { formatTime12Hour } from '../../utils/user_helper.js';
 
 const normalizeTime = (timeStr) => {
     if (!timeStr) return timeStr;
@@ -212,7 +213,9 @@ export const formatMySentVisitRequest = (item) => ({
     buyer_side_status: item.buyer_side_status,
     requested_on: item.created_at,
     preferred_date: item.visit_date,
-    preferred_time: item.visit_time,
+    preferred_time: formatTime12Hour(item.visit_time),
+    preferred_time_formatted: formatTime12Hour(item.visit_time),
+    preferred_time_raw: item.visit_time,
     message: item.message,
 
     seller: {
@@ -238,9 +241,11 @@ export const formatMySentVisitRequest = (item) => ({
         created_at: item.created_at,
         updated_at: item.updated_at,
         original_visit_date: item.visit_date,
-        original_visit_time: item.visit_time,
+        original_visit_time: formatTime12Hour(item.visit_time),
+        original_visit_time_raw: item.visit_time,
         rescheduled_date: item.rescheduled_date,
-        rescheduled_time: item.rescheduled_time
+        rescheduled_time: formatTime12Hour(item.rescheduled_time),
+        rescheduled_time_raw: item.rescheduled_time
     }
 });
 

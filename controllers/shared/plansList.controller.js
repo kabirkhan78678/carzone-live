@@ -59,8 +59,22 @@ export const getAllPlan = async (req, res) => {
 
         const enrichedPlans = plans.map(plan => {
             const formattedPrice = getChfFormattedPrice(Number(plan.price));
+            const isYearly = String(plan.duration_type || '').toLowerCase() === 'yearly' || 
+                             String(plan.duration_type || '').toLowerCase() === 'annual';
+            const rawSlotCount = Number(plan.slot_count || 0);
+            const monthlySlots = isYearly ? getYearlyPlanMonthlySlots(plan) : rawSlotCount;
 
-            return { ...plan, price: formattedPrice };
+            return { 
+                ...plan, 
+                price: formattedPrice,
+                slot_count: isYearly ? monthlySlots : rawSlotCount,
+                monthly_slots: monthlySlots,
+                total_slots: rawSlotCount,
+                yearly_slots: isYearly ? rawSlotCount : null,
+                slot_description: isYearly 
+                    ? `${monthlySlots} slots / month (Total ${rawSlotCount} slots / year)`
+                    : `${rawSlotCount} slot${rawSlotCount > 1 ? 's' : ''} / month`
+            };
         });
 
         return res.status(200).json({
