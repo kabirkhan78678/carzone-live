@@ -1829,6 +1829,30 @@ const messages = {
         fr: "Liste des notifications récupérée avec succès.",
         it: "Elenco notifiche recuperato con successo."
     },
+    conditionAndWarrantyTitle: {
+        en: "Condition & Warranty",
+        de: "Zustand & Garantie",
+        fr: "État & Garantie",
+        it: "Stato & Garanzia"
+    },
+    mfkFreshlyInspected: {
+        en: "Freshly inspected",
+        de: "Frisch vorgeführt",
+        fr: "Expertisée du jour",
+        it: "Collaudata di recente"
+    },
+    warrantyIncludedTitle: {
+        en: "Warranty included",
+        de: "Garantie inklusive",
+        fr: "Garantie incluse",
+        it: "Garanzia inclusa"
+    },
+    warrantyDetailsSeller: {
+        en: "Details from seller",
+        de: "Details beim Verkäufer",
+        fr: "Détails auprès du vendeur",
+        it: "Dettagli dal venditore"
+    },
     noNotificationYet: {
         en: "No notifications yet.",
         de: "Noch keine Benachrichtigungen.",
