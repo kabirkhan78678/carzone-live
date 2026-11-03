@@ -2,6 +2,7 @@ import { fetchUserByIdCount, fetchUserById, fetchCarImagesByCarId } from '../../
 import { variableTypes } from '../../utils/constant.js';
 import { handleError, handleSuccess, handleSuccessNew } from '../../utils/responseHandler.js';
 import { getMessage } from '../../utils/user_helper.js';
+import { buildConditionAndWarrantyPayload } from '../../utils/conditionWarrantyHelper.js';
 
 export const asGuestUserFetchSellerCarsList = async (req, res) => {
     try {
@@ -378,6 +379,8 @@ export const buildVehicleDetailPayload = (car, openingTimes, mfk) => {
             residual_percentage: car.leasing_residual_percentage ?? null
         },
         mfk,
+        condition_and_warranty: buildConditionAndWarrantyPayload(car, mfk, 'de'),
+        conditionAndWarranty: buildConditionAndWarrantyPayload(car, mfk, 'de'),
         mfk_warrenty_id: car.mfk_warrenty_id ?? null,
         warranty_value: car.warranty_value ?? null,
         warranty_type_id: car.warranty_type_id_resolved ?? car.warranty_type_text ?? null,

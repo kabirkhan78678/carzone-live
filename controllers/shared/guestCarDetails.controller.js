@@ -4,13 +4,14 @@ import { buildVehicleDetailPayload } from './guestCarsList.controller.js';
 import { variableTypes } from '../../utils/constant.js';
 import { calculateMfk, buildMfkMessage } from '../../utils/mfkHelper.js';
 import { parseArrayField, getMessage, normalizeOpeningTimes } from '../../utils/user_helper.js';
+import { buildConditionAndWarrantyPayload } from '../../utils/conditionWarrantyHelper.js';
 
 export const asGuestUserGetCar = async (req, res) => {
     try {
         const carId = Number(req.params.id);
 
         // Guest user
-        const language = "en";
+        const language = req.query?.lang || req.body?.lang || req.headers?.['accept-language']?.slice(0, 2) || 'de';
 
         const carData = await viewCarDetailByCarIdModel(carId, language);
 
@@ -156,6 +157,8 @@ export const asGuestUserGetCar = async (req, res) => {
             warrantyDescription: textData
         };
 
+        const conditionAndWarranty = buildConditionAndWarrantyPayload(car, mfkInfo, language);
+
         const powerParts = [];
 
         if (car.power_ps != null) {
@@ -290,6 +293,9 @@ export const asGuestUserGetCar = async (req, res) => {
                 description: car.quality_seal_description
             } : null,
             vehicle: buildVehicleDetailPayload(car, openingTimes, mfkInfo),
+            condition_and_warranty: conditionAndWarranty,
+            conditionAndWarranty: conditionAndWarranty,
+            zustand_und_garantie: conditionAndWarranty,
 
             images: images.map(i => i.images),
             images_object: (images || []).map(i => ({ id: i.id, url: i.images })),
@@ -396,6 +402,13 @@ export const asGuestUserGetCar = async (req, res) => {
                     variableTypes.MFK_TITLE
                 ),
 
+                display_title: conditionAndWarranty.mfk.title,
+                display_subtitle: conditionAndWarranty.mfk.subtitle,
+                subtitle: conditionAndWarranty.mfk.subtitle,
+                formatted_date: conditionAndWarranty.mfk.date,
+                is_fresh: conditionAndWarranty.mfk.is_fresh,
+                is_inspected: conditionAndWarranty.mfk.is_inspected,
+                badge: conditionAndWarranty.mfk.title,
                 status_id: car.mfk_status_id || null,
 
                 status: car.mfk_status_code || null,
@@ -425,7 +438,24 @@ export const asGuestUserGetCar = async (req, res) => {
                     mfkInfo.mfk_source
             },
 
-            warantyDetails: warantyDeatils,
+            warantyDetails: {
+                ...warantyDeatils,
+                title: conditionAndWarranty.warranty.title,
+                subtitle: conditionAndWarranty.warranty.subtitle,
+                display_title: conditionAndWarranty.warranty.title,
+                display_subtitle: conditionAndWarranty.warranty.subtitle,
+                badge: conditionAndWarranty.warranty.badge,
+                has_warranty: conditionAndWarranty.warranty.has_warranty
+            },
+            warrantyDetails: {
+                ...warantyDeatils,
+                title: conditionAndWarranty.warranty.title,
+                subtitle: conditionAndWarranty.warranty.subtitle,
+                display_title: conditionAndWarranty.warranty.title,
+                display_subtitle: conditionAndWarranty.warranty.subtitle,
+                badge: conditionAndWarranty.warranty.badge,
+                has_warranty: conditionAndWarranty.warranty.has_warranty
+            },
 
             // qualitySeals: qualitySeals.map(seal => ({
             //     id: seal.id,
