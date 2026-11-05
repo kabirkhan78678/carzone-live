@@ -653,7 +653,7 @@ export const exportAndEmailUserData = async (userId) => {
     <!DOCTYPE html><html><body>
       <p>Hello ${displayName},</p>
       <p>Your CarZone data export is ready. Please find the ZIP file <strong>${fileName}</strong> attached to this email.</p>
-      <p>Best regards,<br><strong>CarZone Team</strong></p>
+      <p>Best regards,<br><strong>AutoPlace Team</strong></p>
     </body></html>`;
 
     await sendEmail({

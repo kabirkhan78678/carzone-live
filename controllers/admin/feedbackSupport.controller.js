@@ -451,7 +451,7 @@ export const updateSupport = async (req, res) => {
 
               <p style="margin: 25px 0 0 0; color: #6b7280; font-size: 14px;">
                 Best regards,<br>
-                <strong style="color: #111827;">CarZone Support Team</strong>
+                <strong style="color: #111827;">AutoPlace Support Team</strong>
               </p>
             </td>
           </tr>

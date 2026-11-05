@@ -356,13 +356,13 @@ export const sendSystemBroadcastNotification = async ({ title, body, isUrgent = 
                             </div>
                             <p style="margin-top: 20px; font-size: 13px; color: #666;">
                                 Best regards,<br>
-                                <strong>CarZone Team</strong>
+                                <strong>AutoPlace Team</strong>
                             </p>
                         </div>
                     `;
                     await sendEmail({
                         to: user.email,
-                        subject: `[CarZone] ${title}`,
+                        subject: `[AutoPlace] ${title}`,
                         html: emailHtml
                     }).catch(mailErr => console.error(`Failed to send announcement email to ${user.email}:`, mailErr.message));
                 }
