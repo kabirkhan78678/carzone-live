@@ -263,7 +263,10 @@ export const asGuestUsersfetchAllCarReels = async (req, res) => {
                         accountType,
                         sellerAddress: sellerAddress || null,
                         sellerRating: item.seller_rating ?? null,
-                        sellerLogo: item.seller_profile_image || null
+                        sellerLogo: item.seller_profile_image || null,
+                        sellerName: item.fullName || null,
+                        sellerId: item.user_id || null,
+                        seller_id: item.user_id || null
                     };
                 })
             );

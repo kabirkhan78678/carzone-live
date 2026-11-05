@@ -1,10 +1,10 @@
 import { handleError, handleSuccess, handleSuccessNew } from '../../utils/responseHandler.js';
-import { viewCarDetailByCarIdModel, fetchAllreadyCarWishlist, isSavedCarReelModel, getCarImagesByCarIdModel, getSellerOpeningTimesModel, suggestedCarOfCarId, fetchCarImagesByCarId } from '../../models/user.model.js';
+import { viewCarDetailByCarIdModel, fetchAllreadyCarWishlist, isSavedCarReelModel, getCarImagesByCarIdModel, getSellerOpeningTimesModel, suggestedCarOfCarId, fetchCarImagesByCarId, getFeaturesListModel, getExtrasListModel } from '../../models/user.model.js';
 import { buildVehicleDetailPayload } from './guestCarsList.controller.js';
 import NodeGeocoder from 'node-geocoder';
 import { variableTypes } from '../../utils/constant.js';
 import { calculateMfk, buildMfkMessage } from '../../utils/mfkHelper.js';
-import { parseArrayField, getMessage, normalizeOpeningTimes } from '../../utils/user_helper.js';
+import { parseArrayField, getMessage, normalizeOpeningTimes, enrichEquipmentList, enrichExtrasList } from '../../utils/user_helper.js';
 import { buildConditionAndWarrantyPayload } from '../../utils/conditionWarrantyHelper.js';
 
 export const viewCarDetailByCarId = async (req, res) => {
@@ -19,6 +19,17 @@ export const viewCarDetailByCarId = async (req, res) => {
 
         const { id: userId } = req.user;
         const car = carData[0];
+
+        let featureRows = [];
+        let extraRows = [];
+        try {
+            [featureRows, extraRows] = await Promise.all([
+                getFeaturesListModel(language),
+                getExtrasListModel(language, {})
+            ]);
+        } catch (lookupErr) {
+            console.error("Error fetching feature/extra lists for car details:", lookupErr?.message || lookupErr);
+        }
         const wishlist = await fetchAllreadyCarWishlist(userId, carId);
         const is_in_wishlist = Number(car?.user_id) !== Number(userId) && wishlist.length > 0;
         const isSavedCarReel = await isSavedCarReelModel(userId, carId);
@@ -260,8 +271,8 @@ export const viewCarDetailByCarId = async (req, res) => {
             reelThumbnails: car.reelThumbnails || null,
             document: car.document || null,
 
-            equipment: parseArrayField(car.carFeatures, []),
-            extras: parseArrayField(car.extras, []),
+            equipment: enrichEquipmentList(car.carFeatures, featureRows, extraRows),
+            extras: enrichExtrasList(car.extras, extraRows, featureRows),
 
             description: car.description || "",
 

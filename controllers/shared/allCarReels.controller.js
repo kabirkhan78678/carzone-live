@@ -370,6 +370,8 @@ export const fetchAllCarReels = async (req, res) => {
                             sellerAddress: null,
                             sellerRating: null,
                             sellerLogo: null,
+                            sellerId: item.user_id || null,
+                            seller_id: item.user_id || null,
 
                             captions: item.captions || null,
 
@@ -433,7 +435,9 @@ export const fetchAllCarReels = async (req, res) => {
                         sellerRating: item.seller_rating ?? null,
                         accountType: item.account_type || null,
                         sellerAddress: sellerAddress || null,
-                        sellerName: item.fullName || null
+                        sellerName: item.fullName || null,
+                        sellerId: item.user_id || null,
+                        seller_id: item.user_id || null
                     };
                 })
             );

@@ -655,6 +655,128 @@ export const parseArrayField = (val, fallback = []) => {
     return fallback;
 };
 
+export const enrichEquipmentList = (rawItems, featureRows = [], extraRows = []) => {
+    const rawList = parseArrayField(rawItems, []);
+    if (!rawList || !rawList.length) return [];
+
+    const featureMap = new Map();
+    const extraMap = new Map();
+
+    (featureRows || []).forEach(f => {
+        if (f.id != null) featureMap.set(String(f.id).trim(), f);
+        if (f.feature_key) featureMap.set(String(f.feature_key).trim().toLowerCase(), f);
+        if (f.display_key) featureMap.set(String(f.display_key).trim().toLowerCase(), f);
+    });
+
+    (extraRows || []).forEach(e => {
+        if (e.id != null) extraMap.set(String(e.id).trim(), e);
+        if (e.extra_key) extraMap.set(String(e.extra_key).trim().toLowerCase(), e);
+        if (e.display_key) extraMap.set(String(e.display_key).trim().toLowerCase(), e);
+    });
+
+    return rawList.map(item => {
+        if (typeof item === 'object' && item !== null) {
+            return item;
+        }
+
+        const strItem = String(item).trim();
+        const lowerItem = strItem.toLowerCase();
+
+        // 1. Match feature
+        const matchFeat = featureMap.get(strItem) || featureMap.get(lowerItem);
+        if (matchFeat) {
+            const label = matchFeat.name || matchFeat.title || matchFeat.display_key || matchFeat.feature_key || strItem;
+            return {
+                id: Number.isFinite(Number(matchFeat.id)) ? Number(matchFeat.id) : matchFeat.id,
+                name: label,
+                value: label,
+                key: matchFeat.feature_key || matchFeat.display_key || String(matchFeat.id)
+            };
+        }
+
+        // 2. Match extra fallback
+        const matchExtra = extraMap.get(strItem) || extraMap.get(lowerItem);
+        if (matchExtra) {
+            const label = matchExtra.name || matchExtra.title || matchExtra.display_key || matchExtra.extra_key || strItem;
+            return {
+                id: Number.isFinite(Number(matchExtra.id)) ? Number(matchExtra.id) : matchExtra.id,
+                name: label,
+                value: label,
+                key: matchExtra.extra_key || matchExtra.display_key || String(matchExtra.id)
+            };
+        }
+
+        // 3. Fallback
+        return {
+            id: Number.isFinite(Number(strItem)) ? Number(strItem) : strItem,
+            name: strItem,
+            value: strItem,
+            key: strItem
+        };
+    });
+};
+
+export const enrichExtrasList = (rawItems, extraRows = [], featureRows = []) => {
+    const rawList = parseArrayField(rawItems, []);
+    if (!rawList || !rawList.length) return [];
+
+    const extraMap = new Map();
+    const featureMap = new Map();
+
+    (extraRows || []).forEach(e => {
+        if (e.id != null) extraMap.set(String(e.id).trim(), e);
+        if (e.extra_key) extraMap.set(String(e.extra_key).trim().toLowerCase(), e);
+        if (e.display_key) extraMap.set(String(e.display_key).trim().toLowerCase(), e);
+    });
+
+    (featureRows || []).forEach(f => {
+        if (f.id != null) featureMap.set(String(f.id).trim(), f);
+        if (f.feature_key) featureMap.set(String(f.feature_key).trim().toLowerCase(), f);
+        if (f.display_key) featureMap.set(String(f.display_key).trim().toLowerCase(), f);
+    });
+
+    return rawList.map(item => {
+        if (typeof item === 'object' && item !== null) {
+            return item;
+        }
+
+        const strItem = String(item).trim();
+        const lowerItem = strItem.toLowerCase();
+
+        // 1. Match extra
+        const matchExtra = extraMap.get(strItem) || extraMap.get(lowerItem);
+        if (matchExtra) {
+            const label = matchExtra.name || matchExtra.title || matchExtra.display_key || matchExtra.extra_key || strItem;
+            return {
+                id: Number.isFinite(Number(matchExtra.id)) ? Number(matchExtra.id) : matchExtra.id,
+                name: label,
+                value: label,
+                key: matchExtra.extra_key || matchExtra.display_key || String(matchExtra.id)
+            };
+        }
+
+        // 2. Match feature fallback
+        const matchFeat = featureMap.get(strItem) || featureMap.get(lowerItem);
+        if (matchFeat) {
+            const label = matchFeat.name || matchFeat.title || matchFeat.display_key || matchFeat.feature_key || strItem;
+            return {
+                id: Number.isFinite(Number(matchFeat.id)) ? Number(matchFeat.id) : matchFeat.id,
+                name: label,
+                value: label,
+                key: matchFeat.feature_key || matchFeat.display_key || String(matchFeat.id)
+            };
+        }
+
+        // 3. Fallback
+        return {
+            id: Number.isFinite(Number(strItem)) ? Number(strItem) : strItem,
+            name: strItem,
+            value: strItem,
+            key: strItem
+        };
+    });
+};
+
 export const parseJsonObjectSafe = (value) => {
     if (!value || typeof value !== "string") return {};
     try {

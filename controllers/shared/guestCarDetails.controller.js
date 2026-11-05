@@ -3,7 +3,7 @@ import { viewCarDetailByCarIdModel, getCarImagesByCarIdModel, getSellerOpeningTi
 import { buildVehicleDetailPayload } from './guestCarsList.controller.js';
 import { variableTypes } from '../../utils/constant.js';
 import { calculateMfk, buildMfkMessage } from '../../utils/mfkHelper.js';
-import { parseArrayField, getMessage, normalizeOpeningTimes } from '../../utils/user_helper.js';
+import { parseArrayField, getMessage, normalizeOpeningTimes, enrichEquipmentList, enrichExtrasList } from '../../utils/user_helper.js';
 import { buildConditionAndWarrantyPayload } from '../../utils/conditionWarrantyHelper.js';
 
 export const asGuestUserGetCar = async (req, res) => {
@@ -306,9 +306,9 @@ export const asGuestUserGetCar = async (req, res) => {
 
             document: car.document || null,
 
-            equipment: parseArrayField(car.carFeatures, []),
+            equipment: enrichEquipmentList(car.carFeatures, featureRows, extraRows),
 
-            extras: parseArrayField(car.extras, []),
+            extras: enrichExtrasList(car.extras, extraRows, featureRows),
 
             featuresData,
             features_data: featuresData,
