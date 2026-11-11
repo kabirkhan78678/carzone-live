@@ -60,7 +60,7 @@ export const getMySupportTicketByIdModel = async (user_id, ticket_id) => {
 
 export const getMyFeedbackByIdModel = async (seller_id, feedback_id) => {
     const rows = await db.query(
-        `SELECT id, rating, message, created_at
+        `SELECT id, rating, message, created_at, created_at AS updated_at
          FROM tbl_app_feedback
          WHERE id = ? AND seller_id = ? AND is_delete = 0`,
         [feedback_id, seller_id]
@@ -70,7 +70,7 @@ export const getMyFeedbackByIdModel = async (seller_id, feedback_id) => {
 
 export const checkSellerFeedbackModel = async (seller_id) => {
     return db.query(
-        `SELECT id, rating, message, created_at FROM tbl_app_feedback WHERE seller_id = ? AND is_delete = 0`,
+        `SELECT id, rating, message, created_at, created_at AS updated_at FROM tbl_app_feedback WHERE seller_id = ? AND is_delete = 0`,
         [seller_id]
     );
 };
@@ -79,9 +79,9 @@ export const submitAppFeedbackModel = async (data) => {
     const { seller_id, rating, message } = data;
 
     return db.query(
-        `INSERT INTO tbl_app_feedback (seller_id, rating, message)
-         VALUES (?, ?, ?)
-         ON DUPLICATE KEY UPDATE rating = VALUES(rating), message = VALUES(message), is_delete = 0`,
+        `INSERT INTO tbl_app_feedback (seller_id, rating, message, created_at)
+         VALUES (?, ?, ?, NOW())
+         ON DUPLICATE KEY UPDATE rating = VALUES(rating), message = VALUES(message), is_delete = 0, created_at = NOW()`,
         [seller_id, rating, message || null]
     );
 };
@@ -91,7 +91,7 @@ export const updateAppFeedbackModel = async (data) => {
 
     return db.query(
         `UPDATE tbl_app_feedback
-         SET rating = ?, message = ?, is_delete = 0
+         SET rating = ?, message = ?, is_delete = 0, created_at = NOW()
          WHERE seller_id = ?`,
         [rating, message || null, seller_id]
     );
@@ -99,7 +99,7 @@ export const updateAppFeedbackModel = async (data) => {
 
 export const getMyFeedbackModel = async (seller_id) => {
     const rows = await db.query(
-        `SELECT id, rating, message, created_at
+        `SELECT id, rating, message, created_at, created_at AS updated_at
          FROM tbl_app_feedback
          WHERE seller_id = ? AND is_delete = 0`,
         [seller_id]

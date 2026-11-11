@@ -37,13 +37,17 @@ export const submitAppFeedback = async (req, res) => {
                 message: cleanMessage
             });
 
+            const updatedFeedback = await getMyFeedbackModel(seller_id);
+
             return handleSuccess(
                 res,
                 200,
                 "Feedback updated successfully!",
-                {
+                updatedFeedback || {
                     rating,
-                    message: cleanMessage
+                    message: cleanMessage,
+                    created_at: new Date(),
+                    updated_at: new Date()
                 }
             );
         }
@@ -55,13 +59,17 @@ export const submitAppFeedback = async (req, res) => {
             message: cleanMessage
         });
 
+        const newFeedback = await getMyFeedbackModel(seller_id);
+
         return handleSuccess(
             res,
             201,
             "Thank you for your feedback!",
-            {
+            newFeedback || {
                 rating,
-                message: cleanMessage
+                message: cleanMessage,
+                created_at: new Date(),
+                updated_at: new Date()
             }
         );
 
