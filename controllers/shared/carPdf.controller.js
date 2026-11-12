@@ -11,9 +11,10 @@ export const downloadCarPdf = async (req, res) => {
     let browser;
     try {
         const { id } = req.params;
+        const language = req.query?.lang || req.query?.language || req.headers?.['accept-language']?.slice(0, 2) || 'en';
 
         // 1️⃣ fetch data from service
-        const carData = await getCarDetailsForPdf(id);
+        const carData = await getCarDetailsForPdf(id, language);
 
         if (!carData) {
             return res.status(404).json({ message: "Car not found" });
