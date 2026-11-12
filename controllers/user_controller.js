@@ -80,3 +80,4 @@ export * from './shared/yearAnalytics.controller.js';
 export * from './shared/notificationSettings.controller.js';
 export * from './shared/savedSearch.controller.js';
 export * from './shared/story.controller.js';
+export * from './shared/cities.controller.js';

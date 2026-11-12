@@ -1858,9 +1858,25 @@ const messages = {
         de: "Noch keine Benachrichtigungen.",
         fr: "Aucune notification pour le moment.",
         it: "Nessuna notifica per il momento."
+    },
+    citiesFetchedSuccessfully: {
+        en: "Cities fetched successfully",
+        de: "Städte erfolgreich abgerufen",
+        fr: "Villes récupérées avec succès",
+        it: "Città recuperate con successo"
+    },
+    "Cities fetched successfully": {
+        en: "Cities fetched successfully",
+        de: "Städte erfolgreich abgerufen",
+        fr: "Villes récupérées avec succès",
+        it: "Città recuperate con successo"
+    },
+    CITIES_FETCHED_SUCCESSFULLY: {
+        en: "Cities fetched successfully",
+        de: "Städte erfolgreich abgerufen",
+        fr: "Villes récupérées avec succès",
+        it: "Città recuperate con successo"
     }
 };
 
 export default messages;
-
-

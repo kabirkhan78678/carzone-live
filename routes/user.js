@@ -334,4 +334,9 @@ app.post('/saved-searches', authenticateUser, createSavedSearchValidation, handl
 app.get('/saved-searches', authenticateUser, controller.userController.getSavedSearchesController);
 app.delete('/saved-searches/:id', authenticateUser, deleteSavedSearchValidation, handleValidationErrors, controller.userController.deleteSavedSearchController);
 
+// European Cities (Switzerland, Germany, France, Italy, Spain) - Public Route (No Token)
+app.get('/cities', controller.userController.getCities);
+app.get('/european-cities', controller.userController.getCities);
+app.get('/countries-cities', controller.userController.getCities);
+
 export default app;

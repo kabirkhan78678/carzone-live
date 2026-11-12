@@ -10,7 +10,7 @@ import {
     fetchSupportById
 } from '../../models/admin.model.js';
 import { handleSuccessNew, handleError, handleSuccess } from '../../utils/responseHandler.js';
-import { getMessage } from '../../utils/user_helper.js';
+import { getMessage, attachFormattedDate } from '../../utils/user_helper.js';
 import { getUserById } from '../../models/notification.model.js';
 import { sendNotificationToUser } from '../../services/notification.service.js';
 import { sendEmail } from '../../utils/emailService.js';
@@ -44,7 +44,7 @@ export const getAppFeedback = async (req, res) => {
                 page,
                 limit,
                 totalPages: Math.ceil(feedback.total / limit),
-                data: feedback.data
+                data: (feedback.data || []).map(attachFormattedDate)
             }
         );
 
@@ -80,7 +80,7 @@ export const getAppFeedbackById = async (req, res) => {
             res,
             200,
             getMessage(lang, variableTypes.DATA_FOUND_SUCCESSFULLY),
-            feedback
+            attachFormattedDate(feedback)
         );
 
     } catch (error) {
@@ -157,7 +157,7 @@ export const getSupportList = async (req, res) => {
                 totalPages: Math.ceil(
                     support.total / limit
                 ),
-                data: support.data
+                data: (support.data || []).map(attachFormattedDate)
             }
         );
 
@@ -187,7 +187,7 @@ export const getSupportById = async (req, res) => {
             res,
             200,
             getMessage(lang, variableTypes.DATA_FOUND_SUCCESSFULLY),
-            support
+            attachFormattedDate(support)
         );
     } catch (error) {
         console.error(error);

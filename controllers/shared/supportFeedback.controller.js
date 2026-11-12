@@ -11,7 +11,7 @@ import {
 } from '../../models/user.model.js';
 import { variableTypes } from '../../utils/constant.js';
 import { handleError, handleSuccess } from '../../utils/responseHandler.js';
-import { getMessage } from '../../utils/user_helper.js';
+import { getMessage, attachFormattedDate, formatDateDDMMYY } from '../../utils/user_helper.js';
 
 export const submitAppFeedback = async (req, res) => {
     try {
@@ -43,11 +43,13 @@ export const submitAppFeedback = async (req, res) => {
                 res,
                 200,
                 "Feedback updated successfully!",
-                updatedFeedback || {
+                attachFormattedDate(updatedFeedback) || {
                     rating,
                     message: cleanMessage,
                     created_at: new Date(),
-                    updated_at: new Date()
+                    updated_at: new Date(),
+                    created_at_formatted: formatDateDDMMYY(new Date()),
+                    date: formatDateDDMMYY(new Date())
                 }
             );
         }
@@ -65,11 +67,13 @@ export const submitAppFeedback = async (req, res) => {
             res,
             201,
             "Thank you for your feedback!",
-            newFeedback || {
+            attachFormattedDate(newFeedback) || {
                 rating,
                 message: cleanMessage,
                 created_at: new Date(),
-                updated_at: new Date()
+                updated_at: new Date(),
+                created_at_formatted: formatDateDDMMYY(new Date()),
+                date: formatDateDDMMYY(new Date())
             }
         );
 
@@ -90,7 +94,7 @@ export const getMyAppFeedback = async (req, res) => {
             res,
             200,
             getMessage(lang, variableTypes.DATA_FOUND_SUCCESSFULLY),
-            feedback
+            attachFormattedDate(feedback)
         );
     } catch (error) {
         console.error("getMyAppFeedback error:", error);
@@ -183,11 +187,12 @@ export const getMySupportTickets = async (req, res) => {
         const lang = req.user.language;
         const user_id = req.user.id;
         const tickets = await getMySupportTicketsModel(user_id);
+        const formattedTickets = Array.isArray(tickets) ? tickets.map(attachFormattedDate) : tickets;
         return handleSuccess(
             res,
             200,
             getMessage(lang, variableTypes.DATA_FOUND_SUCCESSFULLY),
-            tickets
+            formattedTickets
         );
 
     } catch (error) {
@@ -215,7 +220,7 @@ export const getMySupportTicketById = async (req, res) => {
             res,
             200,
             getMessage(lang, variableTypes.DATA_FOUND_SUCCESSFULLY),
-            ticket
+            attachFormattedDate(ticket)
         );
     } catch (error) {
         console.error("getMySupportTicketById error:", error);
@@ -242,7 +247,7 @@ export const getMyFeedbackById = async (req, res) => {
             res,
             200,
             getMessage(lang, variableTypes.DATA_FOUND_SUCCESSFULLY),
-            feedback
+            attachFormattedDate(feedback)
         );
     } catch (error) {
         console.error("getMyFeedbackById error:", error);

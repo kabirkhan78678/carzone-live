@@ -777,6 +777,42 @@ export const enrichExtrasList = (rawItems, extraRows = [], featureRows = []) => 
     });
 };
 
+export const formatDateDDMMYY = (value) => {
+    if (!value) return null;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const yearShort = String(d.getFullYear()).slice(-2);
+    return `${day}/${month}/${yearShort}`;
+};
+
+export const formatDateDDMMYYYY = (value) => {
+    if (!value) return null;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const yearFull = d.getFullYear();
+    return `${day}/${month}/${yearFull}`;
+};
+
+export const attachFormattedDate = (item) => {
+    if (!item || typeof item !== 'object') return item;
+    const dateVal = item.created_at || item.createdAt || item.updated_at || item.updatedAt;
+    if (!dateVal) return item;
+    const ddmmyy = formatDateDDMMYY(dateVal);
+    const ddmmyyyy = formatDateDDMMYYYY(dateVal);
+    return {
+        ...item,
+        created_at_formatted: ddmmyy,
+        date: ddmmyy,
+        formatted_date: ddmmyy,
+        date_ddmmyy: ddmmyy,
+        date_ddmmyyyy: ddmmyyyy
+    };
+};
+
 export const parseJsonObjectSafe = (value) => {
     if (!value || typeof value !== "string") return {};
     try {
