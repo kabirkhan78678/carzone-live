@@ -119,6 +119,52 @@ export function buildWhereConditions(filters, selectedBrandNames, selectedModels
         where.push(`c.quality_seal_id IN (${qualitySealIds.join(",")})`);
     }
 
+    // Location / Radius Filter
+    const loc = filters.location || {};
+    const locCity = (loc.city ?? filters.city ?? filters.cityName ?? "").trim().toLowerCase();
+    const locPin = (loc.pincode ?? filters.pincode ?? filters.postal_code ?? filters.zip ?? "").trim().toLowerCase();
+    const locRad = Number(loc.radius ?? filters.radius ?? filters.distance);
+    const locLat = Number(loc.latitude ?? filters.latitude ?? filters.lat);
+    const locLng = Number(loc.longitude ?? filters.longitude ?? filters.lng ?? filters.lon);
+
+    const hasLocCoords = Number.isFinite(locLat) && Number.isFinite(locLng) && Number.isFinite(locRad) && locRad > 0;
+    if (hasLocCoords) {
+        const escapedCity = locCity.replace(/'/g, "''");
+        const escapedPin = locPin.replace(/'/g, "''");
+        const locParts = [
+            `(c.latitude IS NOT NULL AND c.longitude IS NOT NULL AND (6371 * ACOS(LEAST(1.0, GREATEST(-1.0, COS(RADIANS(${locLat})) * COS(RADIANS(c.latitude)) * COS(RADIANS(c.longitude) - RADIANS(${locLng})) + SIN(RADIANS(${locLat})) * SIN(RADIANS(c.latitude)))))) <= ${locRad})`,
+            `(EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = c.id AND _cc.latitude IS NOT NULL AND _cc.longitude IS NOT NULL AND (6371 * ACOS(LEAST(1.0, GREATEST(-1.0, COS(RADIANS(${locLat})) * COS(RADIANS(_cc.latitude)) * COS(RADIANS(_cc.longitude) - RADIANS(${locLng})) + SIN(RADIANS(${locLat})) * SIN(RADIANS(_cc.latitude)))))) <= ${locRad}))`
+        ];
+        if (locCity) {
+            locParts.push(`LOWER(TRIM(COALESCE(c.location, ''))) LIKE '%${escapedCity}%'`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = c.id AND LOWER(TRIM(COALESCE(_cc.city, ''))) = '${escapedCity}')`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = c.user_id AND LOWER(TRIM(COALESCE(_u.city, ''))) = '${escapedCity}')`);
+        }
+        if (locPin) {
+            locParts.push(`LOWER(TRIM(COALESCE(c.location, ''))) LIKE '%${escapedPin}%'`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = c.id AND LOWER(TRIM(COALESCE(_cc.postal_code, ''))) = '${escapedPin}')`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = c.user_id AND LOWER(TRIM(COALESCE(_u.pincode, ''))) = '${escapedPin}')`);
+        }
+        where.push(`(${locParts.join(" OR ")})`);
+    } else if (locCity || locPin) {
+        const escapedCity = locCity.replace(/'/g, "''");
+        const escapedPin = locPin.replace(/'/g, "''");
+        const locParts = [];
+        if (locCity) {
+            locParts.push(`LOWER(TRIM(COALESCE(c.location, ''))) LIKE '%${escapedCity}%'`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = c.id AND LOWER(TRIM(COALESCE(_cc.city, ''))) = '${escapedCity}')`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = c.user_id AND LOWER(TRIM(COALESCE(_u.city, ''))) = '${escapedCity}')`);
+        }
+        if (locPin) {
+            locParts.push(`LOWER(TRIM(COALESCE(c.location, ''))) LIKE '%${escapedPin}%'`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = c.id AND LOWER(TRIM(COALESCE(_cc.postal_code, ''))) = '${escapedPin}')`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = c.user_id AND LOWER(TRIM(COALESCE(_u.pincode, ''))) = '${escapedPin}')`);
+        }
+        if (locParts.length) {
+            where.push(`(${locParts.join(" OR ")})`);
+        }
+    }
+
     if (filters.energy_efficiency) {
         const codes = getTextValues(filters.energy_efficiency)
             ?.map((item) => `'${String(item).replace(/'/g, "''").toUpperCase()}'`)
@@ -397,6 +443,52 @@ export function buildSellerJoinExtra(filters, selectedBrandNames, selectedModels
     addSellerJoinNumericRange("CAST(NULLIF(c.wltp_range, '') AS DECIMAL(15,2))", wltp_range_from, wltp_range_to);
     addSellerJoinNumericRange("CAST(NULLIF(c.consumption, '') AS DECIMAL(15,2))", consumption_from, consumption_to);
     addSellerJoinNumericRange("CAST(NULLIF(c.co2Emission, '') AS DECIMAL(15,2))", co2_from, co2_to);
+
+    // Location / Radius for Seller Join Extra
+    const loc = filters.location || {};
+    const locCity = (loc.city ?? filters.city ?? filters.cityName ?? "").trim().toLowerCase();
+    const locPin = (loc.pincode ?? filters.pincode ?? filters.postal_code ?? filters.zip ?? "").trim().toLowerCase();
+    const locRad = Number(loc.radius ?? filters.radius ?? filters.distance);
+    const locLat = Number(loc.latitude ?? filters.latitude ?? filters.lat);
+    const locLng = Number(loc.longitude ?? filters.longitude ?? filters.lng ?? filters.lon);
+    const hasLocCoords = Number.isFinite(locLat) && Number.isFinite(locLng) && Number.isFinite(locRad) && locRad > 0;
+
+    if (hasLocCoords) {
+        const escapedCity = locCity.replace(/'/g, "''");
+        const escapedPin = locPin.replace(/'/g, "''");
+        const locParts = [
+            `(c.latitude IS NOT NULL AND c.longitude IS NOT NULL AND (6371 * ACOS(LEAST(1.0, GREATEST(-1.0, COS(RADIANS(${locLat})) * COS(RADIANS(c.latitude)) * COS(RADIANS(c.longitude) - RADIANS(${locLng})) + SIN(RADIANS(${locLat})) * SIN(RADIANS(c.latitude)))))) <= ${locRad})`,
+            `(EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = c.id AND _cc.latitude IS NOT NULL AND _cc.longitude IS NOT NULL AND (6371 * ACOS(LEAST(1.0, GREATEST(-1.0, COS(RADIANS(${locLat})) * COS(RADIANS(_cc.latitude)) * COS(RADIANS(_cc.longitude) - RADIANS(${locLng})) + SIN(RADIANS(${locLat})) * SIN(RADIANS(_cc.latitude)))))) <= ${locRad}))`
+        ];
+        if (locCity) {
+            locParts.push(`LOWER(TRIM(COALESCE(c.location, ''))) LIKE '%${escapedCity}%'`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = c.id AND LOWER(TRIM(COALESCE(_cc.city, ''))) = '${escapedCity}')`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = c.user_id AND LOWER(TRIM(COALESCE(_u.city, ''))) = '${escapedCity}')`);
+        }
+        if (locPin) {
+            locParts.push(`LOWER(TRIM(COALESCE(c.location, ''))) LIKE '%${escapedPin}%'`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = c.id AND LOWER(TRIM(COALESCE(_cc.postal_code, ''))) = '${escapedPin}')`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = c.user_id AND LOWER(TRIM(COALESCE(_u.pincode, ''))) = '${escapedPin}')`);
+        }
+        sellerJoinExtra.push(`(${locParts.join(" OR ")})`);
+    } else if (locCity || locPin) {
+        const escapedCity = locCity.replace(/'/g, "''");
+        const escapedPin = locPin.replace(/'/g, "''");
+        const locParts = [];
+        if (locCity) {
+            locParts.push(`LOWER(TRIM(COALESCE(c.location, ''))) LIKE '%${escapedCity}%'`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = c.id AND LOWER(TRIM(COALESCE(_cc.city, ''))) = '${escapedCity}')`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = c.user_id AND LOWER(TRIM(COALESCE(_u.city, ''))) = '${escapedCity}')`);
+        }
+        if (locPin) {
+            locParts.push(`LOWER(TRIM(COALESCE(c.location, ''))) LIKE '%${escapedPin}%'`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = c.id AND LOWER(TRIM(COALESCE(_cc.postal_code, ''))) = '${escapedPin}')`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = c.user_id AND LOWER(TRIM(COALESCE(_u.pincode, ''))) = '${escapedPin}')`);
+        }
+        if (locParts.length) {
+            sellerJoinExtra.push(`(${locParts.join(" OR ")})`);
+        }
+    }
 
     return sellerJoinExtra;
 }

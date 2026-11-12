@@ -590,6 +590,95 @@ export const buildFacetedConditions = (
         }
     }
 
+    // ============================================
+    // LOCATION / RADIUS FILTER
+    // ============================================
+    if (excludeFacet !== "location" && filters.location) {
+        const loc = filters.location;
+        const lat = toNullableNumber(loc.latitude);
+        const lng = toNullableNumber(loc.longitude);
+        const rad = toNullableNumber(loc.radius);
+        const city = loc.city ? String(loc.city).trim().toLowerCase() : null;
+        const pin = loc.pincode ? String(loc.pincode).trim().toLowerCase() : null;
+
+        const hasCoords = lat !== null && lng !== null && rad !== null && rad > 0;
+
+        if (hasCoords) {
+            const locConditions = [];
+
+            // 1. Car coordinates Haversine
+            locConditions.push(`(
+                ${alias}.latitude IS NOT NULL AND ${alias}.longitude IS NOT NULL
+                AND (6371 * ACOS(
+                    LEAST(1.0, GREATEST(-1.0,
+                        COS(RADIANS(?)) * COS(RADIANS(${alias}.latitude))
+                        * COS(RADIANS(${alias}.longitude) - RADIANS(?))
+                        + SIN(RADIANS(?)) * SIN(RADIANS(${alias}.latitude))
+                    ))
+                )) <= ?
+            )`);
+            params.push(lat, lng, lat, rad);
+
+            // 2. Car contacts coordinates Haversine
+            locConditions.push(`(
+                EXISTS (
+                    SELECT 1 FROM tbl_car_contacts _cc
+                    WHERE _cc.car_id = ${alias}.id
+                      AND _cc.latitude IS NOT NULL AND _cc.longitude IS NOT NULL
+                      AND (6371 * ACOS(
+                          LEAST(1.0, GREATEST(-1.0,
+                              COS(RADIANS(?)) * COS(RADIANS(_cc.latitude))
+                              * COS(RADIANS(_cc.longitude) - RADIANS(?))
+                              + SIN(RADIANS(?)) * SIN(RADIANS(_cc.latitude))
+                          ))
+                      )) <= ?
+                )
+            )`);
+            params.push(lat, lng, lat, rad);
+
+            // 3. Fallback for non-geocoded cars
+            if (city) {
+                locConditions.push(`LOWER(TRIM(COALESCE(${alias}.location, ''))) LIKE ?`);
+                params.push(`%${city}%`);
+                locConditions.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = ${alias}.id AND LOWER(TRIM(COALESCE(_cc.city, ''))) = ?)`);
+                params.push(city);
+                locConditions.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = ${alias}.user_id AND LOWER(TRIM(COALESCE(_u.city, ''))) = ?)`);
+                params.push(city);
+            }
+            if (pin) {
+                locConditions.push(`LOWER(TRIM(COALESCE(${alias}.location, ''))) LIKE ?`);
+                params.push(`%${pin}%`);
+                locConditions.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = ${alias}.id AND LOWER(TRIM(COALESCE(_cc.postal_code, ''))) = ?)`);
+                params.push(pin);
+                locConditions.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = ${alias}.user_id AND LOWER(TRIM(COALESCE(_u.pincode, ''))) = ?)`);
+                params.push(pin);
+            }
+
+            conditions.push(`(${locConditions.join(" OR ")})`);
+        } else if (city || pin) {
+            const locConditions = [];
+            if (city) {
+                locConditions.push(`LOWER(TRIM(COALESCE(${alias}.location, ''))) LIKE ?`);
+                params.push(`%${city}%`);
+                locConditions.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = ${alias}.id AND LOWER(TRIM(COALESCE(_cc.city, ''))) = ?)`);
+                params.push(city);
+                locConditions.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = ${alias}.user_id AND LOWER(TRIM(COALESCE(_u.city, ''))) = ?)`);
+                params.push(city);
+            }
+            if (pin) {
+                locConditions.push(`LOWER(TRIM(COALESCE(${alias}.location, ''))) LIKE ?`);
+                params.push(`%${pin}%`);
+                locConditions.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = ${alias}.id AND LOWER(TRIM(COALESCE(_cc.postal_code, ''))) = ?)`);
+                params.push(pin);
+                locConditions.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = ${alias}.user_id AND LOWER(TRIM(COALESCE(_u.pincode, ''))) = ?)`);
+                params.push(pin);
+            }
+            if (locConditions.length) {
+                conditions.push(`(${locConditions.join(" OR ")})`);
+            }
+        }
+    }
+
     return { conditions, params };
 };
 

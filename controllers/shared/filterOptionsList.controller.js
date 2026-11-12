@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { variableTypes } from '../../utils/constant.js';
 import { handleError, handleSuccess, handleSuccessNew } from '../../utils/responseHandler.js';
 import { getMessage, parseFacetedInput, normalizeFacetedFilters } from '../../utils/user_helper.js';
+import { resolveLocationCoordinates } from '../../services/geocoding.service.js';
 
 const extractViewerUserId = (req) => {
     if (req.user?.id) {
@@ -76,14 +77,31 @@ export const getFilters = async (req, res) => {
             ...(typeof activeFiltersQuery === 'object' ? activeFiltersQuery : {})
         };
 
+        const locationInput = (typeof mergedActiveFilters.location === 'object' && mergedActiveFilters.location !== null) ? mergedActiveFilters.location : {};
+        const rawCity = mergedActiveFilters.city ?? mergedActiveFilters.cityName ?? mergedActiveFilters.city_name ?? locationInput.city ?? locationInput.cityName ?? (typeof mergedActiveFilters.location === 'string' && isNaN(Number(mergedActiveFilters.location.trim())) ? mergedActiveFilters.location : undefined);
+        const rawPincode = mergedActiveFilters.pincode ?? mergedActiveFilters.postal_code ?? mergedActiveFilters.postalCode ?? mergedActiveFilters.zip ?? mergedActiveFilters.zipcode ?? mergedActiveFilters.plz ?? locationInput.pincode ?? locationInput.postal_code ?? locationInput.zip ?? (typeof mergedActiveFilters.location === 'string' && !isNaN(Number(mergedActiveFilters.location.trim())) ? mergedActiveFilters.location : undefined);
+        const rawRadius = mergedActiveFilters.radius ?? mergedActiveFilters.distance ?? mergedActiveFilters.radius_km ?? locationInput.radius ?? locationInput.distance;
+        const rawLat = mergedActiveFilters.latitude ?? mergedActiveFilters.lat ?? locationInput.latitude ?? locationInput.lat;
+        const rawLng = mergedActiveFilters.longitude ?? mergedActiveFilters.lng ?? mergedActiveFilters.lon ?? locationInput.longitude ?? locationInput.lng;
+
+        const resolvedLocation = await resolveLocationCoordinates({
+            city: rawCity,
+            pincode: rawPincode,
+            radius: rawRadius,
+            latitude: rawLat,
+            longitude: rawLng
+        });
+
         const normalizedFilters = normalizeFacetedFilters({
             ...mergedActiveFilters,
+            location: resolvedLocation,
             exclude_user_id: viewerUserId,
             excluded_user_id: viewerUserId
         });
 
         const filters = {
             ...mergedActiveFilters,
+            location: resolvedLocation,
             // direct-web object compatibility aliases for legacy getAllFilters
             seller_type: mergedActiveFilters.seller_type ?? mergedActiveFilters.sellerType ?? (normalizedFilters.seller_types?.length ? normalizedFilters.seller_types : undefined),
             fuel_type_id: mergedActiveFilters.fuel_type_id ?? mergedActiveFilters.fuelType ?? (normalizedFilters.fuel_type_ids?.length ? normalizedFilters.fuel_type_ids : undefined),
@@ -193,6 +211,7 @@ export const getFilters = async (req, res) => {
         data.wltp_range = mapRangeFacet(wltpFacet);
         data.consumption = mapRangeFacet(consumptionFacet);
         data.co2_emission = mapRangeFacet(co2Facet);
+        data.location = resolvedLocation;
 
         return handleSuccess(res, 200, "Data found successfully", data);
     } catch (error) {

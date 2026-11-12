@@ -1493,7 +1493,8 @@ const getFilteredCarsByAllFilters = async (
     // SORT
     sortKey = ["published_most_recent"],
     carTypeFilter = null,
-    qualitySealFilter = null
+    qualitySealFilter = null,
+    locationFilter = null
 ) => {
 
     //-------------------------added for array ------------------------//
@@ -1903,6 +1904,50 @@ const getFilteredCarsByAllFilters = async (
         const qualityIds = normalizeIds(qualitySealFilter.quality_seal_ids || qualitySealFilter.quality_seal);
         if (qualityIds.length) {
             whereClause += ` AND tc.quality_seal_id IN (${qualityIds.join(",")}) `;
+        }
+    }
+
+    if (locationFilter && (locationFilter.radius || locationFilter.city || locationFilter.pincode || (locationFilter.latitude && locationFilter.longitude))) {
+        const lat = Number(locationFilter.latitude);
+        const lng = Number(locationFilter.longitude);
+        const rad = Number(locationFilter.radius);
+        const hasCoords = Number.isFinite(lat) && Number.isFinite(lng) && Number.isFinite(rad) && rad > 0;
+        const city = (locationFilter.city ? String(locationFilter.city).trim().toLowerCase() : "").replace(/'/g, "''");
+        const pin = (locationFilter.pincode ? String(locationFilter.pincode).trim().toLowerCase() : "").replace(/'/g, "''");
+
+        if (hasCoords) {
+            const locBranches = [
+                `(tc.latitude IS NOT NULL AND tc.longitude IS NOT NULL AND (6371 * ACOS(LEAST(1.0, GREATEST(-1.0, COS(RADIANS(${lat})) * COS(RADIANS(tc.latitude)) * COS(RADIANS(tc.longitude) - RADIANS(${lng})) + SIN(RADIANS(${lat})) * SIN(RADIANS(tc.latitude)))))) <= ${rad})`,
+                `(EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = tc.id AND _cc.latitude IS NOT NULL AND _cc.longitude IS NOT NULL AND (6371 * ACOS(LEAST(1.0, GREATEST(-1.0, COS(RADIANS(${lat})) * COS(RADIANS(_cc.latitude)) * COS(RADIANS(_cc.longitude) - RADIANS(${lng})) + SIN(RADIANS(${lat})) * SIN(RADIANS(_cc.latitude)))))) <= ${rad}))`
+            ];
+
+            if (city) {
+                locBranches.push(`LOWER(TRIM(COALESCE(tc.location, ''))) LIKE '%${city}%'`);
+                locBranches.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = tc.id AND LOWER(TRIM(COALESCE(_cc.city, ''))) = '${city}')`);
+                locBranches.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = tc.user_id AND LOWER(TRIM(COALESCE(_u.city, ''))) = '${city}')`);
+            }
+            if (pin) {
+                locBranches.push(`LOWER(TRIM(COALESCE(tc.location, ''))) LIKE '%${pin}%'`);
+                locBranches.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = tc.id AND LOWER(TRIM(COALESCE(_cc.postal_code, ''))) = '${pin}')`);
+                locBranches.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = tc.user_id AND LOWER(TRIM(COALESCE(_u.pincode, ''))) = '${pin}')`);
+            }
+
+            whereClause += ` AND (${locBranches.join(" OR ")}) `;
+        } else if (city || pin) {
+            const locBranches = [];
+            if (city) {
+                locBranches.push(`LOWER(TRIM(COALESCE(tc.location, ''))) LIKE '%${city}%'`);
+                locBranches.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = tc.id AND LOWER(TRIM(COALESCE(_cc.city, ''))) = '${city}')`);
+                locBranches.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = tc.user_id AND LOWER(TRIM(COALESCE(_u.city, ''))) = '${city}')`);
+            }
+            if (pin) {
+                locBranches.push(`LOWER(TRIM(COALESCE(tc.location, ''))) LIKE '%${pin}%'`);
+                locBranches.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = tc.id AND LOWER(TRIM(COALESCE(_cc.postal_code, ''))) = '${pin}')`);
+                locBranches.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = tc.user_id AND LOWER(TRIM(COALESCE(_u.pincode, ''))) = '${pin}')`);
+            }
+            if (locBranches.length) {
+                whereClause += ` AND (${locBranches.join(" OR ")}) `;
+            }
         }
     }
 

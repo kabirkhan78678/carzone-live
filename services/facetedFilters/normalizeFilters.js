@@ -166,6 +166,44 @@ export const parseJsonObjectSafe = (value) => {
 
 
 
+const normalizeLocationFilter = (source = {}) => {
+    const rawLocation = pickFirstDefined(source, ["location", "geo_location", "geoLocation"]);
+    const parsedLocation = (typeof rawLocation === "object" && rawLocation !== null) ? rawLocation : {};
+
+    const rawCity = pickFirstDefined(source, ["city", "cityName", "city_name"]) ??
+        pickFirstDefined(parsedLocation, ["city", "cityName", "city_name"]) ??
+        (typeof rawLocation === "string" && isNaN(Number(rawLocation.trim())) ? rawLocation : undefined);
+    const city = rawCity !== undefined && rawCity !== null ? String(rawCity).trim() : null;
+
+    const rawPincode = pickFirstDefined(source, ["pincode", "postal_code", "postalCode", "zip", "zipcode", "plz"]) ??
+        pickFirstDefined(parsedLocation, ["pincode", "postal_code", "postalCode", "zip", "zipcode", "plz"]) ??
+        (typeof rawLocation === "string" && !isNaN(Number(rawLocation.trim())) ? rawLocation : undefined);
+    const pincode = rawPincode !== undefined && rawPincode !== null ? String(rawPincode).trim() : null;
+
+    const radius = toNullableNumber(
+        pickFirstDefined(source, ["radius", "distance", "radius_km", "distance_km"]) ??
+        pickFirstDefined(parsedLocation, ["radius", "distance", "radius_km", "distance_km"])
+    );
+
+    const latitude = toNullableNumber(
+        pickFirstDefined(source, ["latitude", "lat"]) ??
+        pickFirstDefined(parsedLocation, ["latitude", "lat"])
+    );
+
+    const longitude = toNullableNumber(
+        pickFirstDefined(source, ["longitude", "lng", "lon"]) ??
+        pickFirstDefined(parsedLocation, ["longitude", "lng", "lon"])
+    );
+
+    return {
+        city: city || null,
+        pincode: pincode || null,
+        radius: radius !== null && radius > 0 ? radius : null,
+        latitude: latitude !== null ? latitude : null,
+        longitude: longitude !== null ? longitude : null
+    };
+};
+
 export const normalizeFacetedFilters = (rawFilters = {}) => {
     const source = parseJsonObjectSafe(rawFilters);
 
@@ -497,9 +535,12 @@ export const normalizeFacetedFilters = (rawFilters = {}) => {
         ),
         excluded_user_id: toNullableNumber(
             pickFirstDefined(source, ["exclude_user_id", "excluded_user_id", "viewer_user_id", "viewerUserId"])
-        )
+        ),
+        location: normalizeLocationFilter(source)
     };
 };
+
+export const normalizeLocation = normalizeLocationFilter;
 
 export const hasAnyFacetedSelection = (filters = {}) => {
     const source = filters || {};
@@ -563,7 +604,13 @@ export const hasAnyFacetedSelection = (filters = {}) => {
         Boolean(source.is_swiss_vehicle) ||
         (source.car_type && source.car_type !== "all" && source.car_type !== "all_standard");
 
+    const hasLocation = Boolean(
+        source?.location &&
+        (source.location.city || source.location.pincode || (source.location.latitude !== null && source.location.longitude !== null)) &&
+        source.location.radius
+    );
+
     const hasSearch = Boolean(source.search_text);
 
-    return hasArraySelection || hasRangeSelection || hasFlagSelection || hasSearch;
+    return hasArraySelection || hasRangeSelection || hasFlagSelection || hasSearch || hasLocation;
 };

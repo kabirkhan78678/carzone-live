@@ -99,6 +99,63 @@ export const filterCarsModel = async (filters) => {
         params.push(towing_to);
     }
 
+    // Location / Radius Filter
+    const loc = filters.location || {};
+    const locCity = (loc.city ?? filters.city ?? filters.cityName ?? "").trim().toLowerCase();
+    const locPin = (loc.pincode ?? filters.pincode ?? filters.postal_code ?? filters.zip ?? "").trim().toLowerCase();
+    const locRad = Number(loc.radius ?? filters.radius ?? filters.distance);
+    const locLat = Number(loc.latitude ?? filters.latitude ?? filters.lat);
+    const locLng = Number(loc.longitude ?? filters.longitude ?? filters.lng ?? filters.lon);
+
+    const hasLocCoords = Number.isFinite(locLat) && Number.isFinite(locLng) && Number.isFinite(locRad) && locRad > 0;
+    if (hasLocCoords) {
+        const locParts = [
+            `(latitude IS NOT NULL AND longitude IS NOT NULL AND (6371 * ACOS(LEAST(1.0, GREATEST(-1.0, COS(RADIANS(?)) * COS(RADIANS(latitude)) * COS(RADIANS(longitude) - RADIANS(?)) + SIN(RADIANS(?)) * SIN(RADIANS(latitude)))))) <= ?)`,
+            `(EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = tbl_cars.id AND _cc.latitude IS NOT NULL AND _cc.longitude IS NOT NULL AND (6371 * ACOS(LEAST(1.0, GREATEST(-1.0, COS(RADIANS(?)) * COS(RADIANS(_cc.latitude)) * COS(RADIANS(_cc.longitude) - RADIANS(?)) + SIN(RADIANS(?)) * SIN(RADIANS(_cc.latitude)))))) <= ?))`
+        ];
+        params.push(locLat, locLng, locLat, locRad);
+        params.push(locLat, locLng, locLat, locRad);
+
+        if (locCity) {
+            locParts.push(`LOWER(TRIM(COALESCE(location, ''))) LIKE ?`);
+            params.push(`%${locCity}%`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = tbl_cars.id AND LOWER(TRIM(COALESCE(_cc.city, ''))) = ?)`);
+            params.push(locCity);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = tbl_cars.user_id AND LOWER(TRIM(COALESCE(_u.city, ''))) = ?)`);
+            params.push(locCity);
+        }
+        if (locPin) {
+            locParts.push(`LOWER(TRIM(COALESCE(location, ''))) LIKE ?`);
+            params.push(`%${locPin}%`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = tbl_cars.id AND LOWER(TRIM(COALESCE(_cc.postal_code, ''))) = ?)`);
+            params.push(locPin);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = tbl_cars.user_id AND LOWER(TRIM(COALESCE(_u.pincode, ''))) = ?)`);
+            params.push(locPin);
+        }
+        conditions.push(`(${locParts.join(" OR ")})`);
+    } else if (locCity || locPin) {
+        const locParts = [];
+        if (locCity) {
+            locParts.push(`LOWER(TRIM(COALESCE(location, ''))) LIKE ?`);
+            params.push(`%${locCity}%`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = tbl_cars.id AND LOWER(TRIM(COALESCE(_cc.city, ''))) = ?)`);
+            params.push(locCity);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = tbl_cars.user_id AND LOWER(TRIM(COALESCE(_u.city, ''))) = ?)`);
+            params.push(locCity);
+        }
+        if (locPin) {
+            locParts.push(`LOWER(TRIM(COALESCE(location, ''))) LIKE ?`);
+            params.push(`%${locPin}%`);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = tbl_cars.id AND LOWER(TRIM(COALESCE(_cc.postal_code, ''))) = ?)`);
+            params.push(locPin);
+            locParts.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = tbl_cars.user_id AND LOWER(TRIM(COALESCE(_u.pincode, ''))) = ?)`);
+            params.push(locPin);
+        }
+        if (locParts.length) {
+            conditions.push(`(${locParts.join(" OR ")})`);
+        }
+    }
+
     let yearCounts = { selected: 0, older: 0, newer: 0 };
     if (year_from || year_to) {
         const [selectedCount] = await db.query(

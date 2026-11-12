@@ -3,6 +3,7 @@ import { getFilteredCarsByAllFilters } from '../../models/facetedFilter.model.js
 import jwt from 'jsonwebtoken';
 import { handleError, handleSuccess } from '../../utils/responseHandler.js';
 import { createSavedSearch } from '../../models/user/savedSearch.model.js';
+import { resolveLocationCoordinates } from '../../services/geocoding.service.js';
 
 export const getFacetedFilters = async (req, res) => {
 
@@ -436,6 +437,21 @@ export const getFacetedFilters = async (req, res) => {
             is_quality_seal: normalizedQualitySealIds.length > 0
         };
 
+        const locationInput = (typeof mergedBody.location === 'object' && mergedBody.location !== null) ? mergedBody.location : {};
+        const rawCity = mergedBody.city ?? mergedBody.cityName ?? mergedBody.city_name ?? locationInput.city ?? locationInput.cityName ?? (typeof mergedBody.location === 'string' && isNaN(Number(mergedBody.location.trim())) ? mergedBody.location : undefined);
+        const rawPincode = mergedBody.pincode ?? mergedBody.postal_code ?? mergedBody.postalCode ?? mergedBody.zip ?? mergedBody.zipcode ?? mergedBody.plz ?? locationInput.pincode ?? locationInput.postal_code ?? locationInput.zip ?? (typeof mergedBody.location === 'string' && !isNaN(Number(mergedBody.location.trim())) ? mergedBody.location : undefined);
+        const rawRadius = mergedBody.radius ?? mergedBody.distance ?? mergedBody.radius_km ?? locationInput.radius ?? locationInput.distance;
+        const rawLat = mergedBody.latitude ?? mergedBody.lat ?? locationInput.latitude ?? locationInput.lat;
+        const rawLng = mergedBody.longitude ?? mergedBody.lng ?? mergedBody.lon ?? locationInput.longitude ?? locationInput.lng;
+
+        const resolvedLocation = await resolveLocationCoordinates({
+            city: rawCity,
+            pincode: rawPincode,
+            radius: rawRadius,
+            latitude: rawLat,
+            longitude: rawLng
+        });
+
         const filterResult = await getFilteredCarsByAllFilters(
             brandNameFilter,
             carModelFilter,
@@ -475,7 +491,8 @@ export const getFacetedFilters = async (req, res) => {
             // SORT KEY
             sortKey,
             carTypeFilter,
-            qualitySealFilter
+            qualitySealFilter,
+            resolvedLocation
         )
 
         if (filterResult.length > 0) {
@@ -611,7 +628,8 @@ export const getFacetedFilters = async (req, res) => {
                     accident_vehicle: accident_vehicle ?? undefined,
                     exterior_color: exterior_color || undefined,
                     interior_color: interior_color || undefined,
-                    car_type: isOnlyCh ? "only_ch_cars" : undefined
+                    car_type: isOnlyCh ? "only_ch_cars" : undefined,
+                    location: (resolvedLocation.resolved || resolvedLocation.city || resolvedLocation.pincode) ? resolvedLocation : undefined
                 };
 
                 try {
@@ -652,7 +670,8 @@ export const getFacetedFilters = async (req, res) => {
                 accident_vehicle: accident_vehicle ?? undefined,
                 exterior_color: exterior_color || undefined,
                 interior_color: interior_color || undefined,
-                car_type: isOnlyCh ? "only_ch_cars" : undefined
+                car_type: isOnlyCh ? "only_ch_cars" : undefined,
+                location: (resolvedLocation.resolved || resolvedLocation.city || resolvedLocation.pincode) ? resolvedLocation : undefined
             };
 
             try {
