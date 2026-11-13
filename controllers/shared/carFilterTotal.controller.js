@@ -24,7 +24,7 @@ export const filterCarsController = async (req, res) => {
         const rawLat = mergedInput.latitude ?? mergedInput.lat ?? locationInput.latitude ?? locationInput.lat;
         const rawLng = mergedInput.longitude ?? mergedInput.lng ?? mergedInput.lon ?? locationInput.longitude ?? locationInput.lng;
 
-        const hasLocationInput = Boolean(rawCity || rawPincode || (rawLat && rawLng));
+        const hasLocationInput = Boolean(rawCity || rawPincode || rawRadius || (rawLat && rawLng));
 
         if (Object.keys(activeFiltersInput).length || hasLocationInput) {
             let resolvedLocation = null;
@@ -34,7 +34,8 @@ export const filterCarsController = async (req, res) => {
                     pincode: rawPincode,
                     radius: rawRadius,
                     latitude: rawLat,
-                    longitude: rawLng
+                    longitude: rawLng,
+                    userId: req.user?.id || mergedInput.userId || mergedInput.user_id
                 });
             }
 

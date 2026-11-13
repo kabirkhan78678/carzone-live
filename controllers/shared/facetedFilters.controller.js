@@ -449,7 +449,8 @@ export const getFacetedFilters = async (req, res) => {
             pincode: rawPincode,
             radius: rawRadius,
             latitude: rawLat,
-            longitude: rawLng
+            longitude: rawLng,
+            userId: normalizedViewerUserId
         });
 
         const filterResult = await getFilteredCarsByAllFilters(

@@ -89,7 +89,8 @@ export const getFilters = async (req, res) => {
             pincode: rawPincode,
             radius: rawRadius,
             latitude: rawLat,
-            longitude: rawLng
+            longitude: rawLng,
+            userId: viewerUserId
         });
 
         const normalizedFilters = normalizeFacetedFilters({

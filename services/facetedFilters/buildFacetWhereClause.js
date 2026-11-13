@@ -1,3 +1,5 @@
+import { getCityVariants } from '../geocoding.service.js';
+
 const KW_TO_PS = 1.35962;
 
 const normalizePositiveIdArray = (values = []) =>
@@ -636,42 +638,74 @@ export const buildFacetedConditions = (
             )`);
             params.push(lat, lng, lat, rad);
 
-            // 3. Fallback for non-geocoded cars
+            // 3. Fallback ONLY for legacy cars without coordinates
             if (city) {
-                locConditions.push(`LOWER(TRIM(COALESCE(${alias}.location, ''))) LIKE ?`);
-                params.push(`%${city}%`);
-                locConditions.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = ${alias}.id AND LOWER(TRIM(COALESCE(_cc.city, ''))) = ?)`);
-                params.push(city);
-                locConditions.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = ${alias}.user_id AND LOWER(TRIM(COALESCE(_u.city, ''))) = ?)`);
-                params.push(city);
+                const variants = getCityVariants(city);
+                const inPlaceholders = variants.map(() => "?").join(",");
+                const likeParts = variants.map(() => `LOWER(TRIM(COALESCE(${alias}.location, ''))) LIKE ?`).join(" OR ");
+
+                locConditions.push(`(
+                    (${alias}.latitude IS NULL OR ${alias}.longitude IS NULL)
+                    AND (
+                        (${likeParts})
+                        OR EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = ${alias}.id AND LOWER(TRIM(COALESCE(_cc.city, ''))) IN (${inPlaceholders}))
+                        OR EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = ${alias}.user_id AND LOWER(TRIM(COALESCE(_u.city, ''))) IN (${inPlaceholders}))
+                    )
+                )`);
+                params.push(...variants.map((v) => `%${v}%`), ...variants, ...variants);
             }
             if (pin) {
-                locConditions.push(`LOWER(TRIM(COALESCE(${alias}.location, ''))) LIKE ?`);
-                params.push(`%${pin}%`);
-                locConditions.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = ${alias}.id AND LOWER(TRIM(COALESCE(_cc.postal_code, ''))) = ?)`);
-                params.push(pin);
-                locConditions.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = ${alias}.user_id AND LOWER(TRIM(COALESCE(_u.pincode, ''))) = ?)`);
-                params.push(pin);
+                locConditions.push(`(
+                    (${alias}.latitude IS NULL OR ${alias}.longitude IS NULL)
+                    AND (
+                        LOWER(TRIM(COALESCE(${alias}.location, ''))) LIKE ?
+                        OR EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = ${alias}.id AND LOWER(TRIM(COALESCE(_cc.postal_code, ''))) = ?)
+                        OR EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = ${alias}.user_id AND LOWER(TRIM(COALESCE(_u.pincode, ''))) = ?)
+                    )
+                )`);
+                params.push(`%${pin}%`, pin, pin);
             }
 
             conditions.push(`(${locConditions.join(" OR ")})`);
         } else if (city || pin) {
             const locConditions = [];
             if (city) {
-                locConditions.push(`LOWER(TRIM(COALESCE(${alias}.location, ''))) LIKE ?`);
-                params.push(`%${city}%`);
-                locConditions.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = ${alias}.id AND LOWER(TRIM(COALESCE(_cc.city, ''))) = ?)`);
-                params.push(city);
-                locConditions.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = ${alias}.user_id AND LOWER(TRIM(COALESCE(_u.city, ''))) = ?)`);
-                params.push(city);
+                const variants = getCityVariants(city);
+                const inPlaceholders = variants.map(() => "?").join(",");
+                const likeParts = variants.map(() => `LOWER(TRIM(COALESCE(${alias}.location, ''))) LIKE ?`).join(" OR ");
+
+                locConditions.push(`(
+                    EXISTS (
+                        SELECT 1 FROM tbl_car_contacts _cc 
+                        WHERE _cc.car_id = ${alias}.id 
+                          AND LOWER(TRIM(COALESCE(_cc.city, ''))) IN (${inPlaceholders})
+                    )
+                    OR (
+                        NOT EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = ${alias}.id AND NULLIF(TRIM(_cc.city), '') IS NOT NULL)
+                        AND (
+                            (${likeParts})
+                            OR EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = ${alias}.user_id AND LOWER(TRIM(COALESCE(_u.city, ''))) IN (${inPlaceholders}))
+                        )
+                    )
+                )`);
+                params.push(...variants, ...variants.map((v) => `%${v}%`), ...variants);
             }
             if (pin) {
-                locConditions.push(`LOWER(TRIM(COALESCE(${alias}.location, ''))) LIKE ?`);
-                params.push(`%${pin}%`);
-                locConditions.push(`EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = ${alias}.id AND LOWER(TRIM(COALESCE(_cc.postal_code, ''))) = ?)`);
-                params.push(pin);
-                locConditions.push(`EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = ${alias}.user_id AND LOWER(TRIM(COALESCE(_u.pincode, ''))) = ?)`);
-                params.push(pin);
+                locConditions.push(`(
+                    EXISTS (
+                        SELECT 1 FROM tbl_car_contacts _cc 
+                        WHERE _cc.car_id = ${alias}.id 
+                          AND LOWER(TRIM(COALESCE(_cc.postal_code, ''))) = ?
+                    )
+                    OR (
+                        NOT EXISTS (SELECT 1 FROM tbl_car_contacts _cc WHERE _cc.car_id = ${alias}.id AND NULLIF(TRIM(_cc.postal_code), '') IS NOT NULL)
+                        AND (
+                            LOWER(TRIM(COALESCE(${alias}.location, ''))) LIKE ?
+                            OR EXISTS (SELECT 1 FROM tbl_users _u WHERE _u.id = ${alias}.user_id AND LOWER(TRIM(COALESCE(_u.pincode, ''))) = ?)
+                        )
+                    )
+                )`);
+                params.push(pin, `%${pin}%`, pin);
             }
             if (locConditions.length) {
                 conditions.push(`(${locConditions.join(" OR ")})`);

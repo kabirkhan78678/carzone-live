@@ -115,6 +115,46 @@ const BUILT_IN_COORDINATES = {
     "452001": { lat: 22.7196, lng: 75.8577, city: "Indore", country: "India", postal_code: "452001" }
 };
 
+const CITY_VARIANTS_MAP = {
+    'zurich': ['zurich', 'zürich'],
+    'zürich': ['zurich', 'zürich'],
+    'geneva': ['geneva', 'genève', 'genf'],
+    'genève': ['geneva', 'genève', 'genf'],
+    'genf': ['geneva', 'genève', 'genf'],
+    'basel': ['basel', 'bâle'],
+    'bâle': ['basel', 'bâle'],
+    'bern': ['bern', 'berne'],
+    'berne': ['bern', 'berne'],
+    'lucerne': ['lucerne', 'luzern'],
+    'luzern': ['lucerne', 'luzern'],
+    'biel': ['biel', 'bienne', 'biel/bienne'],
+    'bienne': ['biel', 'bienne', 'biel/bienne'],
+    'biel/bienne': ['biel', 'bienne', 'biel/bienne'],
+    'st. gallen': ['st. gallen', 'st gallen', 'sankt gallen'],
+    'st gallen': ['st. gallen', 'st gallen', 'sankt gallen'],
+    'sankt gallen': ['st. gallen', 'st gallen', 'sankt gallen'],
+    'neuchatel': ['neuchatel', 'neuchâtel'],
+    'neuchâtel': ['neuchatel', 'neuchâtel'],
+    'fribourg': ['fribourg', 'freiburg'],
+    'freiburg': ['fribourg', 'freiburg'],
+    'sion': ['sion', 'sitten'],
+    'sitten': ['sion', 'sitten'],
+    'milan': ['milan', 'milano'],
+    'milano': ['milan', 'milano'],
+    'rome': ['rome', 'roma'],
+    'roma': ['rome', 'roma'],
+    'munich': ['munich', 'münchen'],
+    'münchen': ['munich', 'münchen'],
+    'turin': ['turin', 'torino'],
+    'torino': ['turin', 'torino']
+};
+
+export const getCityVariants = (name) => {
+    if (!name || typeof name !== 'string') return [];
+    const lower = name.trim().toLowerCase();
+    return CITY_VARIANTS_MAP[lower] || [lower];
+};
+
 /**
  * Geocode an address/location string via Google Geocoding API with multi-tier fallback.
  * @param {string} query Address, city, or postal code
@@ -256,8 +296,26 @@ export const resolveLocationCoordinates = async (input = {}) => {
     const radiusNum = Number(input.radius ?? input.distance ?? input.radius_km);
     const radius = Number.isFinite(radiusNum) && radiusNum > 0 ? radiusNum : null;
 
-    const latNum = Number(input.latitude ?? input.lat);
-    const lngNum = Number(input.longitude ?? input.lng ?? input.lon);
+    let latNum = Number(input.latitude ?? input.lat);
+    let lngNum = Number(input.longitude ?? input.lng ?? input.lon);
+
+    // If only radius is provided without city/coords, try userId's profile location
+    if (!city && !pincode && (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) && input.userId) {
+        try {
+            const db = (await import('../config/db.js')).default;
+            const uRows = await db.query('SELECT city, pincode, latitude, longitude FROM tbl_users WHERE id = ?', [input.userId]);
+            if (uRows && uRows[0]) {
+                if (uRows[0].city) city = String(uRows[0].city).trim();
+                if (uRows[0].pincode) pincode = String(uRows[0].pincode).trim();
+                if (Number.isFinite(Number(uRows[0].latitude)) && Number.isFinite(Number(uRows[0].longitude))) {
+                    latNum = Number(uRows[0].latitude);
+                    lngNum = Number(uRows[0].longitude);
+                }
+            }
+        } catch {
+            // ignore
+        }
+    }
 
     // If client already provided valid coordinates
     if (Number.isFinite(latNum) && Number.isFinite(lngNum)) {
