@@ -11,7 +11,7 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
  */
 export const getSellerGoogleRatingData = async (sellerInput = {}) => {
     try {
-        const userId = sellerInput.id || sellerInput.user_id || sellerInput.seller_id;
+        const userId = sellerInput.user_id || sellerInput.seller_id || sellerInput.id;
         const accountType = String(sellerInput.account_type || sellerInput.seller_type || sellerInput.accountType || '').trim().toLowerCase();
 
         // 1. Strict Privacy & Type Check: ONLY company sellers can have Google business ratings
