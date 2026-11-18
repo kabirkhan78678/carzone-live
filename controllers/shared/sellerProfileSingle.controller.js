@@ -134,6 +134,16 @@ export const buildSellerProfileForSingle = async (user_id,filters = {},lang) => 
         userProfile.isWhatsappSameAsPhone =
             userProfile.phoneNumber === userProfile.whatsappNumber;
 
+        // Rating & Review normalization
+        const isCompanySeller = userProfile.account_type === "company";
+        const rawRating = Number(userProfile.google_rating);
+        const rawReviews = Number(userProfile.google_review_count);
+        userProfile.rating = (isCompanySeller && rawRating > 0) ? rawRating : null;
+        userProfile.google_rating = (isCompanySeller && rawRating > 0) ? rawRating : null;
+        userProfile.reviewsCount = (isCompanySeller && rawReviews > 0) ? rawReviews : null;
+        userProfile.google_review_count = (isCompanySeller && rawReviews > 0) ? rawReviews : null;
+        userProfile.google_place_id = isCompanySeller ? (userProfile.google_place_id || null) : null;
+
         // Slot info
         userProfile.slotAvailable = slotAvailable;
         userProfile.slotLeft = slotLeft;

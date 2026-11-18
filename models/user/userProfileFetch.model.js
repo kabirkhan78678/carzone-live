@@ -73,6 +73,9 @@ export const fetchUserById = async (
       u.vat,
       u.countryCode,
       u.account_type,
+      u.google_place_id,
+      u.google_rating,
+      u.google_review_count,
 
       -- Marketplace listing owner info
       u.account_type AS role,

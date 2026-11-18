@@ -156,7 +156,12 @@ const power = powerParts.length ? powerParts.join(" / ") : null;
                             companyName: item.companyName,
                             companyAddress: item.companyAddress,
                             vat: item.vat,
-                            countryCode: item.countryCode
+                            countryCode: item.countryCode,
+                            rating: item.account_type === 'company' && Number(item.google_rating) > 0 ? Number(item.google_rating) : null,
+                            google_rating: item.account_type === 'company' && Number(item.google_rating) > 0 ? Number(item.google_rating) : null,
+                            reviewsCount: item.account_type === 'company' && Number(item.google_review_count) > 0 ? Number(item.google_review_count) : null,
+                            google_review_count: item.account_type === 'company' && Number(item.google_review_count) > 0 ? Number(item.google_review_count) : null,
+                            google_place_id: item.account_type === 'company' ? (item.google_place_id || null) : null
                         }
                     };
                 })
