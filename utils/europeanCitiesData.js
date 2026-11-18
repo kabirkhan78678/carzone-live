@@ -219,3 +219,40 @@ export const EUROPEAN_COUNTRIES_DATA = [
     }
 ];
 
+export const getLocalizedEuropeanCities = (lang = 'en') => {
+    const validLang = ['en', 'de', 'fr', 'it'].includes(lang) ? lang : 'en';
+    const processedCountries = [];
+    const flatCities = [];
+
+    for (const country of EUROPEAN_COUNTRIES_DATA) {
+        const countryLocalizedName = country.translations?.[validLang] || country.translations?.['en'] || country.name;
+
+        const localizedCities = country.cities.map((city) => {
+            const cityName = city.translations?.[validLang] || city.translations?.['en'] || city.name;
+            return {
+                id: city.id,
+                name: cityName,
+                city: cityName,
+                native_name: city.name,
+                country: countryLocalizedName,
+                country_code: country.code,
+                canton: city.canton || null,
+                postal_code: city.postal_code || null
+            };
+        });
+
+        processedCountries.push({
+            id: country.id,
+            code: country.code,
+            name: countryLocalizedName,
+            cities_count: localizedCities.length,
+            cities: localizedCities
+        });
+
+        flatCities.push(...localizedCities);
+    }
+
+    return { countries: processedCountries, cities: flatCities };
+};
+
+

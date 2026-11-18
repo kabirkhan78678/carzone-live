@@ -5,6 +5,8 @@ import { variableTypes } from '../../utils/constant.js';
 import { calculateMfk, buildMfkMessage } from '../../utils/mfkHelper.js';
 import { parseArrayField, getMessage, normalizeOpeningTimes, enrichEquipmentList, enrichExtrasList } from '../../utils/user_helper.js';
 import { buildConditionAndWarrantyPayload } from '../../utils/conditionWarrantyHelper.js';
+import { resolveAndEnrichCarLocation } from '../../utils/carLocationHelper.js';
+import { getSellerGoogleRatingData } from '../../services/googleRating.service.js';
 
 export const asGuestUserGetCar = async (req, res) => {
     try {
@@ -266,6 +268,9 @@ export const asGuestUserGetCar = async (req, res) => {
             daysRemaining = 0;
         }
 
+        const location = await resolveAndEnrichCarLocation(car);
+        const sellerRatingData = await getSellerGoogleRatingData(car);
+
         return res.status(200).json({
             is_active: carActiveStatus,
             is_plan_expired: isPlanExpired,
@@ -276,6 +281,10 @@ export const asGuestUserGetCar = async (req, res) => {
             listing_type: car.listing_type || null,
             duration_option: car.duration_option || null,
             requires_payment: carActiveStatus === 2 || car.payment_status === "unpaid",
+            latitude: location.latitude,
+            longitude: location.longitude,
+            lat: location.lat,
+            lng: location.lng,
             plan_start_date: planStartDate,
             plan_end_date: planEndDate,
             valid_until: planEndDate,
@@ -334,6 +343,18 @@ export const asGuestUserGetCar = async (req, res) => {
                 address: car.fullAddress,
                 city: car.city,
                 pincode: car.pincode,
+                latitude: location.latitude,
+                longitude: location.longitude,
+                lat: location.lat,
+                lng: location.lng,
+                location: {
+                    latitude: location.latitude,
+                    longitude: location.longitude,
+                    lat: location.lat,
+                    lng: location.lng,
+                    city: car.city || null,
+                    pincode: car.pincode || null
+                },
                 tagline: car.tagline,
                 description: car.sellerDescription,
 
@@ -341,14 +362,17 @@ export const asGuestUserGetCar = async (req, res) => {
                 commercialRegisterNumber: car.commercial_register_number,
                 businessCountryCode: car.businessCountryCode,
 
+                rating: sellerRatingData.rating,
+                google_rating: sellerRatingData.google_rating,
+                reviewsCount: sellerRatingData.reviewsCount,
+                google_review_count: sellerRatingData.google_review_count,
+                google_place_id: sellerRatingData.google_place_id,
+
                 openingTimes,
                 open_timmings: openingTimes
             },
 
-            location: {
-                latitude: car.latitude,
-                longitude: car.longitude
-            },
+            location,
 
             open_timmings: openingTimes,
 
@@ -360,6 +384,14 @@ export const asGuestUserGetCar = async (req, res) => {
 
             carDetails: {
                 ...car,
+                latitude: location.latitude,
+                longitude: location.longitude,
+                lat: location.lat,
+                lng: location.lng,
+                contact_latitude: car.contact_latitude || location.latitude,
+                contact_longitude: car.contact_longitude || location.longitude,
+                contant_longitude: car.contact_longitude || location.longitude,
+                location,
                 powerOutput: power
             },
 

@@ -47,6 +47,9 @@ export const fetchCarsByIdsWithSellerDetails = async (carIds = [], lang = "en") 
       u.companyAddress,
       u.vat,
       u.countryCode,
+      u.google_place_id,
+      u.google_rating,
+      u.google_review_count,
 
       -- Seller role/status (derived from users table for new flow)
       'seller' AS role,

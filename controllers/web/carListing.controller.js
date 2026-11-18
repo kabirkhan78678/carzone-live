@@ -24,6 +24,7 @@ import {
 import { handleError, handleSuccess, getRequestLanguage } from '../../utils/responseHandler.js';
 import { getMessage, hasExplicitContent, buildFirstRegistrationDateFromMonthYear } from '../../utils/user_helper.js';
 import { variableTypes } from '../../utils/constant.js';
+import { geocodeAddress } from '../../services/geocoding.service.js';
 
 export const listCarweb = async (req, res) => {
     const LISTING_STEP = {
@@ -551,7 +552,9 @@ export const listCarweb = async (req, res) => {
                 country_code: country_code ?? null,
                 phone_number: phone_number ?? null,
                 company_name: company_name ?? null,
-                company_address: company_address ?? null
+                company_address: company_address ?? null,
+                latitude: req.body.latitude ?? req.body.contact_latitude ?? null,
+                longitude: req.body.longitude ?? req.body.contact_longitude ?? null
             };
 
             const hasContactData = Object.values(contactPayload).some(
@@ -559,7 +562,19 @@ export const listCarweb = async (req, res) => {
             );
 
             if (hasContactData) {
+                if (!contactPayload.latitude && (contactPayload.city || contactPayload.postal_code)) {
+                    try {
+                        const geo = await geocodeAddress([contactPayload.postal_code, contactPayload.city, contactPayload.country || 'Switzerland'].filter(Boolean).join(', '));
+                        if (geo && geo.latitude && geo.longitude) {
+                            contactPayload.latitude = String(geo.latitude);
+                            contactPayload.longitude = String(geo.longitude);
+                        }
+                    } catch (_) {}
+                }
                 await replaceCarContactByCarId(final_car_id, contactPayload);
+                if (contactPayload.latitude && contactPayload.longitude) {
+                    updateSellerCars({ latitude: contactPayload.latitude, longitude: contactPayload.longitude }, final_car_id, user_id).catch(() => {});
+                }
             } else {
                 await clearCarContactByCarId(final_car_id);
             }

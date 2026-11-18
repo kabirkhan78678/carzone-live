@@ -27,6 +27,10 @@ export const viewCarDetailByCarIdModel = async (carId, language = 'en') => {
       u.code,
       
       u.description AS sellerDescription,
+      u.google_place_id,
+      u.google_rating,
+      u.google_review_count,
+      u.google_rating_updated_at,
 
       -- transmission
       tt.label AS transmission_label,
@@ -88,7 +92,12 @@ export const viewCarDetailByCarIdModel = async (carId, language = 'en') => {
       user_plan.plan_name,
 
       -- coordinates
+      COALESCE(NULLIF(c.latitude, ''), NULLIF(cc.latitude, '')) AS latitude,
+      COALESCE(NULLIF(c.longitude, ''), NULLIF(cc.longitude, '')) AS longitude,
+      c.latitude AS car_latitude,
+      c.longitude AS car_longitude,
       cc.latitude AS contact_latitude,
+      cc.longitude AS contact_longitude,
       cc.longitude AS contant_longitude
 
     FROM tbl_cars c
@@ -255,9 +264,19 @@ export const getSuggestedCarsModel = (carId, userId) => {
     );
 };
 
-export const updateCarCoordinates = (id, lat, lon) => {
-    return db.query(
-        'UPDATE tbl_cars SET latitude = ?, longitude = ? WHERE id = ?',
-        [lat, lon, id]
-    );
+export const updateCarCoordinates = async (id, lat, lon) => {
+    try {
+        await Promise.all([
+            db.query(
+                'UPDATE tbl_cars SET latitude = ?, longitude = ? WHERE id = ?',
+                [lat, lon, id]
+            ),
+            db.query(
+                'UPDATE tbl_car_contacts SET latitude = ?, longitude = ? WHERE car_id = ?',
+                [lat, lon, id]
+            )
+        ]);
+    } catch (err) {
+        console.warn(`[updateCarCoordinates] Error updating coordinates for car ${id}:`, err.message);
+    }
 };

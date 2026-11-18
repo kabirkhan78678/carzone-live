@@ -578,7 +578,12 @@ export const getFacetedFilters = async (req, res) => {
                                 companyName: item.companyName,
                                 companyAddress: item.companyAddress,
                                 vat: item.vat,
-                                countryCode: item.countryCode
+                                countryCode: item.countryCode,
+                                rating: normalizedSellerType === 'company' && Number(item.google_rating) > 0 ? Number(item.google_rating) : null,
+                                google_rating: normalizedSellerType === 'company' && Number(item.google_rating) > 0 ? Number(item.google_rating) : null,
+                                reviewsCount: normalizedSellerType === 'company' && Number(item.google_review_count) > 0 ? Number(item.google_review_count) : null,
+                                google_review_count: normalizedSellerType === 'company' && Number(item.google_review_count) > 0 ? Number(item.google_review_count) : null,
+                                google_place_id: normalizedSellerType === 'company' ? (item.google_place_id || null) : null
                             }
                         };
                     })

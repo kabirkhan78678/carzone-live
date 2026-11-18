@@ -22,6 +22,8 @@ export const hasFiniteNumber = (value) =>
     value !== "" &&
     Number.isFinite(Number(value));
 
+export const toSafeCoord = (v) => (v !== null && v !== undefined && v !== "" && Number.isFinite(Number(v)) ? Number(v) : null);
+
 export function buildWhereConditions(filters, selectedBrandNames, selectedModels) {
     const {
         year_from,
@@ -122,7 +124,6 @@ export function buildWhereConditions(filters, selectedBrandNames, selectedModels
     }
 
     // Location / Radius Filter
-    const toSafeCoord = (v) => (v !== null && v !== undefined && v !== "" && Number.isFinite(Number(v)) ? Number(v) : null);
     const loc = filters.location || {};
     const locCity = (loc.city ?? filters.city ?? filters.cityName ?? "").trim().toLowerCase();
     const locPin = (loc.pincode ?? filters.pincode ?? filters.postal_code ?? filters.zip ?? "").trim().toLowerCase();

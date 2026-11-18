@@ -11,6 +11,7 @@ import {
     getExtrasListModel
 } from '../models/user.model.js';
 import { buildMfk, parseArrayField } from '../utils/user_helper.js';
+import { resolveAndEnrichCarLocation } from '../utils/carLocationHelper.js';
 import { baseurl } from '../config/path.js';
 
 const toNumber = (value) => {
@@ -302,6 +303,7 @@ export const getCarDetailsForPdf = async (carId, language = 'en') => {
     }
 
     const car = carData[0];
+    await resolveAndEnrichCarLocation(car);
 
     let featureRows = [];
     let extraRows = [];

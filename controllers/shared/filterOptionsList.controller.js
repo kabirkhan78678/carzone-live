@@ -6,6 +6,8 @@ import { variableTypes } from '../../utils/constant.js';
 import { handleError, handleSuccess, handleSuccessNew } from '../../utils/responseHandler.js';
 import { getMessage, parseFacetedInput, normalizeFacetedFilters } from '../../utils/user_helper.js';
 import { resolveLocationCoordinates } from '../../services/geocoding.service.js';
+import { getLocalizedEuropeanCities } from '../../utils/europeanCitiesData.js';
+import db from '../../config/db.js';
 
 const extractViewerUserId = (req) => {
     if (req.user?.id) {
@@ -212,7 +214,87 @@ export const getFilters = async (req, res) => {
         data.wltp_range = mapRangeFacet(wltpFacet);
         data.consumption = mapRangeFacet(consumptionFacet);
         data.co2_emission = mapRangeFacet(co2Facet);
-        data.location = resolvedLocation;
+
+        // Build all cities and countries for Location filter
+        const { countries: europeanCountries, cities: rawEuropeanCities } = getLocalizedEuropeanCities(lang);
+
+        let cityCarCounts = {};
+        try {
+            const cityRows = await db.query(`
+                SELECT LOWER(TRIM(cc.city)) AS city_name, COUNT(DISTINCT c.id) AS total
+                FROM tbl_car_contacts cc
+                JOIN tbl_cars c ON c.id = cc.car_id
+                WHERE c.is_deleted = 0 AND cc.city IS NOT NULL AND cc.city != ''
+                GROUP BY LOWER(TRIM(cc.city))
+            `);
+            for (const row of cityRows || []) {
+                if (row.city_name) {
+                    cityCarCounts[row.city_name] = Number(row.total || 0);
+                }
+            }
+        } catch (cityCountErr) {
+            console.warn('[getFilters] Could not count cars by city:', cityCountErr.message);
+        }
+
+        const enrichedEuropeanCities = rawEuropeanCities.map((c) => ({
+            ...c,
+            total: cityCarCounts[c.name.toLowerCase()] || cityCarCounts[c.native_name?.toLowerCase()] || cityCarCounts[c.city?.toLowerCase()] || 0
+        }));
+
+        const enrichedCountries = europeanCountries.map((country) => ({
+            ...country,
+            cities: country.cities.map((c) => ({
+                ...c,
+                total: cityCarCounts[c.name.toLowerCase()] || cityCarCounts[c.native_name?.toLowerCase()] || cityCarCounts[c.city?.toLowerCase()] || 0
+            }))
+        }));
+
+        // Merge any additional DB cities with active cars
+        const existingCityNames = new Set(enrichedEuropeanCities.map((c) => c.name.toLowerCase()));
+        enrichedEuropeanCities.forEach((c) => {
+            if (c.native_name) existingCityNames.add(c.native_name.toLowerCase());
+        });
+
+        let extraCityId = 600;
+        const additionalDbCities = [];
+        for (const [cityName, count] of Object.entries(cityCarCounts)) {
+            if (!existingCityNames.has(cityName) && count > 0 && cityName.length >= 2) {
+                const formattedName = cityName.charAt(0).toUpperCase() + cityName.slice(1);
+                additionalDbCities.push({
+                    id: extraCityId++,
+                    name: formattedName,
+                    city: formattedName,
+                    native_name: formattedName,
+                    country: lang === 'de' ? 'Schweiz' : lang === 'fr' ? 'Suisse' : lang === 'it' ? 'Svizzera' : 'Switzerland',
+                    country_code: 'CH',
+                    canton: null,
+                    postal_code: null,
+                    total: count
+                });
+            }
+        }
+
+        const allLocationCities = [...enrichedEuropeanCities, ...additionalDbCities];
+
+        data.location = {
+            city: resolvedLocation.city,
+            pincode: resolvedLocation.pincode,
+            radius: resolvedLocation.radius,
+            latitude: resolvedLocation.latitude,
+            longitude: resolvedLocation.longitude,
+            resolved: resolvedLocation.resolved,
+            source: resolvedLocation.source,
+            radius_options: [5, 10, 20, 50, 100, 200, 500],
+            total_countries: enrichedCountries.length,
+            total_cities: allLocationCities.length,
+            countries: enrichedCountries,
+            cities: allLocationCities,
+            options: allLocationCities,
+            all: allLocationCities
+        };
+
+        data.cities = allLocationCities;
+        data.countries = enrichedCountries;
 
         return handleSuccess(res, 200, "Data found successfully", data);
     } catch (error) {
