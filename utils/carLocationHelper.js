@@ -46,64 +46,37 @@ export const resolveAndEnrichCarLocation = async (car) => {
 
     // 2. If coordinates are missing or invalid, resolve via geocoding
     if (latNum === null || lngNum === null) {
-        const queries = [];
+        const candidateQueries = [];
 
-        // Priority 1: Full contact street address
-        const contactFull = [
-            car.contact_street,
-            car.contact_house_number,
-            car.contact_postal_code,
-            car.contact_city,
-            car.contact_country || 'Switzerland'
-        ].filter(Boolean).join(', ');
-        if (contactFull && (car.contact_street || car.contact_city)) {
-            queries.push(contactFull);
+        // Candidate 1: Specific Contact Location (Postal Code + City + Country)
+        const contactCity = car.contact_city ? String(car.contact_city).trim() : null;
+        const contactZip = car.contact_postal_code ? String(car.contact_postal_code).trim() : null;
+        const contactCountry = car.contact_country ? String(car.contact_country).trim() : 'Switzerland';
+
+        if (contactZip && contactCity) {
+            candidateQueries.push(`${contactZip} ${contactCity}, ${contactCountry}`);
+        } else if (contactCity) {
+            candidateQueries.push(`${contactCity}, ${contactCountry}`);
+        } else if (contactZip) {
+            candidateQueries.push(`${contactZip}, ${contactCountry}`);
         }
 
-        // Priority 2: Contact postal code + city
-        const contactCityZip = [
-            car.contact_postal_code,
-            car.contact_city,
-            car.contact_country || 'Switzerland'
-        ].filter(Boolean).join(', ');
-        if (contactCityZip && contactCityZip !== contactFull) {
-            queries.push(contactCityZip);
+        // Candidate 2: Seller Location fallback (if contact details not present or different)
+        const sellerCity = car.city ? String(car.city).trim() : null;
+        const sellerZip = car.pincode ? String(car.pincode).trim() : null;
+
+        if (sellerZip && sellerCity) {
+            candidateQueries.push(`${sellerZip} ${sellerCity}, Switzerland`);
+        } else if (sellerCity && sellerCity !== contactCity) {
+            candidateQueries.push(`${sellerCity}, Switzerland`);
+        } else if (sellerZip && sellerZip !== contactZip) {
+            candidateQueries.push(`${sellerZip}, Switzerland`);
         }
 
-        // Priority 3: Contact city only
-        if (car.contact_city) {
-            queries.push(`${car.contact_city}, ${car.contact_country || 'Switzerland'}`);
-            queries.push(car.contact_city);
-        }
+        // Filter unique non-empty candidates (max 2 focused queries instead of 8 redundant ones)
+        const uniqueQueries = [...new Set(candidateQueries.filter(Boolean))];
 
-        // Priority 4: Seller company / full address
-        const sellerFull = [
-            car.companyAddress || car.fullAddress,
-            car.pincode,
-            car.city,
-            'Switzerland'
-        ].filter(Boolean).join(', ');
-        if (sellerFull && (car.companyAddress || car.fullAddress)) {
-            queries.push(sellerFull);
-        }
-
-        // Priority 5: Seller pincode + city
-        const sellerCityZip = [
-            car.pincode,
-            car.city,
-            'Switzerland'
-        ].filter(Boolean).join(', ');
-        if (sellerCityZip && sellerCityZip !== sellerFull) {
-            queries.push(sellerCityZip);
-        }
-
-        // Priority 6: Seller city only
-        if (car.city) {
-            queries.push(`${car.city}, Switzerland`);
-            queries.push(car.city);
-        }
-
-        for (const query of queries) {
+        for (const query of uniqueQueries) {
             try {
                 const geo = await geocodeAddress(query);
                 if (geo && isValidCoordinate(geo.latitude, -90, 90) && isValidCoordinate(geo.longitude, -180, 180)) {

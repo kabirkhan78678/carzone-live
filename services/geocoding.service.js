@@ -6,7 +6,12 @@ const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "AIzaSyBkFQIVCNlXw8R334Op4b
 
 // In-memory cache for fast lookups without repeating API calls
 const geocodeCache = new Map();
-const MAX_CACHE_SIZE = 1000;
+const MAX_CACHE_SIZE = 2000;
+const NEGATIVE_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes negative cache for failed lookups
+
+// Circuit breaker for Google Geocoding API (stops flooding when key is restricted/blocked)
+let googleBlockedUntil = 0;
+const CIRCUIT_BREAKER_DURATION_MS = 15 * 60 * 1000; // 15 minutes cooldown after REQUEST_DENIED
 
 // Curated Swiss & European Cities and Postal Code Coordinates Database
 const BUILT_IN_COORDINATES = {
@@ -169,7 +174,15 @@ export const geocodeAddress = async (query) => {
 
     // 1. Check in-memory cache
     if (geocodeCache.has(cacheKey)) {
-        return geocodeCache.get(cacheKey);
+        const cached = geocodeCache.get(cacheKey);
+        if (cached && cached._isNegative) {
+            if (Date.now() < cached.expiresAt) {
+                return null; // Negative cached: address not found
+            }
+            geocodeCache.delete(cacheKey);
+        } else if (cached) {
+            return cached;
+        }
     }
 
     // 2. Check built-in dictionary
@@ -190,47 +203,59 @@ export const geocodeAddress = async (query) => {
         return result;
     }
 
-    // 3. Try Google Geocoding API
+    // 3. Try Google Geocoding API if key exists and circuit breaker is NOT active
     if (GOOGLE_API_KEY) {
-        try {
-            const googleUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(cleanQuery)}&key=${GOOGLE_API_KEY}`;
-            const response = await axios.get(googleUrl, { timeout: 4000 });
+        if (Date.now() < googleBlockedUntil) {
+            // Google API is currently restricted/denied; skip to avoid flood and error spikes
+        } else {
+            try {
+                const googleUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(cleanQuery)}&key=${GOOGLE_API_KEY}`;
+                const response = await axios.get(googleUrl, { timeout: 4000 });
 
-            if (response.data && response.data.status === 'OK' && response.data.results?.length > 0) {
-                const firstResult = response.data.results[0];
-                const loc = firstResult.geometry.location;
+                if (response.data && response.data.status === 'OK' && response.data.results?.length > 0) {
+                    googleBlockedUntil = 0; // Reset circuit breaker on success
+                    const firstResult = response.data.results[0];
+                    const loc = firstResult.geometry.location;
 
-                let city = null;
-                let postal_code = null;
-                let country = null;
+                    let city = null;
+                    let postal_code = null;
+                    let country = null;
 
-                for (const comp of (firstResult.address_components || [])) {
-                    if (comp.types.includes('locality')) city = comp.long_name;
-                    if (comp.types.includes('postal_code')) postal_code = comp.long_name;
-                    if (comp.types.includes('country')) country = comp.long_name;
+                    for (const comp of (firstResult.address_components || [])) {
+                        if (comp.types.includes('locality')) city = comp.long_name;
+                        if (comp.types.includes('postal_code')) postal_code = comp.long_name;
+                        if (comp.types.includes('country')) country = comp.long_name;
+                    }
+
+                    const result = {
+                        latitude: loc.lat,
+                        longitude: loc.lng,
+                        formatted_address: firstResult.formatted_address,
+                        city,
+                        postal_code,
+                        country,
+                        source: 'google'
+                    };
+
+                    if (geocodeCache.size >= MAX_CACHE_SIZE) {
+                        const firstKey = geocodeCache.keys().next().value;
+                        geocodeCache.delete(firstKey);
+                    }
+                    geocodeCache.set(cacheKey, result);
+                    return result;
+                } else if (response.data?.status === 'REQUEST_DENIED') {
+                    // Activate circuit breaker for 15 minutes to prevent hammering Google with 403 errors
+                    googleBlockedUntil = Date.now() + CIRCUIT_BREAKER_DURATION_MS;
+                    console.warn(`[Geocoding] Google Geocoding REQUEST_DENIED (${response.data.error_message || 'API key restricted'}). Pausing Google calls for 15 min. Falling back to built-in/Nominatim.`);
+                } else if (response.data?.status === 'OVER_QUERY_LIMIT') {
+                    googleBlockedUntil = Date.now() + 5 * 60 * 1000;
+                    console.warn(`[Geocoding] Google Geocoding OVER_QUERY_LIMIT. Pausing Google calls for 5 min.`);
+                } else {
+                    console.warn(`[Geocoding] Google Geocoding status: ${response.data?.status || 'NO_RESULT'}`);
                 }
-
-                const result = {
-                    latitude: loc.lat,
-                    longitude: loc.lng,
-                    formatted_address: firstResult.formatted_address,
-                    city,
-                    postal_code,
-                    country,
-                    source: 'google'
-                };
-
-                if (geocodeCache.size >= MAX_CACHE_SIZE) {
-                    const firstKey = geocodeCache.keys().next().value;
-                    geocodeCache.delete(firstKey);
-                }
-                geocodeCache.set(cacheKey, result);
-                return result;
-            } else {
-                console.warn(`[Geocoding] Google Geocoding response status: ${response.data?.status || 'NO_RESULT'}`);
+            } catch (googleError) {
+                console.warn(`[Geocoding] Google API request error: ${googleError.message}`);
             }
-        } catch (googleError) {
-            console.warn(`[Geocoding] Google API request error: ${googleError.message}`);
         }
     }
 
@@ -268,6 +293,13 @@ export const geocodeAddress = async (query) => {
     } catch (nomErr) {
         console.warn(`[Geocoding] Nominatim fallback failed: ${nomErr.message}`);
     }
+
+    // 5. Negative caching: Remember this failed lookup so we don't repeat external requests for 30 minutes
+    if (geocodeCache.size >= MAX_CACHE_SIZE) {
+        const firstKey = geocodeCache.keys().next().value;
+        geocodeCache.delete(firstKey);
+    }
+    geocodeCache.set(cacheKey, { _isNegative: true, expiresAt: Date.now() + NEGATIVE_CACHE_TTL_MS });
 
     return null;
 };
