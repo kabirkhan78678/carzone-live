@@ -78,7 +78,8 @@ export const resolveAndEnrichCarLocation = async (car) => {
 
         for (const query of uniqueQueries) {
             try {
-                const geo = await geocodeAddress(query);
+                // Zero-API-on-GET rule: resolve via offline Swiss DB only to prevent external API calls & 403 spikes
+                const geo = await geocodeAddress(query, { allowExternal: false });
                 if (geo && isValidCoordinate(geo.latitude, -90, 90) && isValidCoordinate(geo.longitude, -180, 180)) {
                     latNum = geo.latitude;
                     lngNum = geo.longitude;

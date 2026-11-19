@@ -1,5 +1,6 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { lookupSwissPostalCode } from '../data/swissPostalCodes.js';
 dotenv.config();
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || "AIzaSyBkFQIVCNlXw8R334Op4b8KLslYlTjPTz0";
@@ -161,11 +162,13 @@ export const getCityVariants = (name) => {
 };
 
 /**
- * Geocode an address/location string via Google Geocoding API with multi-tier fallback.
+ * Geocode an address/location string via Offline Swiss DB first, with optional external fallback.
  * @param {string} query Address, city, or postal code
+ * @param {Object} [options={}] Options object
+ * @param {boolean} [options.allowExternal=false] Whether to allow external HTTP calls (Google/Nominatim)
  * @returns {Promise<{latitude: number, longitude: number, formatted_address: string, city?: string, postal_code?: string, source: string}|null>}
  */
-export const geocodeAddress = async (query) => {
+export const geocodeAddress = async (query, options = {}) => {
     if (!query || typeof query !== 'string') return null;
     const cleanQuery = query.trim();
     if (!cleanQuery) return null;
@@ -185,7 +188,23 @@ export const geocodeAddress = async (query) => {
         }
     }
 
-    // 2. Check built-in dictionary
+    // 2. Check complete Swiss Postal Codes & Localities offline database
+    const swissLookup = lookupSwissPostalCode(cleanQuery);
+    if (swissLookup) {
+        const result = {
+            latitude: swissLookup.latitude,
+            longitude: swissLookup.longitude,
+            formatted_address: `${swissLookup.city}, ${swissLookup.country}`,
+            city: swissLookup.city,
+            postal_code: swissLookup.postal_code,
+            country: swissLookup.country,
+            source: 'swiss-offline-db'
+        };
+        geocodeCache.set(cacheKey, result);
+        return result;
+    }
+
+    // 3. Check built-in city names dictionary
     const dictLookup = BUILT_IN_COORDINATES[cacheKey] ||
         BUILT_IN_COORDINATES[cleanQuery.toLowerCase().replace(/,\s*(switzerland|ch|suisse|schweiz|svizzera)/gi, '').trim()];
 
@@ -203,7 +222,18 @@ export const geocodeAddress = async (query) => {
         return result;
     }
 
-    // 3. Try Google Geocoding API if key exists and circuit breaker is NOT active
+    // 4. If external calls are NOT allowed (e.g. GET car details or search filtering), stop here!
+    // This prevents hammering Google API with 403 / quota errors on general app usage.
+    if (!options.allowExternal) {
+        if (geocodeCache.size >= MAX_CACHE_SIZE) {
+            const firstKey = geocodeCache.keys().next().value;
+            geocodeCache.delete(firstKey);
+        }
+        geocodeCache.set(cacheKey, { _isNegative: true, expiresAt: Date.now() + NEGATIVE_CACHE_TTL_MS });
+        return null;
+    }
+
+    // 5. Try Google Geocoding API if key exists and circuit breaker is NOT active
     if (GOOGLE_API_KEY) {
         if (Date.now() < googleBlockedUntil) {
             // Google API is currently restricted/denied; skip to avoid flood and error spikes
@@ -259,7 +289,7 @@ export const geocodeAddress = async (query) => {
         }
     }
 
-    // 4. Try OpenStreetMap (Nominatim) Fallback
+    // 6. Try OpenStreetMap (Nominatim) Fallback
     try {
         const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cleanQuery)}&format=json&limit=1`;
         const response = await axios.get(nominatimUrl, {
@@ -294,7 +324,7 @@ export const geocodeAddress = async (query) => {
         console.warn(`[Geocoding] Nominatim fallback failed: ${nomErr.message}`);
     }
 
-    // 5. Negative caching: Remember this failed lookup so we don't repeat external requests for 30 minutes
+    // 7. Negative caching: Remember this failed lookup so we don't repeat external requests for 30 minutes
     if (geocodeCache.size >= MAX_CACHE_SIZE) {
         const firstKey = geocodeCache.keys().next().value;
         geocodeCache.delete(firstKey);
@@ -378,19 +408,20 @@ export const resolveLocationCoordinates = async (input = {}) => {
 
     // Try geocoding: pincode has higher specificity if present, else city
     let geocode = null;
+    const allowExternal = Boolean(input.allowExternal);
 
     if (pincode) {
-        // e.g. "8001, Switzerland"
-        geocode = await geocodeAddress(`${pincode}, Switzerland`);
+        // Try direct pincode in offline Swiss DB first
+        geocode = await geocodeAddress(pincode, { allowExternal });
         if (!geocode) {
-            geocode = await geocodeAddress(pincode);
+            geocode = await geocodeAddress(`${pincode}, Switzerland`, { allowExternal });
         }
     }
 
     if (!geocode && city) {
-        geocode = await geocodeAddress(`${city}, Switzerland`);
+        geocode = await geocodeAddress(city, { allowExternal });
         if (!geocode) {
-            geocode = await geocodeAddress(city);
+            geocode = await geocodeAddress(`${city}, Switzerland`, { allowExternal });
         }
     }
 

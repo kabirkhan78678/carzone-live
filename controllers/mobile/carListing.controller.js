@@ -577,7 +577,7 @@ export const listCarmobile = async (req, res) => {
             if (hasContactData) {
                 if (!contactPayload.latitude && (contactPayload.city || contactPayload.postal_code)) {
                     try {
-                        const geo = await geocodeAddress([contactPayload.postal_code, contactPayload.city, contactPayload.country || 'Switzerland'].filter(Boolean).join(', '));
+                        const geo = await geocodeAddress([contactPayload.postal_code, contactPayload.city, contactPayload.country || 'Switzerland'].filter(Boolean).join(', '), { allowExternal: true });
                         if (geo && geo.latitude && geo.longitude) {
                             contactPayload.latitude = String(geo.latitude);
                             contactPayload.longitude = String(geo.longitude);
